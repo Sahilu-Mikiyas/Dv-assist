@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DV Assist — Login</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main style="max-width: 360px">
+  <h1>DV Assist</h1>
+  <form id="login">
+    <label>Password <input type="password" name="password" required autofocus></label>
+    <p id="error" hidden></p>
+    <button>Log in</button>
+  </form>
+</main>
+<script type="module">
+  import { api, $, showError } from '/app.js';
+
+  $('#login').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await api('POST', '/api/login', { password: e.target.password.value });
+      location.href = '/';
+    } catch (err) {
+      showError(err);
+    }
+  });
+</script>
+</body>
+</html>

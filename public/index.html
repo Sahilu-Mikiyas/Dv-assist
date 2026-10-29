@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DV Assist — Cases</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Cases</h1>
+    <div>
+      <a href="/case.html"><button>New case</button></a>
+      <button class="secondary" id="logout">Log out</button>
+    </div>
+  </header>
+  <p id="error" hidden></p>
+  <table>
+    <thead><tr><th>Applicant</th><th>Status</th><th>Confirmation #</th><th>Updated</th></tr></thead>
+    <tbody id="cases"></tbody>
+  </table>
+</main>
+<script type="module">
+  import { api, $, showError, label, personName } from '/app.js';
+
+  $('#logout').addEventListener('click', async () => {
+    await api('POST', '/api/logout');
+    location.href = '/login.html';
+  });
+
+  try {
+    const cases = await api('GET', '/api/cases');
+    $('#cases').replaceChildren(...cases.map((c) => {
+      const tr = document.createElement('tr');
+      const link = Object.assign(document.createElement('a'), {
+        href: `/case.html?id=${c.id}`, textContent: personName(c.applicant),
+      });
+      const status = Object.assign(document.createElement('span'), {
+        className: `status ${c.status}`, textContent: label(c.status),
+      });
+      const cells = [link, status, c.confirmationNumber ?? '—', new Date(c.updatedAt).toLocaleString()];
+      tr.append(...cells.map((content) => {
+        const td = document.createElement('td');
+        td.append(content);
+        return td;
+      }));
+      return tr;
+    }));
+    if (!cases.length) $('#cases').innerHTML = '<tr><td colspan="4" class="muted">No cases yet.</td></tr>';
+  } catch (err) {
+    showError(err);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DV Assist — Case</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title">New case</h1>
+    <a href="/">← All cases</a>
+  </header>
+  <p id="error" hidden></p>
+
+  <h2>1. Applicant details</h2>
+  <form id="form">
+    <fieldset data-person="applicant"><legend>Applicant</legend></fieldset>
+    <fieldset>
+      <legend>Entry details</legend>
+      <label>Country of eligibility <input name="eligibilityCountry" required></label>
+      <label>Mailing address <textarea name="mailingAddress" rows="3" required></textarea></label>
+      <div class="row">
+        <label>Country where you live today <input name="residenceCountry" required></label>
+        <label>Phone (optional) <input name="phone"></label>
+      </div>
+      <label>Email <input type="email" name="email" required></label>
+      <div class="row">
+        <label>Highest education <select name="education" required></select></label>
+        <label>Marital status <select name="maritalStatus" required></select></label>
+      </div>
+    </fieldset>
+    <fieldset data-person="spouse" hidden><legend>Spouse</legend></fieldset>
+    <div id="children"></div>
+    <p>
+      <button type="button" class="secondary" id="add-child">Add child</button>
+      <button id="save">Save</button>
+    </p>
+  </form>
+
+  <section id="photos-section" hidden>
+    <h2>2. Photos</h2>
+    <p class="muted">JPEG, exactly 600×600 pixels, 240 KB or smaller. Check the background and pose yourself.</p>
+    <div id="photos"></div>
+  </section>
+
+  <section id="pay-section" hidden>
+    <h2>3. Pay the DV fee</h2>
+    <div id="pay-draft">
+      <p class="muted">Issues a Bitnob virtual USD card loaded with the fee. Upload every photo first.</p>
+      <button id="issue-card">Issue card</button>
+    </div>
+    <div id="pay-issued" hidden>
+      <p class="muted">Use this card to pay the fee on the official entry site, then record the confirmation number.</p>
+      <button class="secondary" id="show-card">Show card details</button>
+      <pre class="card-details" id="card" hidden></pre>
+      <form id="submit-form">
+        <label>Confirmation number <input name="confirmationNumber" required></label>
+        <button>Mark as submitted</button>
+      </form>
+    </div>
+    <p id="pay-done" hidden>Submitted. Confirmation number: <strong id="confirmation"></strong></p>
+  </section>
+</main>
+
+<template id="person-fields">
+  <div class="row">
+    <label>Last name <input name="lastName" required></label>
+    <label>First name <input name="firstName"></label>
+    <label>Middle name <input name="middleName"></label>
+  </div>
+  <label><input type="checkbox" name="noFirstName"> No first name</label>
+  <div class="row">
+    <label>Gender
+      <select name="gender" required><option value="">—</option><option value="male">Male</option><option value="female">Female</option></select>
+    </label>
+    <label>Birth date <input type="date" name="birthDate" required></label>
+  </div>
+  <div class="row">
+    <label>City of birth <input name="birthCity" required></label>
+    <label>Country of birth <input name="birthCountry" required></label>
+  </div>
+</template>
+
+<script type="module" src="/case.js"></script>
+</body>
+</html>
