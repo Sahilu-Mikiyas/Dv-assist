@@ -1,8 +1,8 @@
-// Single-operator login: one password, a signed expiring session cookie.
+// Single-operator login: scrypt-hashed password, signed expiring session cookie.
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { verifyPassword } from '../infra/crypto.js';
 
-const COOKIE = 'dv_session';
 const SESSION_MS = 8 * 60 * 60 * 1000;
 
 const sign = (secret, value) => createHmac('sha256', secret).update(value).digest('base64url');
@@ -21,21 +21,23 @@ function readCookie(req, name) {
   return null;
 }
 
-export function auth({ adminPassword, sessionSecret, secureCookies }) {
+export function auth({ adminPasswordHash, sessionSecret, secureCookies }) {
+  // __Host- cookies are only accepted over HTTPS, for this exact host, with Path=/.
+  const name = secureCookies ? '__Host-dv_session' : 'dv_session';
   const attrs = `Path=/; HttpOnly; SameSite=Strict${secureCookies ? '; Secure' : ''}`;
 
   return {
-    checkPassword: (password) => typeof password === 'string' && safeEqual(password, adminPassword),
+    checkPassword: (password) => verifyPassword(password, adminPasswordHash),
 
     sessionCookie() {
       const expires = String(Date.now() + SESSION_MS);
-      return `${COOKIE}=${expires}.${sign(sessionSecret, expires)}; Max-Age=${SESSION_MS / 1000}; ${attrs}`;
+      return `${name}=${expires}.${sign(sessionSecret, expires)}; Max-Age=${SESSION_MS / 1000}; ${attrs}`;
     },
 
-    clearCookie: () => `${COOKIE}=; Max-Age=0; ${attrs}`,
+    clearCookie: () => `${name}=; Max-Age=0; ${attrs}`,
 
     isAuthenticated(req) {
-      const [expires, sig] = (readCookie(req, COOKIE) ?? '').split('.');
+      const [expires, sig] = (readCookie(req, name) ?? '').split('.');
       if (!expires || !sig) return false;
       return safeEqual(sig, sign(sessionSecret, expires)) && Number(expires) > Date.now();
     },

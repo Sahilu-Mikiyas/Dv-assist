@@ -1,5 +1,10 @@
 // Test fixtures shared across suites.
 
+import { randomBytes } from 'node:crypto';
+import { cipher } from '../src/infra/crypto.js';
+import { auditLog, caseRepository, openDb } from '../src/infra/db.js';
+import { caseService } from '../src/services/cases.js';
+
 export const person = (overrides = {}) => ({
   lastName: 'Abebe',
   firstName: 'Kebede',
@@ -29,4 +34,30 @@ export function fakeJpeg(width = 600, height = 600, padTo = 0) {
   sof.writeUInt16BE(width, 7);
   const buf = Buffer.concat([Buffer.from([0xff, 0xd8]), sof, Buffer.alloc(20)]);
   return padTo > buf.length ? Buffer.concat([buf, Buffer.alloc(padTo - buf.length)]) : buf;
+}
+
+export function fakeBitnob() {
+  const calls = [];
+  return {
+    calls,
+    async createCard(args) {
+      calls.push(args);
+      await new Promise((r) => setTimeout(r, 5));
+      return { cardId: 'card_123' };
+    },
+    async getCard() {
+      return { cardNumber: '4111111111111111', cvv: '123', expiry: '12/29' };
+    },
+  };
+}
+
+// A case service on a fresh in-memory database, with the raw db exposed for assertions.
+export async function setupCases() {
+  const db = await openDb({ url: ':memory:' });
+  const bitnob = fakeBitnob();
+  const audit = auditLog(db);
+  const cases = caseService({
+    repo: caseRepository(db, cipher(randomBytes(32))), audit, bitnob, cardAmountUsd: 5,
+  });
+  return { db, cases, audit, bitnob };
 }

@@ -1,0 +1,32 @@
+# Render Blueprint: free web service built from the Dockerfile. Data lives in Turso (DATABASE_URL).
+services:
+  - type: web
+    name: dv-assist
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: TRUST_PROXY
+        value: "true"
+      - key: SECURE_COOKIES
+        value: "true"
+      - key: CARD_AMOUNT_USD
+        value: "5"
+      - key: BITNOB_BASE_URL
+        value: https://sandboxapi.bitnob.co/api/v1
+      # Secrets: entered in the Render dashboard, never committed.
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_AUTH_TOKEN
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: DATA_ENCRYPTION_KEY
+        sync: false
+      - key: BITNOB_SECRET_KEY
+        sync: false
+      - key: BITNOB_CARD_CUSTOMER_EMAIL
+        sync: false

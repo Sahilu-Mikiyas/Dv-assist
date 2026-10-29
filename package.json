@@ -1,12 +1,18 @@
 {
   "name": "dv-assist",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Minimal DV lottery entry assistant that pays the official fee with a Bitnob virtual card.",
   "type": "module",
-  "engines": { "node": ">=22.9" },
+  "engines": {
+    "node": ">=22.9"
+  },
   "scripts": {
-    "start": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/main.js",
-    "test": "node --disable-warning=ExperimentalWarning --test"
+    "start": "node --env-file-if-exists=.env src/main.js",
+    "test": "node --test",
+    "setup-secrets": "node scripts/setup-secrets.js"
+  },
+  "dependencies": {
+    "@libsql/client": "0.18.0"
   }
 }

@@ -25,3 +25,4 @@ button:disabled { opacity: .5; cursor: default; }
 .photo img { width: 80px; height: 80px; object-fit: cover; border: 1px solid #ccc; }
 .muted { color: #666; font-size: 13px; }
 input:disabled, textarea:disabled, select:disabled { background: #f3f3f3; color: #555; }
+.narrow { max-width: 360px; }
