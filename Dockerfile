@@ -1,5 +1,5 @@
 # Same image runs locally, on Render and on Railway.
-FROM node:22.22.0-bookworm-slim
+FROM node:26.12.0-bookworm-slim
 
 ENV NODE_ENV=production
 WORKDIR /app
