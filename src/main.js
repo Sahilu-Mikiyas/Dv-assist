@@ -27,7 +27,7 @@ const server = createApp({
   authn: auth(config),
   limiter: loginLimiter(),
   trustProxy: config.trustProxy,
-  hsts: config.hsts,
+  hsts: config.secureCookies,
 });
 
 server.listen(config.port, () => log.info('started', { port: config.port }));

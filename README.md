@@ -104,8 +104,8 @@ test/         node:test suites (Bitnob is faked)
 | Duplicate payments | One card per case: requests for the same case are serialized, and Bitnob gets the idempotent reference `dv-<caseId>`. |
 | Accountability | `audit_events` table: logins, failed logins, case edits, photo uploads, card issue/view and submission, with time and IP. |
 | Logs | JSON request logs with a request id. They never include applicant or card data. |
-| Supply chain | One pinned dependency, `npm audit` in CI, and Dependabot for npm, Actions and Docker. |
-| Runtime | The container runs as a non-root user, with a health check at `/healthz`. |
+| Supply chain | One pinned dependency, checked by `npm audit` on every push. |
+| Runtime | The container runs as a non-root user. The host checks `/healthz`. |
 
 Before handling real applicants, also decide on data retention, and on who besides you may hold
 `DATA_ENCRYPTION_KEY` and the Bitnob key.

@@ -37,7 +37,6 @@ export function loadConfig() {
     adminPasswordHash,
     sessionSecret,
     secureCookies,
-    hsts: secureCookies,
     trustProxy: flag('TRUST_PROXY', false),
     cardAmountUsd,
     bitnob: {
