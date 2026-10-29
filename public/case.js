@@ -5,6 +5,8 @@ const PERSON_FIELDS = ['lastName', 'firstName', 'middleName', 'gender', 'birthDa
 
 const form = $('#form');
 let caseId = new URLSearchParams(location.search).get('id');
+let current = null; // last case loaded from the server
+let busy = false;   // one request at a time, so repeated clicks cannot duplicate work
 
 // ---------- form building ----------
 
@@ -82,39 +84,69 @@ function renderPhotos(c) {
     else img.alt = 'none';
     const input = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/jpeg' });
     input.disabled = c.status !== 'draft';
-    input.addEventListener('change', async () => {
+    input.addEventListener('change', () => run(input, async () => {
       try {
-        showError(null);
         await api('PUT', `/api/cases/${c.id}/photos/${key}`, input.files[0], 'image/jpeg');
-        render(await api('GET', `/api/cases/${c.id}`));
       } catch (err) {
-        showError(err);
         input.value = '';
+        throw err;
       }
-    });
+      render(await api('GET', `/api/cases/${c.id}`));
+    }));
     const name = Object.assign(document.createElement('strong'), { textContent: key });
     row.append(img, name, input);
     return row;
   }));
 }
 
-function render(c) {
-  $('#title').textContent = personName(c.applicant);
-  writeForm(c.applicant);
-  const editable = c.status === 'draft';
+// Enables exactly the controls that make sense for the case's current state.
+function applyControls(c) {
+  const editable = !c || c.status === 'draft';
   for (const el of form.elements) el.disabled = !editable;
   toggleSpouse();
   if (!editable) $('[data-person="spouse"]').disabled = true;
+  if (!c) return;
+
+  const missing = c.photos.filter((p) => !p.uploaded).map((p) => p.key);
+  $('#issue-card').disabled = missing.length > 0;
+  $('#photo-hint').textContent = missing.length ? `Upload a photo for: ${missing.join(', ')}` : '';
+  for (const input of document.querySelectorAll('#photos input')) input.disabled = !editable;
+}
+
+function render(c) {
+  current = c;
+  $('#title').textContent = personName(c.applicant);
+  writeForm(c.applicant);
 
   $('#photos-section').hidden = false;
   renderPhotos(c);
 
   $('#pay-section').hidden = false;
   $('#pay-draft').hidden = c.status !== 'draft';
-  $('#issue-card').disabled = !c.photos.every((p) => p.uploaded);
   $('#pay-issued').hidden = c.status !== 'card_issued';
   $('#pay-done').hidden = c.status !== 'submitted';
   $('#confirmation').textContent = c.confirmationNumber ?? '';
+  applyControls(c);
+}
+
+// Runs one server action at a time: locks the control, shows progress, reports errors.
+async function run(control, action) {
+  if (busy) return;
+  busy = true;
+  const label = control.tagName === 'BUTTON' ? control.textContent : null;
+  control.disabled = true;
+  if (label) control.textContent = 'Working…';
+  showError(null);
+  try {
+    await action();
+  } catch (err) {
+    showError(err);
+  } finally {
+    busy = false;
+    if (label) control.textContent = label;
+    control.disabled = false;
+    applyControls(current);
+  }
 }
 
 // ---------- actions ----------
@@ -122,10 +154,9 @@ function render(c) {
 form.maritalStatus.addEventListener('change', toggleSpouse);
 $('#add-child').addEventListener('click', () => addChild());
 
-form.addEventListener('submit', async (e) => {
+form.addEventListener('submit', (e) => {
   e.preventDefault();
-  try {
-    showError(null);
+  run($('#save'), async () => {
     const saved = caseId
       ? await api('PUT', `/api/cases/${caseId}`, readForm())
       : await api('POST', '/api/cases', readForm());
@@ -134,26 +165,16 @@ form.addEventListener('submit', async (e) => {
       history.replaceState(null, '', `/case.html?id=${caseId}`);
     }
     render(saved);
-  } catch (err) {
-    showError(err);
-  }
+  });
 });
 
-$('#issue-card').addEventListener('click', async (e) => {
+$('#issue-card').addEventListener('click', (e) => {
   if (!confirm('Issue and fund a virtual card for this case?')) return;
-  e.target.disabled = true;
-  try {
-    showError(null);
-    render(await api('POST', `/api/cases/${caseId}/card`));
-  } catch (err) {
-    showError(err);
-    e.target.disabled = false;
-  }
+  run(e.target, async () => render(await api('POST', `/api/cases/${caseId}/card`)));
 });
 
-$('#show-card').addEventListener('click', async () => {
-  try {
-    showError(null);
+$('#show-card').addEventListener('click', (e) => {
+  run(e.target, async () => {
     const card = await api('GET', `/api/cases/${caseId}/card`);
     $('#card').textContent = [
       `Name:    ${card.nameOnCard ?? ''}`,
@@ -163,19 +184,15 @@ $('#show-card').addEventListener('click', async () => {
       card.billingAddress ? `Billing: ${JSON.stringify(card.billingAddress)}` : '',
     ].filter(Boolean).join('\n');
     $('#card').hidden = false;
-  } catch (err) {
-    showError(err);
-  }
+  });
 });
 
-$('#submit-form').addEventListener('submit', async (e) => {
+$('#submit-form').addEventListener('submit', (e) => {
   e.preventDefault();
-  try {
-    showError(null);
-    render(await api('POST', `/api/cases/${caseId}/submit`, { confirmationNumber: e.target.confirmationNumber.value }));
-  } catch (err) {
-    showError(err);
-  }
+  const confirmationNumber = e.target.confirmationNumber.value;
+  run(e.submitter ?? e.target.querySelector('button'), async () => {
+    render(await api('POST', `/api/cases/${caseId}/submit`, { confirmationNumber }));
+  });
 });
 
 // ---------- init ----------
