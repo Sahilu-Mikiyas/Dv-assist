@@ -14,7 +14,7 @@ services:
       - key: CARD_AMOUNT_USD
         value: "5"
       - key: BITNOB_BASE_URL
-        value: https://sandboxapi.bitnob.co/api/v1
+        value: https://api.bitnob.com
       # Secrets: entered in the Render dashboard, never committed.
       - key: DATABASE_URL
         sync: false
@@ -26,7 +26,9 @@ services:
         sync: false
       - key: DATA_ENCRYPTION_KEY
         sync: false
+      - key: BITNOB_CLIENT_ID
+        sync: false
       - key: BITNOB_SECRET_KEY
         sync: false
-      - key: BITNOB_CARD_CUSTOMER_EMAIL
+      - key: BITNOB_CARD_CUSTOMER_ID
         sync: false

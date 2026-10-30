@@ -5,7 +5,6 @@ import { auth } from './http/auth.js';
 import { loginLimiter } from './http/rate-limit.js';
 import { createApp } from './http/server.js';
 import { bitnobClient } from './infra/bitnob.js';
-import { probeBitnob } from './infra/bitnob-probe.js';
 import { cipher } from './infra/crypto.js';
 import { auditLog, caseRepository, openDb } from './infra/db.js';
 import { log } from './infra/log.js';
@@ -32,8 +31,6 @@ const server = createApp({
 });
 
 server.listen(config.port, () => log.info('started', { port: config.port }));
-
-if (process.env.BITNOB_PROBE === 'true') probeBitnob(config.bitnob);
 
 function shutdown(signal) {
   log.info('shutting_down', { signal });

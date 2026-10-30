@@ -16,7 +16,7 @@ export function signRequest({ clientId, secretKey, timestamp, nonce, body }) {
   return createHmac('sha256', secretKey).update(`${clientId}:${timestamp}:${nonce}:${body}`).digest('hex');
 }
 
-export function bitnobClient({ baseUrl, clientId, secretKey, cardCustomerEmail }, fetchImpl = fetch) {
+export function bitnobClient({ baseUrl, clientId, secretKey, cardCustomerId }, fetchImpl = fetch) {
   async function request(method, path, body) {
     const rawBody = body ? JSON.stringify(body) : '';
     const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -50,29 +50,41 @@ export function bitnobClient({ baseUrl, clientId, secretKey, cardCustomerEmail }
   return {
     request,
 
-    // Issues a USD virtual card loaded with amountUsd, held by the business card user
-    // (registered once in the Bitnob dashboard). `reference` makes the call idempotent.
+    // Issues a USD virtual card loaded with amountUsd for the single card-holder customer.
+    // Bitnob amounts are in millionths of a dollar ($2 = 2_000_000); minimum load is $2.
+    // `reference` is unique per case so a retried request cannot create a second card.
     async createCard({ amountUsd, reference }) {
-      const data = await request('POST', '/virtualcards/create', {
-        customerEmail: cardCustomerEmail,
-        cardBrand: 'visa',
-        cardType: 'virtual',
+      const data = await request('POST', '/api/cards', {
+        card_type: 'virtual',
+        customer_id: cardCustomerId,
+        currency: 'USD',
+        card_brand: 'visa',
+        amount: Math.round(amountUsd * 1_000_000),
         reference,
-        amount: Math.round(amountUsd * 100), // cents
       });
-      return { cardId: data.id };
+      const cardId = data.id ?? data.card_id ?? data.card?.id;
+      if (!cardId) throw new BitnobError(`Card created but no id returned (fields: ${Object.keys(data).join(', ')})`, 502);
+      return { cardId };
     },
 
     // Card details are fetched on demand and never stored locally.
     async getCard(cardId) {
-      const data = await request('GET', `/virtualcards/cards/${encodeURIComponent(cardId)}`);
-      return {
-        cardNumber: data.cardNumber,
-        cvv: data.cvv2 ?? data.cvv,
-        expiry: data.expiry ?? data.expiryDate,
-        nameOnCard: data.cardName ?? data.nameOnCard,
-        billingAddress: data.billingAddress ?? null,
+      const data = await request('GET', `/api/cards/${encodeURIComponent(cardId)}`);
+      const card = data.card ?? data;
+      const expiry = card.expiry ?? card.expiry_date
+        ?? (card.expiry_month && card.expiry_year ? `${card.expiry_month}/${card.expiry_year}` : undefined);
+      const details = {
+        cardNumber: card.card_number ?? card.pan ?? card.number,
+        cvv: card.cvv ?? card.cvv2,
+        expiry,
+        nameOnCard: card.name_on_card ?? card.card_name ?? card.name,
+        billingAddress: card.billing_address ?? null,
       };
+      // Field names are not documented; report which ones came back (names only, never values).
+      if (!details.cardNumber) {
+        throw new BitnobError(`Card number not in Bitnob response (fields: ${Object.keys(card).join(', ')})`, 502);
+      }
+      return details;
     },
   };
 }

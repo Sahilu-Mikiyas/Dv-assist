@@ -46,7 +46,8 @@ Store `DATA_ENCRYPTION_KEY` in a password manager. Without it, the stored data c
 1. Sign up at https://render.com with GitHub.
 2. Choose **New → Blueprint**, then select this repository. Render reads `render.yaml`.
 3. Fill in the secret values it asks for: `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `ADMIN_PASSWORD_HASH`,
-   `SESSION_SECRET`, `DATA_ENCRYPTION_KEY`, `BITNOB_SECRET_KEY` and `BITNOB_CARD_CUSTOMER_EMAIL`.
+   `SESSION_SECRET`, `DATA_ENCRYPTION_KEY`, `BITNOB_CLIENT_ID`, `BITNOB_SECRET_KEY` and
+   `BITNOB_CARD_CUSTOMER_ID`.
 4. Deploy, then open the `…onrender.com` URL.
 
 Free-tier limit: the service sleeps after about 15 minutes idle, and the first request after that
@@ -66,15 +67,19 @@ Keep the same `DATA_ENCRYPTION_KEY`, or existing data cannot be read.
 
 ## Bitnob setup
 
-- Create an account (sandbox: https://sandboxapp.bitnob.co) and put the secret key in `BITNOB_SECRET_KEY`.
-- Register and KYC **one** card user, your business, in Bitnob. Put its email in
-  `BITNOB_CARD_CUSTOMER_EMAIL`. Every card is issued under it, so applicants never go through Bitnob KYC.
-- Keep enough USD balance in Bitnob to fund the cards.
+1. Sign up at https://app.bitnob.com and switch to **Sandbox Mode** for testing.
+2. Create an API key. Whitelist Render's outbound IPs (Render → service → Connect → Outbound).
+   Put its Client ID in `BITNOB_CLIENT_ID` and the key, including its `prd:` prefix, in `BITNOB_SECRET_KEY`.
+3. Create **one** card-holder customer (`POST /api/customers` with `customer_type: individual`) and
+   put its id in `BITNOB_CARD_CUSTOMER_ID`. Every card is issued to it, so applicants never go through Bitnob KYC.
+4. Keep USDC in the company wallet. A $2 card needed $4.00 USDC in the sandbox (load plus fees).
 
-All Bitnob calls are in `src/infra/bitnob.js`. They use the v1 Virtual Cards endpoints
-(`POST /virtualcards/create`, `GET /virtualcards/cards/:id`) with Bearer auth. Bitnob has been
-moving cards to a newer API, so check those paths against the docs for your account and test in
-the sandbox before going live.
+How the integration works (`src/infra/bitnob.js`):
+- Host `https://api.bitnob.com` serves both sandbox and live. The key decides which.
+- Every request is signed: `X-Auth-Client`, `X-Auth-Timestamp` (Unix seconds), `X-Auth-Nonce`
+  (16 random bytes, hex) and `X-Auth-Signature` = hex HMAC-SHA256 of `clientId:timestamp:nonce:body`.
+- `POST /api/cards` issues a card. Amounts are in millionths of a dollar ($2 = 2,000,000), with a $2 minimum.
+- `GET /api/cards/:id` returns card details. They are never stored.
 
 ## Structure
 

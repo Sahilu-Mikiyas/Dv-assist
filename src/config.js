@@ -12,9 +12,10 @@ const flag = (name, fallback) => (process.env[name] ?? String(fallback)) === 'tr
 
 export function loadConfig() {
   // Amount loaded on each card: must cover the official DV fee plus any card-side charges.
+  // Bitnob's minimum card load is $2.
   const cardAmountUsd = Number(process.env.CARD_AMOUNT_USD ?? '5');
-  if (!Number.isFinite(cardAmountUsd) || cardAmountUsd <= 0) {
-    throw new Error('CARD_AMOUNT_USD must be a positive number');
+  if (!Number.isFinite(cardAmountUsd) || cardAmountUsd < 2) {
+    throw new Error('CARD_AMOUNT_USD must be at least 2');
   }
 
   const sessionSecret = required('SESSION_SECRET');
@@ -43,7 +44,7 @@ export function loadConfig() {
       baseUrl: process.env.BITNOB_BASE_URL ?? 'https://api.bitnob.com',
       clientId: required('BITNOB_CLIENT_ID'),
       secretKey: required('BITNOB_SECRET_KEY'),
-      cardCustomerEmail: required('BITNOB_CARD_CUSTOMER_EMAIL'),
+      cardCustomerId: required('BITNOB_CARD_CUSTOMER_ID'),
     },
   };
 }
