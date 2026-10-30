@@ -1,6 +1,8 @@
-// Bitnob virtual card client. Every Bitnob request lives here so a change in their API
-// is a one-file change. Paths follow the v1 Virtual Cards API; verify them against
-// the docs for your account (https://docs.bitnob.com) before going live.
+// Bitnob client. Every Bitnob request lives here so a change in their API is a one-file change.
+// Requests are signed as Bitnob's current API requires: HMAC-SHA256 (hex) of
+// "clientId:timestamp:nonce:body", keyed with the client secret, sent in X-Auth-* headers.
+
+import { createHmac, randomBytes } from 'node:crypto';
 
 export class BitnobError extends Error {
   constructor(message, status) {
@@ -9,18 +11,28 @@ export class BitnobError extends Error {
   }
 }
 
-export function bitnobClient({ baseUrl, secretKey, cardCustomerEmail }, fetchImpl = fetch) {
+export function signRequest({ clientId, secretKey, timestamp, nonce, body }) {
+  return createHmac('sha256', secretKey).update(`${clientId}:${timestamp}:${nonce}:${body}`).digest('hex');
+}
+
+export function bitnobClient({ baseUrl, clientId, secretKey, cardCustomerEmail }, fetchImpl = fetch) {
   async function request(method, path, body) {
+    const rawBody = body ? JSON.stringify(body) : '';
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const nonce = randomBytes(16).toString('hex');
     let res;
     try {
       res = await fetchImpl(`${baseUrl}${path}`, {
         method,
         headers: {
-          Authorization: `Bearer ${secretKey}`,
-          'Content-Type': 'application/json',
           Accept: 'application/json',
+          ...(rawBody ? { 'Content-Type': 'application/json' } : {}),
+          'X-Auth-Client': clientId,
+          'X-Auth-Timestamp': timestamp,
+          'X-Auth-Nonce': nonce,
+          'X-Auth-Signature': signRequest({ clientId, secretKey, timestamp, nonce, body: rawBody }),
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body: rawBody || undefined,
         signal: AbortSignal.timeout(20_000),
       });
     } catch (err) {
@@ -28,12 +40,15 @@ export function bitnobClient({ baseUrl, secretKey, cardCustomerEmail }, fetchImp
     }
     const payload = await res.json().catch(() => ({}));
     if (!res.ok || payload.status === false) {
-      throw new BitnobError(payload.message ?? `Bitnob request failed (${res.status})`, res.status);
+      const message = payload.message ?? payload.detail ?? payload.title ?? `request failed (${res.status})`;
+      throw new BitnobError(message, res.status);
     }
-    return payload.data ?? {};
+    return payload.data ?? payload;
   }
 
   return {
+    request,
+
     // Issues a USD virtual card loaded with amountUsd, held by the business card user
     // (registered once in the Bitnob dashboard). `reference` makes the call idempotent.
     async createCard({ amountUsd, reference }) {

@@ -33,7 +33,7 @@ const server = createApp({
 
 server.listen(config.port, () => log.info('started', { port: config.port }));
 
-if (process.env.BITNOB_PROBE === 'true') probeBitnob(config.bitnob.secretKey);
+if (process.env.BITNOB_PROBE === 'true') probeBitnob(config.bitnob);
 
 function shutdown(signal) {
   log.info('shutting_down', { signal });

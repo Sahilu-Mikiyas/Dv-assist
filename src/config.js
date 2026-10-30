@@ -40,7 +40,8 @@ export function loadConfig() {
     trustProxy: flag('TRUST_PROXY', false),
     cardAmountUsd,
     bitnob: {
-      baseUrl: process.env.BITNOB_BASE_URL ?? 'https://sandboxapi.bitnob.co/api/v1',
+      baseUrl: process.env.BITNOB_BASE_URL ?? 'https://api.bitnob.com',
+      clientId: required('BITNOB_CLIENT_ID'),
       secretKey: required('BITNOB_SECRET_KEY'),
       cardCustomerEmail: required('BITNOB_CARD_CUSTOMER_EMAIL'),
     },
