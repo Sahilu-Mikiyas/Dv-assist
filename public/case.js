@@ -1,4 +1,5 @@
 import { api, $, showError, label, personName } from '/app.js';
+import { prepareDvPhoto } from '/photo-prep.js';
 
 const SPOUSE_REQUIRED = 'married_spouse_not_us_citizen_or_lpr';
 const PERSON_FIELDS = ['lastName', 'firstName', 'middleName', 'gender', 'birthDate', 'birthCity', 'birthCountry'];
@@ -82,11 +83,12 @@ function renderPhotos(c) {
     const img = document.createElement('img');
     if (uploaded) img.src = `/api/cases/${c.id}/photos/${key}?t=${Date.now()}`;
     else img.alt = 'none';
-    const input = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/jpeg' });
+    const input = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*' });
     input.disabled = c.status !== 'draft';
     input.addEventListener('change', () => run(input, async () => {
       try {
-        await api('PUT', `/api/cases/${c.id}/photos/${key}`, input.files[0], 'image/jpeg');
+        const photo = await prepareDvPhoto(input.files[0]);
+        await api('PUT', `/api/cases/${c.id}/photos/${key}`, photo, 'image/jpeg');
       } catch (err) {
         input.value = '';
         throw err;

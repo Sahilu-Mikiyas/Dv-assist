@@ -21,7 +21,7 @@ const MIME = {
 
 const SECURITY_HEADERS = {
   'Content-Security-Policy': [
-    "default-src 'self'", "script-src 'self'", "style-src 'self'", "img-src 'self'", "connect-src 'self'",
+    "default-src 'self'", "script-src 'self'", "style-src 'self'", "img-src 'self' blob:", "connect-src 'self'",
     "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'",
   ].join('; '),
   'X-Content-Type-Options': 'nosniff',
