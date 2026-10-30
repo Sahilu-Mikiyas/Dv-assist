@@ -11,15 +11,21 @@ export class BitnobError extends Error {
 
 export function bitnobClient({ baseUrl, secretKey, cardCustomerEmail }, fetchImpl = fetch) {
   async function request(method, path, body) {
-    const res = await fetchImpl(`${baseUrl}${path}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${secretKey}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    let res;
+    try {
+      res = await fetchImpl(`${baseUrl}${path}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(20_000),
+      });
+    } catch (err) {
+      throw new BitnobError(`Bitnob unreachable at ${baseUrl} (${err.cause?.code ?? err.message})`, 0);
+    }
     const payload = await res.json().catch(() => ({}));
     if (!res.ok || payload.status === false) {
       throw new BitnobError(payload.message ?? `Bitnob request failed (${res.status})`, res.status);

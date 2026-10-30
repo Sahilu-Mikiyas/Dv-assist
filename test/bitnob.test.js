@@ -29,3 +29,9 @@ test('surfaces Bitnob error messages', async () => {
   await assert.rejects(bitnobClient(config, impl).createCard({ amountUsd: 5, reference: 'x' }),
     (err) => err instanceof BitnobError && err.message === 'Insufficient balance');
 });
+
+test('reports an unreachable Bitnob host as a BitnobError', async () => {
+  const impl = async () => { throw Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } }); };
+  await assert.rejects(bitnobClient(config, impl).createCard({ amountUsd: 5, reference: 'x' }),
+    (err) => err instanceof BitnobError && /unreachable.*ENOTFOUND/.test(err.message));
+});
