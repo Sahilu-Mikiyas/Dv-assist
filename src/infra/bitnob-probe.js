@@ -1,30 +1,45 @@
-// TEMPORARY: learns Bitnob's request formats by sending read-only requests and deliberately
-// empty POSTs, which Bitnob rejects with the list of required fields (nothing is created).
-// Logs status codes and response text only. Enabled with BITNOB_PROBE=true.
+// TEMPORARY: learns Bitnob's card flow in the sandbox. Enabled with BITNOB_PROBE=true;
+// remove once the integration is settled.
 
 import { bitnobClient } from './bitnob.js';
 import { log } from './log.js';
 
-// A customer id that cannot exist, so card calls fail validation instead of creating anything.
-const NOBODY = '00000000-0000-4000-8000-000000000000';
-const CALLS = [
-  ['POST', '/api/customers', { customer_type: 'not-a-type', email: 'probe@example.com' }],
-  ['POST', '/api/cards', { card_type: 'virtual' }],
-  ['POST', '/api/cards', { card_type: 'virtual', customer_id: NOBODY, currency: 'USD', card_brand: 'visa', amount: 500, reference: 'probe-1' }],
-  ['POST', '/api/cards/kyc', { customer_id: NOBODY, terms_of_service_accepted: true }],
-  ['POST', `/api/cards/${NOBODY}/fund`, {}],
-  ['GET', `/api/cards/${NOBODY}`],
-];
-
+// Sandbox only: finds or creates the single card-holder customer, then shows what card-holder
+// verification (KYC) and card creation ask for. Logs Bitnob's responses, never our secrets.
 export async function probeBitnob(bitnobConfig) {
   const client = bitnobClient(bitnobConfig);
-  for (const [method, path, body] of CALLS) {
+  const step = async (label, method, path, body) => {
     try {
       const data = await client.request(method, path, body);
-      log.info('bitnob_probe', { method, path, sent: body, ok: true, body: JSON.stringify(data).slice(0, 1500) });
+      log.info('bitnob_probe', { label, ok: true, body: JSON.stringify(data).slice(0, 1500) });
+      return data;
     } catch (err) {
-      log.info('bitnob_probe', { method, path, sent: body, ok: false, status: err.status, details: err.details });
+      log.info('bitnob_probe', { label, ok: false, status: err.status, details: err.details });
+      return null;
     }
+  };
+
+  const who = await step('whoami', 'GET', '/api/whoami');
+  if (who?.environment !== 'sandbox') {
+    log.info('bitnob_probe', { label: 'stopped', reason: 'not a sandbox key' });
+    return;
   }
+
+  const email = bitnobConfig.cardCustomerEmail;
+  const list = await step('find customer', 'GET', `/api/customers?email=${encodeURIComponent(email)}`);
+  let customer = list?.customers?.find((c) => c.email === email);
+  if (!customer) {
+    customer = await step('create customer', 'POST', '/api/customers', {
+      customer_type: 'individual', email, first_name: 'Mikiyas', last_name: 'Sahilu',
+    });
+  }
+  const customerId = customer?.id ?? customer?.customer_id;
+  if (!customerId) return log.info('bitnob_probe_done');
+
+  await step('kyc requirements', 'POST', '/api/cards/kyc', { customer_id: customerId, terms_of_service_accepted: true });
+  await step('create card', 'POST', '/api/cards', {
+    card_type: 'virtual', customer_id: customerId, currency: 'USD', card_brand: 'visa',
+    amount: 2_000_000, reference: 'dv-probe-1',
+  });
   log.info('bitnob_probe_done');
 }
