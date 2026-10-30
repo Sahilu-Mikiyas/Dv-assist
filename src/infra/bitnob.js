@@ -5,9 +5,10 @@
 import { createHmac, randomBytes } from 'node:crypto';
 
 export class BitnobError extends Error {
-  constructor(message, status) {
+  constructor(message, status, details) {
     super(message);
     this.status = status;
+    this.details = details; // Bitnob's error body, e.g. field-level validation errors
   }
 }
 
@@ -41,7 +42,7 @@ export function bitnobClient({ baseUrl, clientId, secretKey, cardCustomerEmail }
     const payload = await res.json().catch(() => ({}));
     if (!res.ok || payload.status === false) {
       const message = payload.message ?? payload.detail ?? payload.title ?? `request failed (${res.status})`;
-      throw new BitnobError(message, res.status);
+      throw new BitnobError(message, res.status, JSON.stringify(payload).slice(0, 1500));
     }
     return payload.data ?? payload;
   }
