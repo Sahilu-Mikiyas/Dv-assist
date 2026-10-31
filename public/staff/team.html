@@ -11,12 +11,12 @@
 <body>
 <div class="shell">
   <nav class="sidebar" aria-label="Staff navigation">
-    <a class="brand" href="/"><svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg><b>Staff</b></a>
-    <a class="nav-link" href="/">Case queue</a>
-    <a class="nav-link" href="/?mine=1" id="mine-link">My cases</a>
-    <a class="nav-link" href="/case.html">New case</a>
-    <a class="nav-link" href="/team.html" aria-current="page" data-admin hidden>Team</a>
-    <a class="nav-link" href="/audit.html" data-admin hidden>Audit log</a>
+    <a class="brand" href="/staff/"><svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg><b>Staff</b></a>
+    <a class="nav-link" href="/staff/">Case queue</a>
+    <a class="nav-link" href="/staff/?mine=1" id="mine-link">My cases</a>
+    <a class="nav-link" href="/staff/case.html">New case</a>
+    <a class="nav-link" href="/staff/team.html" aria-current="page" data-admin hidden>Team</a>
+    <a class="nav-link" href="/staff/audit.html" data-admin hidden>Audit log</a>
     <div class="me"><span class="avatar" id="me-avatar">·</span><span><span id="me-name">…</span><br><span class="muted" id="me-role"></span></span><button class="btn small ghost" id="logout" type="button">Log out</button></div>
   </nav>
 
@@ -49,6 +49,6 @@
     </div>
   </main>
 </div>
-<script type="module" src="/team.js"></script>
+<script type="module" src="/staff/team.js"></script>
 </body>
 </html>

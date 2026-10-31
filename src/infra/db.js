@@ -51,6 +51,11 @@ const MIGRATIONS = [
   'ALTER TABLE audit_events ADD COLUMN staff_id TEXT',
   'ALTER TABLE audit_events ADD COLUMN detail TEXT',
   'CREATE INDEX audit_events_case ON audit_events (case_id)',
+  "ALTER TABLE cases ADD COLUMN source TEXT NOT NULL DEFAULT 'staff'",
+  'ALTER TABLE cases ADD COLUMN package TEXT',
+  'ALTER TABLE cases ADD COLUMN access_hash TEXT',
+  'ALTER TABLE cases ADD COLUMN sent_at TEXT',
+  'CREATE UNIQUE INDEX cases_access_hash ON cases (access_hash)',
 ];
 
 export async function openDb({ url, authToken }) {
@@ -86,6 +91,9 @@ export function caseRepository(db, crypt) {
       caseNumber: Number(row.case_number),
       assignedTo: row.assigned_to,
       checks: row.checks ? JSON.parse(row.checks) : {},
+      source: row.source,
+      package: row.package,
+      sentAt: row.sent_at,
       cardId: row.card_id,
       cardReference: row.card_reference,
       confirmationNumber: row.confirmation_number,
@@ -94,11 +102,25 @@ export function caseRepository(db, crypt) {
     };
 
   return {
-    async insert({ id, applicant, status }) {
+    // source: 'staff' or 'website'. Website cases carry the hash of the applicant's resume code.
+    async insert({ id, applicant, status, source = 'staff', pkg = null, accessHash = null }) {
       const ts = now();
       const { rows } = await run("UPDATE counters SET value = value + 1 WHERE name = 'case' RETURNING value");
-      await run('INSERT INTO cases (id, case_number, applicant, status, checks, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        id, rows[0].value, crypt.encryptJson(applicant), status, '{}', ts, ts);
+      await run(`INSERT INTO cases (id, case_number, applicant, status, checks, source, package, access_hash, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, rows[0].value, crypt.encryptJson(applicant), status, '{}', source, pkg, accessHash, ts, ts);
+    },
+
+    async findByAccessHash(accessHash) {
+      return toCase((await run('SELECT * FROM cases WHERE access_hash = ?', accessHash)).rows[0]);
+    },
+
+    async setPackage(id, pkg) {
+      await run('UPDATE cases SET package = ?, updated_at = ? WHERE id = ?', pkg, now(), id);
+    },
+
+    async markSent(id) {
+      await run('UPDATE cases SET sent_at = ?, updated_at = ? WHERE id = ?', now(), now(), id);
     },
 
     async setStatus(id, { status, checks }) {

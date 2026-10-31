@@ -1,5 +1,9 @@
 // Shared browser helpers for the staff app.
 
+import { $, el } from '/dom.js';
+
+export { $, el };
+
 export async function api(method, path, body, contentType = 'application/json') {
   const res = await fetch(path, {
     method,
@@ -7,25 +11,18 @@ export async function api(method, path, body, contentType = 'application/json') 
     body: body && contentType === 'application/json' ? JSON.stringify(body) : body,
   });
   if (res.status === 401 && path !== '/api/login') {
-    location.href = '/login.html';
+    location.href = '/staff/login.html';
     throw new Error('Login required');
   }
   const data = await res.json().catch(() => ({}));
   if (res.status === 403 && /authenticator/i.test(data.error ?? '')) {
-    location.href = '/login.html?setup=1';
+    location.href = '/staff/login.html?setup=1';
     throw new Error(data.error);
   }
   if (!res.ok) throw new Error([data.error, ...(data.details ?? [])].filter(Boolean).join('\n'));
   return data;
 }
 
-export const $ = (sel, root = document) => root.querySelector(sel);
-
-export function el(tag, props = {}, ...children) {
-  const node = Object.assign(document.createElement(tag), props);
-  node.append(...children.filter((c) => c !== null && c !== undefined && c !== false));
-  return node;
-}
 
 export function showError(err) {
   const box = $('#error');
@@ -49,6 +46,11 @@ export const STAGE_LABELS = {
   submitted: 'Submitted',
 };
 
+export const PACKAGE_LABELS = { self: 'Self-guided', managed: 'Managed', assisted: 'Assisted', vip: 'VIP' };
+
+// "Website · Managed" for applicant-started entries, "Staff" for entries typed in by the team.
+export const sourceLabel = (c) => (c.source === 'website' ? `Website · ${PACKAGE_LABELS[c.package] ?? '—'}` : 'Staff');
+
 export const initials = (name) => (name ?? '?').split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
 export function timeAgo(iso) {
@@ -64,7 +66,7 @@ export function timeAgo(iso) {
 export async function loadShell() {
   const me = await api('GET', '/api/me');
   if (me.stage === 'setup') {
-    location.href = '/login.html?setup=1';
+    location.href = '/staff/login.html?setup=1';
     throw new Error('Authenticator setup required');
   }
   $('#me-name').textContent = me.name;
@@ -73,7 +75,7 @@ export async function loadShell() {
   for (const link of document.querySelectorAll('[data-admin]')) link.hidden = me.role !== 'admin';
   $('#logout').addEventListener('click', async () => {
     await api('POST', '/api/logout');
-    location.href = '/login.html';
+    location.href = '/staff/login.html';
   });
   return me;
 }

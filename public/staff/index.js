@@ -1,4 +1,4 @@
-import { api, $, el, loadShell, showError, STAGE_LABELS, timeAgo } from '/app.js';
+import { api, $, el, loadShell, showError, sourceLabel, STAGE_LABELS, timeAgo } from '/staff/app.js';
 
 const params = new URLSearchParams(location.search);
 const STAGES = [
@@ -32,8 +32,8 @@ function renderCounters(counts) {
 
 function renderRows(cases) {
   $('#cases').replaceChildren(...cases.map((c) => el('tr', {},
-    el('td', { className: 'mono' }, el('a', { href: `/case.html?id=${c.id}`, textContent: c.code })),
-    el('td', {}, el('b', { textContent: c.name }), el('br'), el('span', { className: 'muted', textContent: `${c.people} ${c.people === 1 ? 'person' : 'people'}` })),
+    el('td', { className: 'mono' }, el('a', { href: `/staff/case.html?id=${c.id}`, textContent: c.code })),
+    el('td', {}, el('b', { textContent: c.name }), el('br'), el('span', { className: 'muted', textContent: `${c.people} ${c.people === 1 ? 'person' : 'people'} · ${sourceLabel(c)}` })),
     el('td', {}, el('span', { className: `chip ${c.status}`, textContent: STAGE_LABELS[c.status] ?? c.status })),
     el('td', { textContent: directory.get(c.assignedTo) ?? '—' }),
     el('td', { className: 'muted', textContent: timeAgo(c.updatedAt) }),

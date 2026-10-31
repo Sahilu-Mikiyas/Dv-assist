@@ -1,7 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { auth } from '../src/http/auth.js';
+import { applicantAuth, auth } from '../src/http/auth.js';
 import { loginLimiter } from '../src/http/rate-limit.js';
 import { createApp } from '../src/http/server.js';
 import { totpCode } from '../src/infra/totp.js';
@@ -16,8 +16,13 @@ let members;
 async function startServer({ secureCookies = true, perIp = 5 } = {}) {
   const env = await setupCases();
   const seeded = await seedStaff(env);
-  const authn = auth({ sessionSecret: 's'.repeat(32), secureCookies });
-  const server = createApp({ cases: env.cases, staff: env.staff, authn, limiter: loginLimiter({ perIp }), hsts: true, webhookSecret: WEBHOOK_SECRET });
+  const secrets = { sessionSecret: 's'.repeat(32), secureCookies };
+  const server = createApp({
+    cases: env.cases, staff: env.staff, applications: env.applications,
+    authn: auth(secrets), applicantAuthn: applicantAuth(secrets),
+    limiter: loginLimiter({ perIp }), startLimiter: loginLimiter({ perIp: 3 }), resumeLimiter: loginLimiter({ perIp }),
+    hsts: true, webhookSecret: WEBHOOK_SECRET,
+  });
   await new Promise((resolve) => server.listen(0, resolve));
   servers.push(server);
   return { url: `http://localhost:${server.address().port}`, members: seeded, env };
@@ -57,6 +62,57 @@ test('serves pages without login but not files outside public/', async () => {
   assert.match(res.headers.get('content-type'), /text\/html/);
   assert.equal((await fetch(`${base}/../package.json`)).status, 404);
   assert.equal((await fetch(`${base}/%2e%2e/package.json`)).status, 404);
+});
+
+test('serves clean URLs for the landing page, applicant flow and staff app', async () => {
+  for (const path of ['/', '/apply', '/staff/', '/staff/login.html']) {
+    const res = await fetch(`${base}${path}`);
+    assert.equal(res.status, 200, path);
+    assert.match(res.headers.get('content-type'), /text\/html/);
+  }
+});
+
+test('website applicants start, resume and send over HTTP with their own cookie', async () => {
+  const { url, members: m } = await startServer();
+  const json = { 'content-type': 'application/json' };
+  const start = () => fetch(`${url}/api/apply/start`, {
+    method: 'POST', headers: json, body: JSON.stringify({ package: 'self', applicant: applicantInput() }),
+  });
+  const res = await start();
+  assert.equal(res.status, 201);
+  const { resumeCode, application } = await res.json();
+  assert.equal(application.package, 'self');
+  const cookie = res.headers.get('set-cookie').split(';')[0];
+  assert.match(cookie, /^__Host-dv_applicant=/);
+
+  // The applicant cookie opens only the applicant API, never the staff API.
+  assert.equal((await fetch(`${url}/api/apply`)).status, 401);
+  assert.equal((await fetch(`${url}/api/apply`, { headers: { cookie } })).status, 200);
+  assert.equal((await fetch(`${url}/api/cases`, { headers: { cookie } })).status, 401);
+  const staffCookieAsApplicant = cookie.replace('__Host-dv_applicant', '__Host-dv_session');
+  assert.equal((await fetch(`${url}/api/me`, { headers: { cookie: staffCookieAsApplicant } })).status, 401);
+
+  const photo = await fetch(`${url}/api/apply/photos/applicant`, {
+    method: 'PUT', headers: { cookie, 'content-type': 'image/jpeg' }, body: fakeJpeg(),
+  });
+  assert.equal(photo.status, 200);
+  assert.equal((await fetch(`${url}/api/apply/send`, { method: 'POST', headers: { cookie } })).status, 200);
+
+  // A resume code signs the applicant back in; wrong codes are limited.
+  const resumed = await fetch(`${url}/api/apply/resume`, { method: 'POST', headers: json, body: JSON.stringify({ code: resumeCode }) });
+  assert.equal(resumed.status, 200);
+  assert.equal((await resumed.json()).editable, false);
+  const wrong = await fetch(`${url}/api/apply/resume`, { method: 'POST', headers: json, body: JSON.stringify({ code: 'AAAA-AAAA-AAAA' }) });
+  assert.equal(wrong.status, 401);
+
+  const staffApi = await signedIn(url, m.meron);
+  const queue = await (await staffApi('GET', '/api/cases')).json();
+  assert.equal(queue.cases[0].source, 'website');
+
+  // Starting entries is limited per connection (3 in this test server).
+  assert.equal((await start()).status, 201);
+  assert.equal((await start()).status, 201);
+  assert.equal((await start()).status, 429);
 });
 
 test('API requires a valid session', async () => {

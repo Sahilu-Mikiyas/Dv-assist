@@ -1,4 +1,4 @@
-import { api, $, el, loadShell, run, showError } from '/app.js';
+import { api, $, el, loadShell, run, showError } from '/staff/app.js';
 
 let me;
 

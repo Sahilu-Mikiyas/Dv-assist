@@ -1,4 +1,4 @@
-import { api, $, showError } from '/app.js';
+import { api, $, showError } from '/staff/app.js';
 
 let secret = null;
 
@@ -23,7 +23,7 @@ $('#signin').addEventListener('submit', async (e) => {
       email: form.email.value, password: form.password.value, code: form.code.value,
     });
     if (result.needsAuthenticator) await showSetup();
-    else location.href = '/';
+    else location.href = '/staff/';
   } catch (err) {
     showError(err);
   } finally {
@@ -37,7 +37,7 @@ $('#setup').addEventListener('submit', async (e) => {
   box.hidden = true;
   try {
     await api('POST', '/api/authenticator/confirm', { secret, code: e.target.code.value });
-    location.href = '/';
+    location.href = '/staff/';
   } catch (err) {
     box.textContent = err.message;
     box.hidden = false;

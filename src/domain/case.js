@@ -14,6 +14,9 @@ export const STATUS = Object.freeze({
 
 export const APPROVAL_METHODS = ['in_person', 'phone', 'online'];
 
+// Service packages an applicant can choose on the website.
+export const PACKAGES = ['self', 'managed', 'assisted', 'vip'];
+
 export const GENDERS = ['male', 'female'];
 
 export const EDUCATION_LEVELS = [
@@ -119,11 +122,31 @@ function assertStatus(caseRecord, expected, action) {
   }
 }
 
-// Abol: the first check. Every person on the entry needs a photo first.
-export function assertCanCheck(caseRecord, photoKeysPresent) {
-  assertStatus(caseRecord, STATUS.DRAFT, 'run the first check');
+function assertAllPhotos(caseRecord, photoKeysPresent) {
   const missing = photoKeys(caseRecord.applicant).filter((k) => !photoKeysPresent.includes(k));
   if (missing.length) throw new ValidationError(missing.map((k) => `Photo missing for ${k}`));
+}
+
+// A website applicant edits their own entry until they send it for checking.
+export function assertApplicantCanEdit(caseRecord) {
+  if (caseRecord.status !== STATUS.DRAFT || caseRecord.sentAt) {
+    throw new ValidationError(['This entry has been sent for checking and can no longer be changed here']);
+  }
+}
+
+export function assertCanSend(caseRecord, photoKeysPresent) {
+  assertApplicantCanEdit(caseRecord);
+  assertAllPhotos(caseRecord, photoKeysPresent);
+}
+
+// Abol: the first check. Every person on the entry needs a photo first, and a website entry must
+// have been sent by its applicant.
+export function assertCanCheck(caseRecord, photoKeysPresent) {
+  assertStatus(caseRecord, STATUS.DRAFT, 'run the first check');
+  if (caseRecord.source === 'website' && !caseRecord.sentAt) {
+    throw new ValidationError(['The applicant has not sent this entry for checking yet']);
+  }
+  assertAllPhotos(caseRecord, photoKeysPresent);
 }
 
 // Tona: the second check, by someone other than whoever did the first.

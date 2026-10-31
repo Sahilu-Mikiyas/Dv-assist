@@ -56,15 +56,18 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd }) {
     name: [c.applicant.firstName, c.applicant.lastName].filter(Boolean).join(' '),
     people: photoKeys(c.applicant).length,
     status: c.status,
+    source: c.source,
+    package: c.package,
     assignedTo: c.assignedTo,
     updatedAt: c.updatedAt,
   });
 
   return {
     // Filters: status (exact), q (name or case code, case-insensitive), assignedTo.
+    // Website entries appear once their applicant has sent them for checking.
     async list({ status, q, assignedTo } = {}) {
       const needle = (q ?? '').trim().toLowerCase();
-      const rows = (await repo.list()).map(summarize);
+      const rows = (await repo.list()).filter((c) => c.source !== 'website' || c.sentAt).map(summarize);
       const counts = rows.reduce((acc, r) => ({ ...acc, [r.status]: (acc[r.status] ?? 0) + 1 }), {});
       const cases = rows.filter((r) =>
         (!status || r.status === status)

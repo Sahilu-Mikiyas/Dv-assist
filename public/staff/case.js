@@ -1,4 +1,4 @@
-import { api, $, el, label, loadShell, personName, run, showError, STAGE_LABELS, timeAgo } from '/app.js';
+import { api, $, el, label, loadShell, personName, run, showError, sourceLabel, STAGE_LABELS, timeAgo } from '/staff/app.js';
 import { prepareDvPhoto } from '/photo-prep.js';
 
 const SPOUSE_REQUIRED = 'married_spouse_not_us_citizen_or_lpr';
@@ -225,7 +225,9 @@ function renderAction(c) {
     parts = [
       el('p', { className: 'eyebrow on-navy', textContent: 'Next: በረካ Baraka' }),
       el('h2', { textContent: "Applicant's approval" }),
-      el('p', { className: 'muted', textContent: 'Read the entry back to the applicant. Record approval only when they confirm everything.' }),
+      el('p', { className: 'muted', textContent: c.source === 'website'
+        ? 'The applicant can approve online with their code. Or read it back to them and record their approval here.'
+        : 'Read the entry back to the applicant. Record approval only when they confirm everything.' }),
       el('label', { className: 'field' }, 'How did they approve?', select),
       actionButton('Record approval · Baraka', async () => action('approve', { method: select.value })()),
       reopenButton(),
@@ -305,7 +307,7 @@ function render(c) {
   const draft = c.status === 'draft';
   document.title = `${c.code} — Ethio DV Assist staff`;
   $('#title').textContent = personName(c.applicant);
-  $('#meta').textContent = `${c.code} · ${c.photos.length} ${c.photos.length === 1 ? 'person' : 'people'} · ${STAGE_LABELS[c.status]}`;
+  $('#meta').textContent = `${c.code} · ${c.photos.length} ${c.photos.length === 1 ? 'person' : 'people'} · ${sourceLabel(c)} · ${STAGE_LABELS[c.status]}`;
   renderStages(c);
   renderAssign(c);
 
@@ -335,7 +337,7 @@ form.addEventListener('submit', (e) => {
     const saved = caseId
       ? await api('PUT', `/api/cases/${caseId}`, readForm())
       : await api('POST', '/api/cases', readForm());
-    if (!caseId) history.replaceState(null, '', `/case.html?id=${saved.id}`);
+    if (!caseId) history.replaceState(null, '', `/staff/case.html?id=${saved.id}`);
     render(saved);
   });
 });

@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { cipher, hashPassword } from '../src/infra/crypto.js';
 import { auditLog, caseRepository, openDb, staffRepository } from '../src/infra/db.js';
 import { newTotpSecret } from '../src/infra/totp.js';
+import { applicationService } from '../src/services/applications.js';
 import { caseService } from '../src/services/cases.js';
 import { staffService } from '../src/services/staff.js';
 
@@ -59,10 +60,12 @@ export async function setupCases() {
   const crypt = cipher(randomBytes(32));
   const bitnob = fakeBitnob();
   const audit = auditLog(db);
-  const cases = caseService({ repo: caseRepository(db, crypt), audit, bitnob, cardAmountUsd: 5 });
+  const repo = caseRepository(db, crypt);
+  const cases = caseService({ repo, audit, bitnob, cardAmountUsd: 5 });
+  const applications = applicationService({ repo, audit });
   const staffRepo = staffRepository(db, crypt);
   const staff = staffService({ repo: staffRepo, audit });
-  return { db, cases, audit, bitnob, staff, staffRepo };
+  return { db, cases, applications, audit, bitnob, staff, staffRepo };
 }
 
 // Two signed-in-ready staff members (an admin and a staff member) with authenticators set up.

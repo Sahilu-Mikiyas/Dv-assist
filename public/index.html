@@ -1,51 +1,590 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Case queue — Ethio DV Assist staff</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=Noto+Sans+Ethiopic:wght@400;500&display=swap">
-  <link rel="stylesheet" href="/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ethio DV Assist — DV lottery entries, prepared with care</title>
+<meta name="description" content="Independent DV lottery entry preparation for Ethiopians: checked details, prepared photos, filed on the official site. ኢትዮ ዲቪ አሲስት።">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&amp;family=Inter:wght@400;500;600&amp;family=Noto+Sans+Ethiopic:wght@400;500;600&amp;family=Noto+Serif+Ethiopic:wght@500;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/landing.css">
 </head>
 <body>
-<div class="shell">
-  <nav class="sidebar" aria-label="Staff navigation">
-    <a class="brand" href="/"><svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg><b>Staff</b></a>
-    <a class="nav-link" href="/" aria-current="page">Case queue</a>
-    <a class="nav-link" href="/?mine=1" id="mine-link">My cases</a>
-    <a class="nav-link" href="/case.html">New case</a>
-    <a class="nav-link" href="/team.html" data-admin hidden>Team</a>
-    <a class="nav-link" href="/audit.html" data-admin hidden>Audit log</a>
-    <div class="me"><span class="avatar" id="me-avatar">·</span><span><span id="me-name">…</span><br><span class="muted" id="me-role"></span></span><button class="btn small ghost" id="logout" type="button">Log out</button></div>
-  </nav>
+<div class="l1">
 
-  <main class="content">
-    <div class="page-head">
-      <div>
-        <h1 id="title">Case queue</h1>
-        <p class="muted flat">Every entry goes through Abol, Tona and the applicant's Baraka before a card is issued.</p>
+  <!-- Shared flag drawing, reused by the waving strips -->
+  <svg class="l2" aria-hidden="true" width="0" height="0">
+    <defs>
+      <path id="dvStar" d="M0,-2.4 L0.54,-0.74 L2.28,-0.74 L0.87,0.28 L1.41,1.94 L0,0.92 L-1.41,1.94 L-0.87,0.28 L-2.28,-0.74 L-0.54,-0.74 Z" fill="#FFFFFF"></path>
+      <pattern id="dvStarsA" width="12.667" height="10.77" patternUnits="userSpaceOnUse"><use href="#dvStar" x="6.333" y="5.385"></use></pattern>
+      <pattern id="dvStarsB" width="12.667" height="10.77" patternUnits="userSpaceOnUse"><use href="#dvStar" x="0" y="0"></use><use href="#dvStar" x="12.667" y="0"></use><use href="#dvStar" x="0" y="10.77"></use><use href="#dvStar" x="12.667" y="10.77"></use></pattern>
+      <symbol id="dvFlag" viewBox="0 0 190 100">
+        <rect width="190" height="100" fill="#FFFFFF"></rect>
+        <rect y="0" width="190" height="7.6923" fill="#B22234"></rect>
+        <rect y="15.3846" width="190" height="7.6923" fill="#B22234"></rect>
+        <rect y="30.7692" width="190" height="7.6923" fill="#B22234"></rect>
+        <rect y="46.1538" width="190" height="7.6923" fill="#B22234"></rect>
+        <rect y="61.5385" width="190" height="7.6923" fill="#B22234"></rect>
+        <rect y="76.9231" width="190" height="7.6923" fill="#B22234"></rect>
+        <rect y="92.3077" width="190" height="7.6923" fill="#B22234"></rect>
+        <rect width="76" height="53.846" fill="#0A3161"></rect>
+        <rect width="76" height="53.846" fill="url(#dvStarsA)"></rect>
+        <rect x="9" y="8" width="58" height="38" fill="url(#dvStarsB)"></rect>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- Independence notice -->
+  <div class="l3">
+    <span>Independent service. Not affiliated with the U.S. Government. Entries are made only on the official site, dvprogram.state.gov.</span>
+    <span class="l4" lang="am">ገለልተኛ አገልግሎት ነን፤ ከአሜሪካ መንግሥት ጋር ግንኙነት የለንም።</span>
+  </div>
+
+  <!-- Hero -->
+  <section class="l5" id="top">
+    <svg class="l6" aria-hidden="true" width="100%" height="360">
+      <circle class="dv-twinkle l7" cx="5%" cy="60" r="1.6" fill="#FFFFFF"></circle>
+      <circle class="dv-twinkle l8" cx="13%" cy="150" r="1.1" fill="#FFFFFF"></circle>
+      <circle class="dv-twinkle l9" cx="21%" cy="36" r="1.4" fill="#FFFFFF"></circle>
+      <circle class="dv-twinkle l10" cx="30%" cy="200" r="1" fill="#FFFFFF"></circle>
+      <circle class="dv-twinkle l11" cx="38%" cy="96" r="1.7" fill="#FF9AA5"></circle>
+      <circle class="dv-twinkle l12" cx="46%" cy="28" r="1.1" fill="#FFFFFF"></circle>
+      <circle class="dv-twinkle l13" cx="54%" cy="160" r="1.3" fill="#FFFFFF"></circle>
+      <circle class="dv-twinkle l14" cx="62%" cy="64" r="1" fill="#FFFFFF"></circle>
+      <circle class="dv-twinkle l15" cx="70%" cy="22" r="1.5" fill="#FFFFFF"></circle>
+      <circle class="dv-twinkle l16" cx="78%" cy="300" r="1.2" fill="#FFFFFF"></circle>
+      <circle class="dv-twinkle l17" cx="88%" cy="330" r="1.7" fill="#FF9AA5"></circle>
+      <circle class="dv-twinkle l18" cx="96%" cy="40" r="1.1" fill="#FFFFFF"></circle>
+    </svg>
+
+    <!-- Nav -->
+    <nav class="l19">
+      <a class="l20" href="#top">
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+          <rect x="1" y="1" width="38" height="38" rx="10" fill="#FFFFFF"></rect>
+          <path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"></path>
+          <path d="M20 7 l2.1 4.3 4.7 0.6 -3.4 3.2 0.9 4.7 -4.3 -2.3 -4.3 2.3 0.9 -4.7 -3.4 -3.2 4.7 -0.6z" fill="#0A3161"></path>
+        </svg>
+        <span class="l21">
+          <span class="l22">Ethio DV Assist</span>
+          <span class="l23" lang="am">ኢትዮ ዲቪ አሲስት</span>
+        </span>
+      </a>
+      <div class="l24">
+        <a class="l25" href="#how">How it works</a>
+        <a class="l25" href="#services">Services</a>
+        <a class="l25" href="#photo">Photo check</a>
+        <a class="l25" href="#partners">Partners</a>
+        <a class="l25" href="#faq">FAQ</a>
       </div>
-      <div class="row">
-        <label class="search"><span class="visually-hidden">Search cases</span><input id="search" type="search" placeholder="Name or EDA-0012"></label>
-        <a class="btn primary" href="/case.html">+ New case</a>
+      <div class="l26">
+        <a class="l30" href="/apply">Start your entry</a>
+      </div>
+    </nav>
+
+    <!-- Hero body -->
+    <div class="l31">
+      <div class="dv-rise l32">
+        <p class="l33">
+          <span class="l34"></span>DV lottery entries, prepared with care
+        </p>
+        <h1 class="l35">
+          Your American dream<br>starts with <span class="l36">one right entry.</span>
+        </h1>
+        <p class="l37" lang="am">የአሜሪካ ሕልምዎ በአንድ ትክክለኛ ምዝገባ ይጀምራል።</p>
+        <p class="l38">One wrong photo or a missing child's name can disqualify an entry. We check every detail, prepare your photos, pay the official fee and file your entry — then hand you the confirmation number.</p>
+        <div class="l39">
+          <a class="l40" href="/apply">
+            Start your entry
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </a>
+          <a class="l41" href="#photo">Check your photo — free</a>
+        </div>
+      </div>
+
+      <!-- Waving flag + entry ticket -->
+      <div class="l42">
+        <div class="l43">
+          <div class="l44" aria-hidden="true">
+            <span class="l45"></span>
+          </div>
+          <div class="l46" role="img" aria-label="The flag of the United States, waving">
+            <svg class="dv-strip l47" viewBox="0 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l48" viewBox="11.875 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l49" viewBox="23.75 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l50" viewBox="35.625 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l51" viewBox="47.5 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l52" viewBox="59.375 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l53" viewBox="71.25 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l54" viewBox="83.125 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l55" viewBox="95 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l56" viewBox="106.875 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l57" viewBox="118.75 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l58" viewBox="130.625 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l59" viewBox="142.5 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l60" viewBox="154.375 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l61" viewBox="166.25 0 12.2 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+            <svg class="dv-strip l62" viewBox="178.125 0 11.875 100" preserveAspectRatio="none"><use href="#dvFlag" width="190" height="100"></use></svg>
+          </div>
+        </div>
+
+        <!-- Entry ticket -->
+        <div class="l63">
+          <div class="l64">
+            <div>
+              <p class="l65">Entry preparation</p>
+              <p class="l66" lang="am">የምዝገባ ዝግጅት</p>
+              <p class="l67">Abebe K. Tesfaye</p>
+              <p class="l68">Addis Ababa · Spouse + 2 children</p>
+            </div>
+            <svg class="l69" width="88" height="88" viewBox="0 0 96 96" aria-hidden="true">
+              <circle cx="48" cy="48" r="44" fill="none" stroke="#B22234" stroke-width="2.5"></circle>
+              <circle cx="48" cy="48" r="36" fill="none" stroke="#B22234" stroke-width="1" stroke-dasharray="3 3"></circle>
+              <text x="48" y="44" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="600" letter-spacing="1.5" fill="#B22234">SUBMITTED</text>
+              <text x="48" y="62" text-anchor="middle" font-family="Noto Sans Ethiopic, sans-serif" font-size="13" fill="#B22234">ገብቷል</text>
+            </svg>
+          </div>
+          <div class="l70">
+            <div class="l71">
+              <span class="l72"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span>
+              <span class="l73"><strong class="l74">Family details</strong> <span class="l75">· 4 people, checked twice</span></span>
+            </div>
+            <div class="l71">
+              <span class="l72"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span>
+              <span class="l73"><strong class="l74">Photos</strong> <span class="l75">· 600 × 600, approved</span></span>
+            </div>
+            <div class="l76">
+              <span class="l77"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3.1-5.4 3.1 1.2-6L3.3 9.3l6.1-.7z"></path></svg></span>
+              <span class="l73"><strong class="l74">Confirmation</strong> <span class="l78">2027 ···· ···· ····</span></span>
+            </div>
+          </div>
+          <svg class="l79" aria-hidden="true" width="100%" height="12">
+            <defs><pattern id="tibebTicket" width="28" height="12" patternUnits="userSpaceOnUse"><path d="M0 6 L7 0 L14 6 L21 0 L28 6" fill="none" stroke="#B22234" stroke-width="1.4"></path><path d="M0 12 L7 6 L14 12 L21 6 L28 12" fill="none" stroke="#0A3161" stroke-width="1.4"></path></pattern></defs>
+            <rect width="100%" height="12" fill="url(#tibebTicket)"></rect>
+          </svg>
+        </div>
       </div>
     </div>
 
-    <div class="counters" id="counters" role="group" aria-label="Filter by stage"></div>
-    <p id="error" hidden></p>
+    <!-- American skyline: Liberty, Manhattan, Washington Monument, Golden Gate, Space Needle -->
+    <svg class="l80" role="img" aria-label="Skyline of American landmarks: the Statue of Liberty, Manhattan, the Washington Monument, the Golden Gate Bridge and the Space Needle" viewBox="0 0 1440 260" preserveAspectRatio="xMidYMax slice" width="100%" height="260">
+      <g fill="#163A78">
+        <!-- Statue of Liberty -->
+        <rect x="104" y="226" width="142" height="34"></rect>
+        <rect x="140" y="160" width="70" height="66"></rect>
+        <rect x="134" y="152" width="82" height="10"></rect>
+        <path d="M152 152 L158 92 L184 92 L192 152 Z"></path>
+        <circle cx="170" cy="84" r="9"></circle>
+        <path d="M161 80 L152 70 M165 76 L161 63 M170 75 L170 61 M175 76 L179 63 M179 80 L188 70" stroke="#163A78" stroke-width="3" stroke-linecap="round"></path>
+        <path d="M178 96 L185 44 L192 45 L186 97 Z"></path>
+        <path d="M182 45 L196 45 L193 37 L185 37 Z"></path>
+        <rect x="146" y="102" width="9" height="18" rx="1"></rect>
+        <!-- Manhattan -->
+        <rect x="290" y="150" width="34" height="110"></rect>
+        <rect x="330" y="120" width="28" height="140"></rect>
+        <rect x="364" y="170" width="40" height="90"></rect>
+        <rect x="410" y="134" width="30" height="126"></rect>
+        <rect x="448" y="108" width="44" height="152"></rect>
+        <rect x="456" y="80" width="28" height="30"></rect>
+        <rect x="463" y="58" width="14" height="24"></rect>
+        <path d="M470 22 L470 58" stroke="#163A78" stroke-width="3"></path>
+        <rect x="500" y="160" width="36" height="100"></rect>
+        <rect x="542" y="112" width="30" height="148"></rect>
+        <path d="M542 112 L557 70 L572 112 Z"></path>
+        <path d="M557 70 L557 44" stroke="#163A78" stroke-width="2.5"></path>
+        <rect x="580" y="140" width="40" height="120"></rect>
+        <rect x="626" y="176" width="30" height="84"></rect>
+        <rect x="662" y="128" width="36" height="132"></rect>
+        <!-- Washington Monument -->
+        <path d="M806 260 L812 76 L828 76 L834 260 Z"></path>
+        <path d="M812 76 L820 60 L828 76 Z"></path>
+        <rect x="760" y="252" width="120" height="8"></rect>
+        <!-- Space Needle -->
+        <path d="M1364 260 L1374 128 L1380 128 L1372 260 Z"></path>
+        <path d="M1396 260 L1384 128 L1390 128 L1404 260 Z"></path>
+        <ellipse cx="1382" cy="122" rx="28" ry="7"></ellipse>
+        <rect x="1376" y="104" width="12" height="14"></rect>
+        <path d="M1382 104 L1382 78" stroke="#163A78" stroke-width="3"></path>
+      </g>
+      <!-- Golden Gate in red -->
+      <g stroke="#B22234" fill="none" stroke-linecap="round">
+        <path d="M930 196 Q990 150 1032 76" stroke-width="2.5"></path>
+        <path d="M1032 76 Q1122 214 1214 76" stroke-width="2.5"></path>
+        <path d="M1214 76 Q1262 150 1316 196" stroke-width="2.5"></path>
+        <path d="M1062 120 L1062 196 M1092 148 L1092 196 M1122 156 L1122 196 M1152 148 L1152 196 M1182 120 L1182 196 M980 172 L980 196 M1266 172 L1266 196" stroke-width="1.2" opacity="0.8"></path>
+      </g>
+      <g fill="#B22234">
+        <rect x="1026" y="66" width="12" height="194"></rect>
+        <rect x="1208" y="66" width="12" height="194"></rect>
+        <rect x="1022" y="104" width="20" height="5"></rect>
+        <rect x="1204" y="104" width="20" height="5"></rect>
+        <rect x="920" y="194" width="406" height="7"></rect>
+      </g>
+      <!-- Liberty's torch flame -->
+      <ellipse class="dv-flame" cx="189" cy="31" rx="6" ry="8" fill="#FF5A6A"></ellipse>
+      <rect x="0" y="252" width="1440" height="8" fill="#FAF8F4"></rect>
+    </svg>
+  </section>
 
-    <section class="card flush">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th scope="col">Case</th><th scope="col">Applicant</th><th scope="col">Stage</th><th scope="col">Assigned</th><th scope="col">Updated</th></tr></thead>
-          <tbody id="cases"></tbody>
-        </table>
+  <!-- Why it matters -->
+  <section class="l81">
+    <p class="l82">Why care matters</p>
+    <div class="l83">
+      <h2 class="l84">One small mistake can cost the whole chance.</h2>
+      <p class="l85" lang="am">ትንሽ ስህተት ዕድሉን ሙሉ በሙሉ ሊያሳጣ ይችላል።</p>
+    </div>
+    <div class="l86">
+      <div class="l87">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0A3161" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="12" cy="10" r="3.2"></circle><path d="M6.5 19c1-3 3-4.4 5.5-4.4s4.5 1.4 5.5 4.4"></path><path d="M3 3l18 18" stroke="#B22234"></path></svg>
+        <h3 class="l88">A photo that doesn't qualify</h3>
+        <p class="l89">Wrong size, a shadowed background, glasses or an old photo. Each can get an entry disqualified. We check every photo before it goes in.</p>
       </div>
-      <p class="muted empty-note" id="empty" hidden>No cases here yet.</p>
-    </section>
-  </main>
+      <div class="l87">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0A3161" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="7" r="3"></circle><circle cx="17" cy="9" r="2.4"></circle><path d="M2.5 20c.8-3.6 3-5.5 5.5-5.5s4.7 1.9 5.5 5.5"></path><path d="M14 20c.5-2.6 1.6-4.2 3-4.2s2.6 1.6 3.4 4.2"></path></svg>
+        <h3 class="l88">A family member left off</h3>
+        <p class="l89">Every spouse and every unmarried child under 21 must be listed, even those who won't travel. We walk through your family with you, name by name.</p>
+      </div>
+      <div class="l87">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0A3161" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="12" height="15" rx="1.5"></rect><path d="M9 5V3.5A1.5 1.5 0 0 1 10.5 2h9A1.5 1.5 0 0 1 21 3.5v13a1.5 1.5 0 0 1-1.5 1.5H15"></path><path d="M6.5 10h5M6.5 14h5"></path></svg>
+        <h3 class="l88">More than one entry</h3>
+        <p class="l89">Submitting twice, even by accident or through two agents, disqualifies you. We file exactly one entry and give you the proof.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Where Ethiopians have built lives -->
+  <section class="l90">
+    <p class="l82">The America ahead</p>
+    <div class="l83">
+      <h2 class="l91">Where Ethiopians have already built a home.</h2>
+      <p class="l85" lang="am">ኢትዮጵያውያን ቤታቸውን የሠሩባቸው ከተሞች</p>
+    </div>
+    <div class="l86">
+      <figure class="l92">
+        <svg class="l79" viewBox="0 0 300 200" width="100%" role="img" aria-label="Washington Monument with cherry blossoms">
+          <rect width="300" height="200" fill="#0F2C60"></rect>
+          <circle cx="230" cy="60" r="26" fill="#FF9AA5" opacity="0.35"></circle>
+          <path d="M142 200 L146 46 L154 46 L158 200 Z" fill="#E9ECF2"></path>
+          <path d="M146 46 L150 34 L154 46 Z" fill="#E9ECF2"></path>
+          <rect x="0" y="170" width="300" height="30" fill="#163A78"></rect>
+          <g fill="#FFB7C2"><circle cx="40" cy="150" r="22"></circle><circle cx="70" cy="140" r="18"></circle><circle cx="250" cy="148" r="24"></circle><circle cx="276" cy="160" r="16"></circle><circle cx="20" cy="166" r="14"></circle></g>
+          <path d="M52 200 L56 150 M258 200 L254 150" stroke="#5B3A2E" stroke-width="5"></path>
+        </svg>
+        <figcaption class="l93"><strong class="l94">Washington, D.C.</strong><br><span class="l95">The capital region's Ethiopian neighbourhoods</span></figcaption>
+      </figure>
+      <figure class="l92">
+        <svg class="l79" viewBox="0 0 300 200" width="100%" role="img" aria-label="Statue of Liberty in New York harbour">
+          <rect width="300" height="200" fill="#0F2C60"></rect>
+          <rect x="0" y="176" width="300" height="24" fill="#163A78"></rect>
+          <g fill="#7FB8A4">
+            <rect x="118" y="150" width="64" height="30"></rect>
+            <rect x="130" y="120" width="40" height="32"></rect>
+            <path d="M136 120 L142 70 L162 70 L168 120 Z"></path>
+            <circle cx="152" cy="62" r="8"></circle>
+            <path d="M160 74 L168 26 L174 27 L167 76 Z"></path>
+            <path d="M164 27 L178 27 L175 19 L167 19 Z"></path>
+            <rect x="131" y="80" width="8" height="15"></rect>
+          </g>
+          <path d="M144 58 L137 48 M148 55 L145 43 M152 54 L152 41 M156 55 L159 43 M160 58 L167 48" stroke="#7FB8A4" stroke-width="2.5" stroke-linecap="round"></path>
+          <ellipse class="dv-flame" cx="171" cy="13" rx="5" ry="7" fill="#FF5A6A"></ellipse>
+          <path d="M0 186 Q75 178 150 186 T300 186" stroke="#2F5596" stroke-width="2" fill="none"></path>
+        </svg>
+        <figcaption class="l93"><strong class="l94">New York</strong><br><span class="l95">Where so many journeys first arrived</span></figcaption>
+      </figure>
+      <figure class="l92">
+        <svg class="l79" viewBox="0 0 300 200" width="100%" role="img" aria-label="Palm trees and a Little Ethiopia street sign in Los Angeles">
+          <rect width="300" height="200" fill="#0F2C60"></rect>
+          <circle cx="150" cy="150" r="70" fill="#B22234" opacity="0.55"></circle>
+          <rect x="0" y="170" width="300" height="30" fill="#163A78"></rect>
+          <g stroke="#0A1A3C" stroke-width="5" fill="none" stroke-linecap="round"><path d="M60 200 Q66 120 58 60"></path><path d="M242 200 Q236 130 246 80"></path></g>
+          <g fill="#0A1A3C"><path d="M58 60 q-30 -2 -44 14 q22 -8 44 -6z M58 60 q30 -2 44 14 q-22 -8 -44 -6z M58 60 q-18 -20 -38 -18 q20 6 38 22z M58 60 q18 -20 38 -18 q-20 6 -38 22z"></path><path d="M246 80 q-28 -2 -40 12 q20 -7 40 -5z M246 80 q28 -2 40 12 q-20 -7 -40 -5z M246 80 q-16 -18 -34 -16 q18 5 34 20z M246 80 q16 -18 34 -16 q-18 5 -34 20z"></path></g>
+          <rect x="146" y="96" width="5" height="80" fill="#C9D2E2"></rect>
+          <rect x="104" y="96" width="92" height="26" rx="3" fill="#2F7A4A"></rect>
+          <text x="150" y="114" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#FFFFFF">LITTLE ETHIOPIA</text>
+        </svg>
+        <figcaption class="l93"><strong class="l94">Los Angeles</strong><br><span class="l95">Little Ethiopia on Fairfax Avenue</span></figcaption>
+      </figure>
+      <figure class="l92">
+        <svg class="l79" viewBox="0 0 300 200" width="100%" role="img" aria-label="Space Needle with Mount Rainier in Seattle">
+          <rect width="300" height="200" fill="#0F2C60"></rect>
+          <path d="M150 170 L220 70 L250 100 L300 170 Z" fill="#2F5596"></path>
+          <path d="M206 90 L220 70 L234 86 L226 84 L220 92 L212 86 Z" fill="#E9ECF2"></path>
+          <rect x="0" y="170" width="300" height="30" fill="#163A78"></rect>
+          <g fill="#E9ECF2">
+            <path d="M84 200 L94 76 L99 76 L91 200 Z"></path>
+            <path d="M118 200 L106 76 L111 76 L125 200 Z"></path>
+            <ellipse cx="102" cy="70" rx="30" ry="7"></ellipse>
+            <rect x="96" y="54" width="12" height="12"></rect>
+          </g>
+          <path d="M102 54 L102 30" stroke="#E9ECF2" stroke-width="3"></path>
+        </svg>
+        <figcaption class="l93"><strong class="l94">Seattle &amp; Minneapolis</strong><br><span class="l95">Growing communities, north and west</span></figcaption>
+      </figure>
+    </div>
+    <p class="l96">If you are selected, where you settle is your choice. We help you get there in the first place.</p>
+  </section>
+
+  <!-- How it works: the journey -->
+  <section class="l97" id="how">
+    <p class="l82">How it works</p>
+    <div class="l83">
+      <h2 class="l98">Five steps. Each one stamped.</h2>
+      <p class="l85" lang="am">አምስት ደረጃዎች፤ እያንዳንዱ የተረጋገጠ።</p>
+    </div>
+    <div class="l99">
+      <svg class="l100" aria-hidden="true" width="100%" height="4">
+        <line x1="4%" y1="2" x2="96%" y2="2" stroke="#B22234" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"></line>
+      </svg>
+      <div class="l101">
+        <div>
+          <span class="l102">1</span>
+          <h3 class="l103">Tell us about you</h3>
+          <p class="l104" lang="am">ስለ እርስዎ ይንገሩን</p>
+          <p class="l105">Online, by phone or at our office. Your family, education and address.</p>
+        </div>
+        <div>
+          <span class="l102">2</span>
+          <h3 class="l103">Photos, checked</h3>
+          <p class="l104" lang="am">ፎቶዎች ይመረመራሉ</p>
+          <p class="l105">Each person's photo sized to 600 × 600 and checked against the rules.</p>
+        </div>
+        <div>
+          <span class="l102">3</span>
+          <h3 class="l103">Review together</h3>
+          <p class="l104" lang="am">አብረን እንገመግማለን</p>
+          <p class="l105">You see everything as it will be filed, and approve it before anything is sent.</p>
+        </div>
+        <div>
+          <span class="l102">4</span>
+          <h3 class="l103">We file &amp; pay the fee</h3>
+          <p class="l104" lang="am">እናስገባለን፤ ክፍያውን እንፈጽማለን</p>
+          <p class="l105">One entry on the official site, with the official fee paid by card.</p>
+        </div>
+        <div>
+          <span class="l106"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3.1-5.4 3.1 1.2-6L3.3 9.3l6.1-.7z"></path></svg></span>
+          <h3 class="l103">Keep your number</h3>
+          <p class="l104" lang="am">የማረጋገጫ ቁጥርዎን ይያዙ</p>
+          <p class="l105">Your confirmation number by SMS, and a reminder on results day.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Coffee ceremony: three rounds -->
+  <section class="l107">
+    <svg class="l79" aria-hidden="true" width="100%" height="14">
+      <defs><pattern id="tibebCoffee" width="28" height="14" patternUnits="userSpaceOnUse"><rect width="28" height="14" fill="#0A2350"></rect><path d="M0 7 L7 0 L14 7 L21 0 L28 7" fill="none" stroke="#B22234" stroke-width="1.6"></path><path d="M0 14 L7 7 L14 14 L21 7 L28 14" fill="none" stroke="#FFFFFF" stroke-width="1.2"></path><rect x="12" y="5" width="4" height="4" transform="rotate(45 14 7)" fill="#FFFFFF"></rect></pattern></defs>
+      <rect width="100%" height="14" fill="url(#tibebCoffee)"></rect>
+    </svg>
+    <div class="l108">
+      <div class="l109">
+        <p class="l110">Our way of working</p>
+        <h2 class="l111">Three rounds,<br><span class="l112">like coffee.</span></h2>
+        <p class="l113" lang="am">እንደ ቡና ሥነ ሥርዓት፣ ሦስት ዙር።</p>
+        <p class="l114">A coffee ceremony is never rushed. Neither is your entry. Every application passes three rounds of checking before it is filed.</p>
+      </div>
+      <div class="l115">
+        <div class="l116">
+          <p class="l117" lang="am">ዐቦል</p>
+          <p class="l118">Abol · first round</p>
+          <p class="l119">We gather your details and documents, and check them against the rules.</p>
+        </div>
+        <div class="l116">
+          <p class="l117" lang="am">ቶና</p>
+          <p class="l118">Tona · second round</p>
+          <p class="l119">A second person re-checks every name, date and photo with fresh eyes.</p>
+        </div>
+        <div class="l116">
+          <p class="l117" lang="am">በረካ</p>
+          <p class="l118">Baraka · the blessing</p>
+          <p class="l119">You approve the final entry. Only then do we file it — once.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="l120" id="services">
+    <p class="l82">Services</p>
+    <div class="l83">
+      <h2 class="l98">Choose how much help you want.</h2>
+      <p class="l85" lang="am">የሚፈልጉትን ያህል እገዛ ይምረጡ።</p>
+    </div>
+    <div class="l121">
+      <div class="l122">
+        <div>
+          <h3 class="l123">Self-guided</h3>
+          <p class="l124" lang="am">በራስዎ</p>
+        </div>
+        <p class="l125"><span class="l126">500</span> <span class="l127">ETB</span></p>
+        <ul class="l128">
+          <li>✓&nbsp; We review your form</li>
+          <li>✓&nbsp; Photo checked and resized</li>
+          <li>✓&nbsp; You submit it yourself</li>
+        </ul>
+        <a class="l129" href="/apply?package=self">Choose Self-guided</a>
+      </div>
+      <div class="l130">
+        <span class="l131">Recommended</span>
+        <div>
+          <h3 class="l123">Managed</h3>
+          <p class="l132" lang="am">እኛ እናስተዳድራለን</p>
+        </div>
+        <p class="l125"><span class="l126">1,500</span> <span class="l133">ETB</span></p>
+        <ul class="l134">
+          <li>✓&nbsp; Everything in Self-guided</li>
+          <li>✓&nbsp; We file your entry for you</li>
+          <li>✓&nbsp; Official fee paid for you</li>
+          <li>✓&nbsp; Confirmation number by SMS</li>
+        </ul>
+        <a class="l135" href="/apply?package=managed">Choose Managed</a>
+      </div>
+      <div class="l122">
+        <div>
+          <h3 class="l123">Assisted</h3>
+          <p class="l124" lang="am">በእገዛ</p>
+        </div>
+        <p class="l125"><span class="l126">2,000</span> <span class="l127">ETB</span></p>
+        <ul class="l128">
+          <li>✓&nbsp; Everything in Managed</li>
+          <li>✓&nbsp; Sit down with us at the office</li>
+          <li>✓&nbsp; Spouse and children handled</li>
+          <li>✓&nbsp; We check results for you</li>
+        </ul>
+        <a class="l129" href="/apply?package=assisted">Choose Assisted</a>
+      </div>
+      <div class="l122">
+        <div>
+          <h3 class="l123">VIP</h3>
+          <p class="l124" lang="am">ልዩ አገልግሎት</p>
+        </div>
+        <p class="l125"><span class="l126">3,000</span> <span class="l127">ETB</span></p>
+        <ul class="l128">
+          <li>✓&nbsp; Everything in Assisted</li>
+          <li>✓&nbsp; Your own agent, start to finish</li>
+          <li>✓&nbsp; We come to you</li>
+          <li>✓&nbsp; A call on results day</li>
+        </ul>
+        <a class="l129" href="/apply?package=vip">Choose VIP</a>
+      </div>
+    </div>
+    <p class="l136">Managed, Assisted and VIP include the official entry fee. Visa processing fees, if you are selected, are separate and paid later to the U.S. Government. Pay by Telebirr or CBE Birr.</p>
+  </section>
+
+  <!-- Photo check -->
+  <section class="l137" id="photo">
+    <div class="l138">
+      <div class="l139">
+        <div class="l140">
+          <svg viewBox="0 0 300 300" width="100%" height="100%" role="img" aria-label="Example DV photo with guides: head centred, filling half to two thirds of the frame">
+            <rect width="300" height="300" fill="#FFFFFF"></rect>
+            <ellipse cx="150" cy="128" rx="58" ry="74" fill="#A57B5A"></ellipse>
+            <path d="M58 300c8-58 46-92 92-92s84 34 92 92z" fill="#0A3161"></path>
+            <path d="M92 108c4-46 30-64 58-64s56 18 58 64c-10-18-30-28-58-28s-46 10-58 28z" fill="#1E140E"></path>
+            <line x1="20" y1="54" x2="280" y2="54" stroke="#B22234" stroke-width="1.5" stroke-dasharray="5 5"></line>
+            <line x1="20" y1="202" x2="280" y2="202" stroke="#B22234" stroke-width="1.5" stroke-dasharray="5 5"></line>
+            <line x1="150" y1="20" x2="150" y2="280" stroke="#0A3161" stroke-width="1" stroke-dasharray="3 6" opacity="0.5"></line>
+          </svg>
+          <span class="l141">600 × 600</span>
+        </div>
+      </div>
+      <div class="l142">
+        <p class="l82">Free photo check</p>
+        <h2 class="l98">Is your photo ready? Find out in seconds.</h2>
+        <p class="l143" lang="am">ፎቶዎ ዝግጁ ነው? በሰከንዶች ውስጥ ይወቁ።</p>
+        <ul class="l144">
+          <li class="l145"><svg class="l146" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F6B3A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>Exactly 600 × 600 pixels</li>
+          <li class="l145"><svg class="l146" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F6B3A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>Head fills 50–69% of the height</li>
+          <li class="l145"><svg class="l146" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F6B3A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>Plain white or off-white background</li>
+          <li class="l145"><svg class="l146" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F6B3A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>No glasses, facing the camera</li>
+        </ul>
+        <a class="l147" href="/apply">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+          Start with your photo
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Partners -->
+  <section class="l148" id="partners">
+    <div class="l149">
+      <svg class="l150" aria-hidden="true" width="260" height="260" viewBox="0 0 24 24" fill="#FFFFFF" opacity="0.08"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3.1-5.4 3.1 1.2-6L3.3 9.3l6.1-.7z"></path></svg>
+      <div class="l151">
+        <p class="l152">Referral partners</p>
+        <h2 class="l153">You introduce. We support.</h2>
+        <p class="l154" lang="am">እርስዎ ያስተዋውቃሉ፤ እኛ እንደግፋለን።</p>
+        <p class="l155">Shops, schools, churches and community groups: refer applicants, fill forms together, and follow each referral from introduction to confirmation.</p>
+      </div>
+      <p class="l156">Partner sign-up opens soon</p>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="l157" id="faq">
+    <h2 class="l158">Questions, answered honestly</h2>
+    <p class="l159" lang="am">ጥያቄዎች፣ በግልጽ የተመለሱ</p>
+    <details class="l160" open="">
+      <summary class="l161">Can you increase my chances of being selected? <span class="l162 faq-sign" aria-hidden="true"></span></summary>
+      <p class="l163">No one can. Selection is random. What we do is make sure your entry is complete and correct, so it isn't disqualified for a mistake.</p>
+    </details>
+    <details class="l160">
+      <summary class="l161">What does the official fee cover, and what do you charge? <span class="l162 faq-sign" aria-hidden="true"></span></summary>
+      <p class="l163">The official fee is set by the U.S. Department of State. Our service fee is separate and shown before you pay. Nothing is hidden.</p>
+    </details>
+    <details class="l160">
+      <summary class="l161">I'm married with children. Do they all need to be listed? <span class="l162 faq-sign" aria-hidden="true"></span></summary>
+      <p class="l163">Yes. Your spouse and every unmarried child under 21 must be included, even if they won't travel with you. Leaving anyone out can disqualify the entry.</p>
+    </details>
+    <details class="l164">
+      <summary class="l161">What happens to my personal data? <span class="l162 faq-sign" aria-hidden="true"></span></summary>
+      <p class="l163">Your details and photos are encrypted and used only for your entry. Only our checking team can see them.</p>
+    </details>
+  </section>
+
+  <!-- Start band -->
+  <section class="l165" id="start">
+    <div class="l166" aria-hidden="true">
+      <span class="l167"></span><span class="l73"></span><span class="l167"></span><span class="l73"></span><span class="l167"></span><span class="l73"></span><span class="l167"></span>
+    </div>
+    <div class="l168">
+      <h2 class="l169">Get ready for the <span class="l170">next entry window</span>.</h2>
+      <p class="l171" lang="am">ቀደም ብለው ይዘጋጁ፤ እኛ ከጎንዎ ነን።</p>
+      <div class="l172">
+        <a class="l173" href="/apply">Start your entry</a>
+        <a class="l174" href="/apply#resume">Continue with a code</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="l175">
+    <svg class="l79" aria-hidden="true" width="100%" height="14">
+      <defs><pattern id="tibebFooter" width="28" height="14" patternUnits="userSpaceOnUse"><rect width="28" height="14" fill="#061632"></rect><path d="M0 7 L7 0 L14 7 L21 0 L28 7" fill="none" stroke="#B22234" stroke-width="1.6"></path><path d="M0 14 L7 7 L14 14 L21 7 L28 14" fill="none" stroke="#FFFFFF" stroke-width="1.2"></path><rect x="12" y="5" width="4" height="4" transform="rotate(45 14 7)" fill="#FFFFFF"></rect></pattern></defs>
+      <rect width="100%" height="14" fill="url(#tibebFooter)"></rect>
+    </svg>
+    <div class="l176">
+      <div class="l177">
+        <p class="l178">Ethio DV Assist</p>
+        <p class="l179" lang="am">ኢትዮ ዲቪ አሲስት</p>
+        <p class="l180">An independent preparation service. We are not the U.S. Government and cannot influence selection.</p>
+      </div>
+      <div class="l181">
+        <div class="l182">
+          <a class="l25" href="#how">How it works</a>
+          <a class="l25" href="#services">Services</a>
+          <a class="l25" href="#photo">Photo check</a>
+          <a class="l25" href="#partners">Partners</a>
+        </div>
+        <div class="l182">
+          <span>Addis Ababa, Ethiopia</span>
+          <a class="l25" href="/apply#resume">Continue with a code</a>
+          <a class="l25" href="/staff/">Staff sign-in</a>
+        </div>
+      </div>
+    </div>
+    <p class="l183">© 2026 Ethio DV Assist · Official entries only at dvprogram.state.gov</p>
+  </footer>
 </div>
-<script type="module" src="/index.js"></script>
 </body>
 </html>

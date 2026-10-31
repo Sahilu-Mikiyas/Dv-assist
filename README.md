@@ -7,15 +7,24 @@ the official DV fee, and records the confirmation number.
 Plain Node.js and HTML. One runtime dependency: `@libsql/client`, which runs the same SQLite
 database either as a local file or hosted on Turso.
 
+## Pages
+
+- `/`: public landing page.
+- `/apply`: applicants start an entry, add family and photos, and send it for checking. A resume code
+  lets them come back on any device, follow progress, and give their final approval online.
+- `/staff/`: the staff app.
+
 ## Flow
 
-Staff work each case through the checks the design calls the coffee rounds:
+Entries come from the website (`/apply`) or are typed in by staff. Staff work each case through the checks the design calls the coffee rounds:
 
-1. **Draft:** a staff member enters the applicant, spouse and children, and adds a photo for each person.
+1. **Draft:** the applicant (on the website) or a staff member enters the applicant, spouse and children, and adds a photo for each person.
+   Website entries reach the staff queue once the applicant sends them for checking.
    Photos are cropped, resized to 600×600 and compressed in the browser.
 2. **Abol:** the first check, against the passport.
 3. **Tona:** the second check, which must be done by a *different* staff member.
-4. **Baraka:** the applicant approves the final entry. Staff record whether it was in person, by phone or online.
+4. **Baraka:** the applicant approves the final entry, online with their resume code, or staff record it
+   as in person or by phone.
 5. **Card:** a Bitnob virtual card is issued for the official fee.
 6. **Submitted:** staff file on the official site, using Copy buttons, the photo downloads and the revealed
    card, then record the confirmation number.
@@ -94,12 +103,12 @@ How the integration works (`src/infra/bitnob.js`):
 ```
 src/
   domain/     pure rules: applicant validation, photo checks, status transitions
-  services/   use cases: create/update case, save photo, issue card, submit (each audited)
+  services/   use cases: cases (staff), applications (website applicants), staff accounts; each action audited
   infra/      database + migrations, encryption, Bitnob client, logging
   http/       routing, login, rate limiting, security headers
   config.js   environment variables, validated at startup
   main.js     wires everything together; shuts down cleanly on SIGTERM
-public/       HTML pages and browser JS (no inline scripts)
+public/       landing page, applicant flow (apply.*), staff app (staff/); no inline scripts or styles
 scripts/      setup-secrets
 test/         node:test suites (Bitnob is faked)
 ```
@@ -113,6 +122,7 @@ test/         node:test suites (Bitnob is faked)
 | Four eyes | The second check must be done by a different staff member from the first. |
 | Bitnob webhooks | Accepted only with a valid HMAC-SHA512 signature, and logged without card numbers. |
 | Login | Personal accounts: password (scrypt hash) plus a 6-digit authenticator code (RFC 6238). Failed logins are limited per IP (5 per 15 min) and overall (50 per 15 min). Deactivated staff are signed out at once. |
+| Applicants | No accounts: a random 12-character resume code (60 bits). Only its SHA-256 hash is stored. Wrong codes and new entries are rate-limited per IP. Applicants see only their own entry, never staff names or card data. Their cookie is signed separately and cannot be used as a staff session. |
 | Session | HMAC-signed cookie, `__Host-` prefixed, HttpOnly, Secure, SameSite=Strict, 8-hour expiry. Rotating `SESSION_SECRET` logs everyone out. |
 | Cross-site attacks | Strict Content-Security-Policy with no inline scripts, `frame-ancestors 'none'`, Origin check on writes, and JSON/JPEG-only request bodies. |
 | Transport | HSTS. HTTPS is provided by the host. |

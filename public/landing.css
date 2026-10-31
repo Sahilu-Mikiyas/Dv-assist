@@ -1,0 +1,201 @@
+/* Public landing page. Converted from the approved design (Main): its inline styles became the
+   numbered classes below, because the Content-Security-Policy does not allow inline styles. */
+body{margin:0;background:#FAF8F4}
+a{color:#B22234}a:hover{color:#8E1B2A}
+details summary{cursor:pointer;list-style:none}
+details summary::-webkit-details-marker{display:none}
+@keyframes dvWave{0%,100%{transform:translateY(-3.5%);filter:brightness(1.07)}50%{transform:translateY(3.5%);filter:brightness(0.86)}}
+@keyframes dvTwinkle{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes dvFlame{0%,100%{transform:scale(1);opacity:.95}50%{transform:scale(1.18);opacity:.7}}
+@keyframes dvRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.dv-strip{animation:dvWave 2.6s ease-in-out infinite}
+.dv-twinkle{animation:dvTwinkle 3.2s ease-in-out infinite}
+.dv-flame{animation:dvFlame 1.6s ease-in-out infinite;transform-origin:189px 31px;transform-box:view-box}
+.dv-rise{animation:dvRise .9s ease-out both}
+@media (prefers-reduced-motion: reduce){.dv-strip,.dv-twinkle,.dv-flame,.dv-rise{animation:none}}
+.l1{font-family: Inter, system-ui, sans-serif; color: #0D1730; background: #FAF8F4; min-width: 0}
+.l2{position: absolute}
+.l3{background: #061632; color: #C3CEE6; font-size: 13px; line-height: 1.5; padding: 10px 24px; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; text-align: center}
+.l4{font-family: 'Noto Sans Ethiopic', sans-serif}
+.l5{position: relative; overflow: hidden; background: #0A2350; color: #FFFFFF}
+.l6{position: absolute; top: 0; left: 0}
+.l7{animation-delay: -0.4s}
+.l8{animation-delay: -1.2s}
+.l9{animation-delay: -2s}
+.l10{animation-delay: -0.8s}
+.l11{animation-delay: -2.6s}
+.l12{animation-delay: -1.6s}
+.l13{animation-delay: -0.2s}
+.l14{animation-delay: -2.9s}
+.l15{animation-delay: -1s}
+.l16{animation-delay: -2.2s}
+.l17{animation-delay: -1.4s}
+.l18{animation-delay: -0.6s}
+.l19{position: relative; max-width: 1240px; margin: 0 auto; padding: 22px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px}
+.l20{display: flex; align-items: center; gap: 12px; text-decoration: none; color: #FFFFFF}
+.l21{display: flex; flex-direction: column; line-height: 1.1}
+.l22{font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 20px}
+.l23{font-family: 'Noto Sans Ethiopic', sans-serif; font-size: 12px; color: #B8C4DE}
+.l24{display: flex; flex-wrap: wrap; align-items: center; gap: 6px 26px; font-size: 15px}
+.l25{color: #DCE4F5; text-decoration: none}
+.l26{display: flex; align-items: center; gap: 12px}
+.l27{display: flex; border: 1px solid #3B5A93; border-radius: 999px; padding: 3px}
+.l28{min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: #FFFFFF; color: #0A2350; font: 600 13px Inter, sans-serif}
+.l29{min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: #DCE4F5; font: 500 13px 'Noto Sans Ethiopic', sans-serif}
+.l30{display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: 999px; background: #B22234; color: #FFFFFF; font-weight: 600; font-size: 15px; text-decoration: none}
+.l31{position: relative; max-width: 1240px; margin: 0 auto; padding: 48px 24px 0; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start}
+.l32{flex: 1 1 500px; min-width: 0; padding-top: 24px}
+.l33{margin: 0 0 20px; display: inline-flex; align-items: center; gap: 10px; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #FF9AA5}
+.l34{width: 28px; height: 2px; background: #B22234}
+.l35{margin: 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(44px, 6vw, 80px); line-height: 1.02; letter-spacing: -0.02em}
+.l36{font-style: italic; font-weight: 400; text-decoration: underline; text-decoration-color: #B22234; text-decoration-thickness: 6px; text-underline-offset: 10px}
+.l37{margin: 26px 0 0; font-family: 'Noto Serif Ethiopic', serif; font-size: 22px; line-height: 1.5; color: #E3E9F6}
+.l38{margin: 20px 0 0; max-width: 560px; font-size: 18px; line-height: 1.6; color: #C3CEE6}
+.l39{margin-top: 34px; display: flex; flex-wrap: wrap; gap: 14px}
+.l40{display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 26px; border-radius: 999px; background: #B22234; color: #FFFFFF; font-weight: 600; font-size: 16px; text-decoration: none}
+.l41{display: inline-flex; align-items: center; min-height: 52px; padding: 0 24px; border-radius: 999px; border: 1px solid #6A86BC; color: #FFFFFF; font-weight: 500; font-size: 16px; text-decoration: none}
+.l42{flex: 1 1 420px; min-width: 0; max-width: 520px; position: relative; z-index: 2}
+.l43{display: flex; align-items: flex-start}
+.l44{width: 8px; height: 330px; border-radius: 4px; background: #D4D9E4; flex-shrink: 0; position: relative}
+.l45{position: absolute; top: -10px; left: -5px; width: 18px; height: 18px; border-radius: 50%; background: #E9ECF2}
+.l46{flex: 1; min-width: 0; aspect-ratio: 1.9; display: flex; margin-top: 4px; filter: drop-shadow(0 18px 30px rgba(0, 8, 26, 0.45))}
+.l47{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: 0s}
+.l48{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -0.16s}
+.l49{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -0.32s}
+.l50{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -0.48s}
+.l51{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -0.64s}
+.l52{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -0.8s}
+.l53{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -0.96s}
+.l54{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -1.12s}
+.l55{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -1.28s}
+.l56{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -1.44s}
+.l57{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -1.6s}
+.l58{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -1.76s}
+.l59{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -1.92s}
+.l60{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -2.08s}
+.l61{flex: 1; height: 100%; margin-right: -0.5px; animation-delay: -2.24s}
+.l62{flex: 1; height: 100%; animation-delay: -2.4s}
+.l63{margin: -70px 0 -40px 40px; position: relative; background: #FFFFFF; color: #0D1730; border-radius: 18px; box-shadow: 0 30px 60px rgba(0, 8, 26, 0.45); overflow: hidden}
+.l64{padding: 20px 24px 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; border-bottom: 2px dashed #CBD3E3}
+.l65{margin: 0; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #B22234}
+.l66{margin: 2px 0 0; font-family: 'Noto Sans Ethiopic', sans-serif; font-size: 12px; color: #4A5368}
+.l67{margin: 10px 0 0; font-family: Fraunces, Georgia, serif; font-size: 22px; font-weight: 600}
+.l68{margin: 2px 0 0; font-size: 13px; color: #4A5368}
+.l69{transform: rotate(-12deg); flex-shrink: 0}
+.l70{padding: 6px 24px 2px}
+.l71{display: flex; align-items: center; gap: 14px; padding: 11px 0; border-bottom: 1px solid #E6EAF2}
+.l72{width: 30px; height: 30px; border-radius: 50%; background: #0A3161; color: #FFFFFF; display: grid; place-items: center; flex-shrink: 0}
+.l73{flex: 1}
+.l74{font-weight: 600}
+.l75{font-size: 13px; color: #4A5368}
+.l76{display: flex; align-items: center; gap: 14px; padding: 11px 0 14px}
+.l77{width: 30px; height: 30px; border-radius: 50%; background: #B22234; color: #FFFFFF; display: grid; place-items: center; flex-shrink: 0}
+.l78{font-family: Menlo, monospace; font-size: 13px; letter-spacing: 0.06em; color: #B22234}
+.l79{display: block}
+.l80{display: block; position: relative; margin-top: 30px}
+.l81{max-width: 1240px; margin: 0 auto; padding: 100px 24px 40px}
+.l82{margin: 0; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #B22234}
+.l83{display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 40px}
+.l84{margin: 10px 0 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(32px, 4vw, 48px); line-height: 1.1; max-width: 720px}
+.l85{margin: 0; font-family: 'Noto Serif Ethiopic', serif; font-size: 18px; color: #4A5368}
+.l86{margin-top: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px}
+.l87{background: #FFFFFF; border: 1px solid #DDE2EC; border-top: 4px solid #B22234; border-radius: 16px; padding: 28px}
+.l88{margin: 18px 0 8px; font-family: Fraunces, Georgia, serif; font-size: 22px; font-weight: 600}
+.l89{margin: 0; font-size: 16px; line-height: 1.6; color: #4A5368}
+.l90{max-width: 1240px; margin: 0 auto; padding: 80px 24px 40px}
+.l91{margin: 10px 0 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(32px, 4vw, 48px); line-height: 1.1; max-width: 760px}
+.l92{margin: 0; background: #0A2350; color: #FFFFFF; border-radius: 18px; overflow: hidden}
+.l93{padding: 20px 22px 24px}
+.l94{font-family: Fraunces, Georgia, serif; font-size: 22px; font-weight: 600}
+.l95{font-size: 14px; color: #B8C4DE}
+.l96{margin: 18px 0 0; font-size: 14px; color: #4A5368}
+.l97{max-width: 1240px; margin: 0 auto; padding: 80px 24px}
+.l98{margin: 10px 0 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(32px, 4vw, 48px); line-height: 1.1}
+.l99{position: relative; margin-top: 56px}
+.l100{position: absolute; top: 34px; left: 0}
+.l101{position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 32px 24px}
+.l102{width: 70px; height: 70px; border-radius: 50%; background: #FAF8F4; border: 2px solid #0A3161; display: grid; place-items: center; font-family: Fraunces, Georgia, serif; font-size: 26px; font-weight: 600; color: #0A3161}
+.l103{margin: 20px 0 4px; font-size: 18px; font-weight: 600}
+.l104{margin: 0 0 8px; font-family: 'Noto Sans Ethiopic', sans-serif; font-size: 14px; color: #4A5368}
+.l105{margin: 0; font-size: 15px; line-height: 1.6; color: #4A5368}
+.l106{width: 70px; height: 70px; border-radius: 50%; background: #B22234; display: grid; place-items: center; color: #FFFFFF}
+.l107{background: #0A2350; color: #FFFFFF}
+.l108{max-width: 1240px; margin: 0 auto; padding: 96px 24px; display: flex; flex-wrap: wrap; gap: 48px 64px}
+.l109{flex: 1 1 360px; min-width: 0}
+.l110{margin: 0; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #FF9AA5}
+.l111{margin: 12px 0 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(32px, 4vw, 52px); line-height: 1.08}
+.l112{font-style: italic; font-weight: 400}
+.l113{margin: 18px 0 0; font-family: 'Noto Serif Ethiopic', serif; font-size: 20px; color: #E3E9F6}
+.l114{margin: 22px 0 0; max-width: 460px; font-size: 17px; line-height: 1.7; color: #C3CEE6}
+.l115{flex: 2 1 560px; min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px}
+.l116{border: 1px solid #27457E; border-radius: 16px; padding: 28px; background: #0F2C60}
+.l117{margin: 0; font-family: 'Noto Serif Ethiopic', serif; font-size: 34px; color: #FF9AA5}
+.l118{margin: 2px 0 14px; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #B8C4DE}
+.l119{margin: 0; font-size: 16px; line-height: 1.6; color: #DCE4F5}
+.l120{max-width: 1240px; margin: 0 auto; padding: 110px 24px 80px}
+.l121{margin-top: 44px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; align-items: stretch}
+.l122{background: #FFFFFF; border: 1px solid #DDE2EC; border-radius: 18px; padding: 30px; display: flex; flex-direction: column; gap: 18px}
+.l123{margin: 0; font-family: Fraunces, Georgia, serif; font-size: 24px; font-weight: 600}
+.l124{margin: 2px 0 0; font-family: 'Noto Sans Ethiopic', sans-serif; font-size: 13px; color: #4A5368}
+.l125{margin: 0}
+.l126{font-family: Fraunces, Georgia, serif; font-size: 40px; font-weight: 600}
+.l127{font-size: 15px; color: #4A5368}
+.l128{margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 1.5; color: #232C42; flex: 1}
+.l129{display: flex; justify-content: center; align-items: center; min-height: 48px; border-radius: 999px; border: 1.5px solid #0A3161; color: #0A3161; font-weight: 600; text-decoration: none}
+.l130{background: #0A2350; color: #FFFFFF; border-radius: 18px; padding: 30px; display: flex; flex-direction: column; gap: 18px; position: relative}
+.l131{position: absolute; top: -13px; left: 30px; background: #B22234; color: #FFFFFF; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 12px; border-radius: 999px}
+.l132{margin: 2px 0 0; font-family: 'Noto Sans Ethiopic', sans-serif; font-size: 13px; color: #B8C4DE}
+.l133{font-size: 15px; color: #B8C4DE}
+.l134{margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 1.5; color: #DCE4F5; flex: 1}
+.l135{display: flex; justify-content: center; align-items: center; min-height: 48px; border-radius: 999px; background: #B22234; color: #FFFFFF; font-weight: 600; text-decoration: none}
+.l136{margin: 22px 0 0; font-size: 14px; line-height: 1.6; color: #4A5368}
+.l137{background: #EEF1F7}
+.l138{max-width: 1240px; margin: 0 auto; padding: 96px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 48px 72px}
+.l139{flex: 1 1 340px; min-width: 0; display: flex; justify-content: center}
+.l140{position: relative; width: 300px; max-width: 100%; aspect-ratio: 1; background: #FFFFFF; border-radius: 6px; box-shadow: 0 20px 40px rgba(10, 35, 80, 0.18)}
+.l141{position: absolute; right: -14px; bottom: -14px; background: #B22234; color: #FFFFFF; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 999px}
+.l142{flex: 1 1 440px; min-width: 0}
+.l143{margin: 14px 0 0; font-family: 'Noto Serif Ethiopic', serif; font-size: 18px; color: #4A5368}
+.l144{margin: 26px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px}
+.l145{display: flex; gap: 10px; align-items: flex-start; font-size: 16px}
+.l146{flex-shrink: 0}
+.l147{margin-top: 30px; display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 26px; border-radius: 999px; background: #0A3161; color: #FFFFFF; font-weight: 600; text-decoration: none}
+.l148{max-width: 1240px; margin: 0 auto; padding: 96px 24px}
+.l149{border-radius: 24px; background: #B22234; color: #FFFFFF; padding: 56px clamp(24px, 5vw, 64px); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 32px; position: relative; overflow: hidden}
+.l150{position: absolute; right: -40px; top: -50px}
+.l151{flex: 1 1 420px; min-width: 0; position: relative}
+.l152{margin: 0; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #FFD5DA}
+.l153{margin: 10px 0 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(30px, 3.6vw, 44px); line-height: 1.12}
+.l154{margin: 12px 0 0; font-family: 'Noto Serif Ethiopic', serif; font-size: 19px; color: #FFE4E7}
+.l155{margin: 16px 0 0; max-width: 560px; font-size: 17px; line-height: 1.6; color: #FFECEE}
+.l156{position: relative; display: inline-flex; align-items: center; min-height: 52px; padding: 0 26px; border-radius: 999px; background: #FFFFFF; color: #8E1B2A; font-weight: 600; text-decoration: none}
+.l157{max-width: 900px; margin: 0 auto; padding: 20px 24px 110px}
+.l158{margin: 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(32px, 4vw, 44px); text-align: center}
+.l159{margin: 10px 0 40px; font-family: 'Noto Serif Ethiopic', serif; font-size: 18px; color: #4A5368; text-align: center}
+.l160{border-top: 1px solid #D3DAE6; padding: 22px 0}
+.l161{display: flex; justify-content: space-between; gap: 16px; font-size: 19px; font-weight: 600}
+.l162{color: #B22234}
+.l163{margin: 12px 0 0; font-size: 16px; line-height: 1.7; color: #4A5368}
+.l164{border-top: 1px solid #D3DAE6; border-bottom: 1px solid #D3DAE6; padding: 22px 0}
+.l165{background: #0A2350; color: #FFFFFF; text-align: center; position: relative; overflow: hidden}
+.l166{position: absolute; inset: 0; display: flex; flex-direction: column; opacity: 0.07}
+.l167{flex: 1; background: #FFFFFF}
+.l168{position: relative; max-width: 820px; margin: 0 auto; padding: 96px 24px}
+.l169{margin: 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(34px, 4.4vw, 56px); line-height: 1.08}
+.l170{font-style: italic; color: #FF9AA5}
+.l171{margin: 16px 0 0; font-family: 'Noto Serif Ethiopic', serif; font-size: 20px; color: #E3E9F6}
+.l172{margin-top: 34px; display: flex; flex-wrap: wrap; justify-content: center; gap: 14px}
+.l173{display: inline-flex; align-items: center; min-height: 52px; padding: 0 28px; border-radius: 999px; background: #B22234; color: #FFFFFF; font-weight: 600; text-decoration: none}
+.l174{display: inline-flex; align-items: center; min-height: 52px; padding: 0 26px; border-radius: 999px; border: 1px solid #6A86BC; color: #FFFFFF; font-weight: 500; text-decoration: none}
+.l175{background: #061632; color: #B8C4DE}
+.l176{max-width: 1240px; margin: 0 auto; padding: 56px 24px 40px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 36px}
+.l177{flex: 1 1 300px; min-width: 0}
+.l178{margin: 0; font-family: Fraunces, Georgia, serif; font-size: 22px; font-weight: 600; color: #FFFFFF}
+.l179{margin: 4px 0 0; font-family: 'Noto Sans Ethiopic', sans-serif; font-size: 14px}
+.l180{margin: 16px 0 0; max-width: 360px; font-size: 14px; line-height: 1.7}
+.l181{display: flex; flex-wrap: wrap; gap: 36px 64px; font-size: 15px}
+.l182{display: flex; flex-direction: column; gap: 10px}
+.l183{margin: 0; padding: 18px 24px 28px; text-align: center; font-size: 13px; border-top: 1px solid #16294D}
+
+details summary .faq-sign::before{content:'+'}
+details[open] summary .faq-sign::before{content:'\2212'}

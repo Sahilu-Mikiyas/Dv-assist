@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-10-30
+Last updated: 2026-10-31
 
 ## Live
 
@@ -14,7 +14,7 @@ Last updated: 2026-10-30
   issue card, show card details, record confirmation number.
 - Bitnob signed requests (HMAC) to `https://api.bitnob.com`. Sandbox key, company "Furii Labs".
 - Sandbox card-holder customer exists (`BITNOB_CARD_CUSTOMER_ID` on Render).
-- 27 automated tests, run by GitHub Actions on every push.
+- 40 automated tests, run by GitHub Actions on every push.
 
 ## Pinned: Bitnob sandbox card test
 
@@ -45,7 +45,23 @@ Last updated: 2026-10-30
 - Admin-only team page and audit log (CSV export). Bitnob webhook receiver (`BITNOB_WEBHOOK_SECRET`) and
   `BITNOB_CARD_TYPE` (virtual / lite) ready but unconfigured.
 
-## Design (done; staff app built, the rest awaiting build)
+## Public site (built)
+
+- `/`: landing page, converted from the approved design. Its inline styles became classes in
+  `public/landing.css` (the security policy blocks inline styles). Placeholders were removed rather than
+  invented: no phone, office address, entry-window date, retention period or VIP service area yet.
+  The language toggle was left out; both languages show side by side.
+- `/apply`: package → you & family → resume code (shown once) → photos → review → send for checking.
+  The entry then appears in the staff queue marked "Website · <package>". After Abol and Tona, the
+  applicant gives Baraka online on the same page; staff can still record it by phone or in person.
+  The status page shows progress and, at the end, the confirmation number.
+- No accounts or SMS: a 12-character resume code (only its hash is stored) signs the applicant back in
+  on any device. Separate signed cookie (`dv_applicant`, 30 days). Starting entries is limited to 10 per
+  hour per IP; wrong codes to 10 per 15 minutes.
+- Payment is a placeholder: "our team will contact you" (Telebirr / CBE Birr).
+- Staff app moved to `/staff/`.
+
+## Design (done; staff app and applicant flow built)
 
 - Canvas: https://claude.ai/artifact/WTEsmBHebRooMcs47ahCVY (private to the owner)
 - Brand: "Ethio DV Assist". English and Amharic side by side. Red, white and blue, with a waving flag and
@@ -60,8 +76,8 @@ Last updated: 2026-10-30
 
 ## Next phase
 
-- Landing page and applicant flow, with applicant accounts, Telebirr / CBE Birr payments and SMS.
-  Baraka approval then moves to the applicant.
+- Telebirr / CBE Birr payments (needs merchant accounts) and SMS notifications.
+- Fill in the landing-page facts: phone, office address, entry-window date, data retention.
 - Referral partners: accounts, introductions, fill-together with SMS code, payouts.
 - Photo analyzer (face position, background, etc.), modelled on the Lovable prototype
   (repo `Sahilu-Mikiyas/ethiopia-dv-assist`).

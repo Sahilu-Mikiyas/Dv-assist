@@ -5,7 +5,7 @@ import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { APPROVAL_METHODS, EDUCATION_LEVELS, MARITAL_STATUSES, ValidationError } from '../domain/case.js';
+import { APPROVAL_METHODS, EDUCATION_LEVELS, MARITAL_STATUSES, PACKAGES, ValidationError } from '../domain/case.js';
 import { MAX_PHOTO_BYTES } from '../domain/photo.js';
 import { BitnobError } from '../infra/bitnob.js';
 import { log } from '../infra/log.js';
@@ -94,9 +94,10 @@ function verifyWebhook(raw, signature, secret) {
   return expected.length === given.length && timingSafeEqual(expected, given);
 }
 
-// Each route: [method, pattern, handler(req, params, ctx, url)] → { status?, body, headers? } | body.
-// `stage`: 'public' (no session), 'setup' (signed in, authenticator not yet set up) or default (fully signed in).
-function routes({ cases, staff, authn, limiter, webhookSecret }) {
+// Each route: [method, pattern, stage, handler(req, params, ctx, url)] → { status?, body, headers? } | body.
+// `stage`: 'public' (no session), 'applicant' (applicant cookie), 'setup' (staff signed in, authenticator not
+// yet set up) or null (staff fully signed in).
+function routes({ cases, staff, applications, authn, applicantAuthn, limiter, startLimiter, resumeLimiter, webhookSecret }) {
   const sessionFor = (result) => authn.sessionCookie(result.staff.id, { stage: result.needsAuthenticator ? 'setup' : 'ok' });
 
   return [
@@ -133,6 +134,38 @@ function routes({ cases, staff, authn, limiter, webhookSecret }) {
       await staff.confirmAuthenticator(await readJson(req), ctx);
       return { body: { ok: true }, headers: { 'Set-Cookie': authn.sessionCookie(ctx.staff.id) } };
     }],
+
+    // Website applicants.
+    ['GET', /^\/api\/apply\/options$/, 'public', async () => ({
+      packages: PACKAGES, educationLevels: EDUCATION_LEVELS, maritalStatuses: MARITAL_STATUSES,
+    })],
+    ['POST', /^\/api\/apply\/start$/, 'public', async (req, _, ctx) => {
+      if (startLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many new entries from this connection. Try again later.');
+      const input = await readJson(req);
+      const { caseId, resumeCode, application } = await applications.start(input, ctx);
+      startLimiter.recordFailure(ctx.ip); // counts every entry started, not only failures
+      return { status: 201, body: { resumeCode, application }, headers: { 'Set-Cookie': applicantAuthn.sessionCookie(caseId) } };
+    }],
+    ['POST', /^\/api\/apply\/resume$/, 'public', async (req, _, ctx) => {
+      if (resumeLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many wrong codes. Try again later.');
+      const caseId = await applications.resume((await readJson(req)).code);
+      if (!caseId) {
+        resumeLimiter.recordFailure(ctx.ip);
+        throw new HttpError(401, 'That code was not found. Check it and try again.');
+      }
+      resumeLimiter.recordSuccess(ctx.ip);
+      return { body: await applications.get(caseId), headers: { 'Set-Cookie': applicantAuthn.sessionCookie(caseId) } };
+    }],
+    ['POST', /^\/api\/apply\/leave$/, 'public', async () => ({ body: { ok: true }, headers: { 'Set-Cookie': applicantAuthn.clearCookie() } })],
+    ['GET', /^\/api\/apply$/, 'applicant', async (_, __, ctx) => applications.get(ctx.caseId)],
+    ['PUT', /^\/api\/apply$/, 'applicant', async (req, _, ctx) => applications.update(ctx.caseId, await readJson(req), ctx)],
+    ['GET', /^\/api\/apply\/photos\/(\w+)$/, 'applicant', async (_, [key], ctx) => ({
+      body: await applications.getPhoto(ctx.caseId, key), headers: { 'Content-Type': 'image/jpeg' },
+    })],
+    ['PUT', /^\/api\/apply\/photos\/(\w+)$/, 'applicant', async (req, [key], ctx) =>
+      applications.savePhoto(ctx.caseId, key, await readJpeg(req), ctx)],
+    ['POST', /^\/api\/apply\/send$/, 'applicant', async (_, __, ctx) => applications.send(ctx.caseId, ctx)],
+    ['POST', /^\/api\/apply\/approve$/, 'applicant', async (req, _, ctx) => applications.approve(ctx.caseId, await readJson(req), ctx)],
 
     ['GET', /^\/api\/options$/, null, async () => ({
       educationLevels: EDUCATION_LEVELS, maritalStatuses: MARITAL_STATUSES, approvalMethods: APPROVAL_METHODS, roles: ROLES,
@@ -190,8 +223,15 @@ function routes({ cases, staff, authn, limiter, webhookSecret }) {
   ];
 }
 
+// Clean URLs: "/" → index.html, "/staff/" → staff/index.html, "/apply" → apply.html.
+function staticPath(pathname) {
+  if (pathname.endsWith('/')) return `${pathname}index.html`;
+  if (!extname(pathname)) return `${pathname}.html`;
+  return pathname;
+}
+
 async function serveStatic(res, pathname) {
-  const file = normalize(join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname));
+  const file = normalize(join(PUBLIC_DIR, staticPath(pathname)));
   if (!file.startsWith(PUBLIC_DIR + '/')) return send(res, 404, { error: 'Not found' });
   try {
     const data = await readFile(file);
@@ -230,8 +270,11 @@ function assertSameOrigin(req) {
   if (host !== req.headers.host) throw new HttpError(403, 'Cross-origin request blocked');
 }
 
-export function createApp({ cases, staff, authn, limiter, trustProxy = false, hsts = false, webhookSecret = null }) {
-  const table = routes({ cases, staff, authn, limiter, webhookSecret });
+export function createApp({
+  cases, staff, applications, authn, applicantAuthn, limiter, startLimiter, resumeLimiter,
+  trustProxy = false, hsts = false, webhookSecret = null,
+}) {
+  const table = routes({ cases, staff, applications, authn, applicantAuthn, limiter, startLimiter, resumeLimiter, webhookSecret });
   const clientIp = (req) =>
     (trustProxy && req.headers['x-forwarded-for']?.split(',')[0].trim()) || req.socket.remoteAddress;
 
@@ -258,9 +301,13 @@ export function createApp({ cases, staff, authn, limiter, trustProxy = false, hs
       // Webhooks come from Bitnob's servers, not a browser, so the Origin check does not apply to them.
       if (!pathname.startsWith('/api/webhooks/')) assertSameOrigin(req);
       const ctx = { ip: clientIp(req) };
-      if (stage !== 'public') {
+      if (stage === 'applicant') {
+        const session = applicantAuthn.readSession(req);
+        if (!session) throw new HttpError(401, 'Enter your resume code to continue');
+        ctx.caseId = session.subject;
+      } else if (stage !== 'public') {
         const session = authn.readSession(req);
-        const member = session && (await staff.activeById(session.staffId));
+        const member = session && (await staff.activeById(session.subject));
         if (!member) throw new HttpError(401, 'Login required');
         if (session.stage === 'setup' && stage !== 'setup') throw new HttpError(403, 'Set up your authenticator first');
         Object.assign(ctx, { staff: member, stage: session.stage });

@@ -1,4 +1,4 @@
-import { api, $, el, label, loadShell, showError } from '/app.js';
+import { api, $, el, label, loadShell, showError } from '/staff/app.js';
 
 const FILTERS = [['', 'All'], ['card', 'Card'], ['login', 'Sign-ins'], ['check', 'Checks'], ['case_submitted', 'Submissions'], ['bitnob', 'Bitnob']];
 const WARN = /^(card_revealed|login_failed|bitnob:.*declin)/;
@@ -12,7 +12,7 @@ async function load() {
       el('td', { className: 'muted', textContent: new Date(e.at).toLocaleString() }),
       el('td', { textContent: e.staffName ?? (e.action.startsWith('bitnob') ? 'Bitnob' : '—') }),
       el('td', {}, el('span', { className: WARN.test(e.action) ? 'chip warn' : 'chip', textContent: label(e.action) })),
-      el('td', { className: 'mono' }, e.caseId ? el('a', { href: `/case.html?id=${e.caseId}`, textContent: e.caseCode ?? 'case' }) : '—'),
+      el('td', { className: 'mono' }, e.caseId ? el('a', { href: `/staff/case.html?id=${e.caseId}`, textContent: e.caseCode ?? 'case' }) : '—'),
       el('td', { className: 'muted', textContent: e.detail ?? '' }),
       el('td', { className: 'mono muted', textContent: e.ip ?? '' }),
     )));

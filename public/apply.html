@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your entry — Ethio DV Assist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&amp;family=Inter:wght@400;500;600&amp;family=Noto+Sans+Ethiopic:wght@400;500;600&amp;family=Noto+Serif+Ethiopic:wght@500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/apply.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="/">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg>
+      <span>Ethio DV Assist</span>
+    </a>
+    <div class="top-side">
+      <span id="package-chip" class="muted-on-navy" hidden></span>
+      <span id="saved-note" class="muted-on-navy" hidden>Saved · come back with your code</span>
+    </div>
+  </div>
+</header>
+
+<nav id="steps" class="steps" aria-label="Application steps" hidden>
+  <ol>
+    <li data-step="details"><span class="dot">1</span><span class="step-en">You &amp; family</span><span lang="am">እርስዎ እና ቤተሰብ</span></li>
+    <li data-step="photos"><span class="dot">2</span><span class="step-en">Photos</span><span lang="am">ፎቶዎች</span></li>
+    <li data-step="review"><span class="dot">3</span><span class="step-en">Review</span><span lang="am">ማረጋገጫ</span></li>
+    <li data-step="checking"><span class="dot">4</span><span class="step-en">Checking</span><span lang="am">ማጣራት</span></li>
+    <li data-step="submitted"><span class="dot">★</span><span class="step-en">Submitted</span><span lang="am">ገብቷል</span></li>
+  </ol>
+</nav>
+
+<main class="page">
+  <p id="error" class="error" role="alert" hidden></p>
+  <p id="loading" class="loading">Loading…</p>
+
+  <!-- Choose a package -->
+  <section id="view-package" class="view" hidden>
+    <div class="intro">
+      <p class="eyebrow">Start your entry</p>
+      <h1>Choose how much help you want</h1>
+      <p lang="am" class="am-sub">የሚፈልጉትን ያህል እገዛ ይምረጡ።</p>
+      <p class="lead">You can change this later, before you send your entry for checking. Payment is arranged with our team after your entry is checked.</p>
+    </div>
+    <div id="packages" class="packages" role="radiogroup" aria-label="Package"></div>
+    <div class="actions">
+      <a class="btn ghost" href="/">← Back</a>
+      <button id="package-next" class="btn primary" type="button">Continue →</button>
+    </div>
+    <p class="resume-link">Already started? <a href="#resume">Continue with your code</a></p>
+  </section>
+
+  <!-- Continue with a code -->
+  <section id="view-resume" class="view narrow" hidden>
+    <div class="card">
+      <p class="eyebrow">Welcome back</p>
+      <h1>Continue with your code</h1>
+      <p lang="am" class="am-sub">በኮድዎ ይቀጥሉ</p>
+      <form id="resume-form" class="stack">
+        <label class="field"><span>Your 12-character code <span lang="am">· ኮድዎ</span></span>
+          <input name="code" class="code-input" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" required maxlength="20">
+        </label>
+        <button class="btn primary" type="submit">Continue</button>
+      </form>
+      <p class="muted">Lost your code? Contact our team with your name and phone number.</p>
+      <p><a href="/apply">Start a new entry instead</a></p>
+    </div>
+  </section>
+
+  <!-- You & family -->
+  <section id="view-details" class="view" hidden>
+    <form id="details-form" class="with-side" novalidate>
+      <div class="main-col">
+        <div class="intro">
+          <h1>Tell us about you and your family</h1>
+          <p lang="am" class="am-sub">ስለ እርስዎና ስለ ቤተሰብዎ ይንገሩን</p>
+          <p class="lead">Write names exactly as they appear in your passport. Use the Gregorian calendar for dates.</p>
+        </div>
+
+        <section class="card">
+          <h2>About you <span lang="am">· ስለ እርስዎ</span></h2>
+          <div id="applicant-person"></div>
+          <div class="grid">
+            <label class="field"><span>Country of eligibility <span lang="am">· የብቁነት ሀገር</span></span><input name="eligibilityCountry" required value="Ethiopia"></label>
+            <label class="field"><span>Country where you live <span lang="am">· የሚኖሩበት ሀገር</span></span><input name="residenceCountry" required value="Ethiopia"></label>
+          </div>
+          <label class="field"><span>Mailing address <span lang="am">· የፖስታ አድራሻ</span></span><textarea name="mailingAddress" rows="2" required placeholder="Sub-city, woreda, house number, city"></textarea></label>
+          <div class="grid">
+            <label class="field"><span>Phone <span lang="am">· ስልክ</span></span><input name="phone" type="tel" autocomplete="tel" placeholder="+251 9…"></label>
+            <label class="field"><span>Email <span lang="am">· ኢሜይል</span></span><input name="email" type="email" autocomplete="email" required></label>
+          </div>
+          <label class="field"><span>Highest education <span lang="am">· የትምህርት ደረጃ</span></span><select name="education" required></select></label>
+        </section>
+
+        <section class="card">
+          <h2>Your family <span lang="am">· ቤተሰብዎ</span></h2>
+          <p class="muted">List your spouse and <strong>every</strong> unmarried child under 21, even if they will not travel with you.</p>
+          <label class="field half"><span>Marital status <span lang="am">· የጋብቻ ሁኔታ</span></span><select name="maritalStatus" required></select></label>
+          <fieldset id="spouse-box" class="person-box" hidden>
+            <legend>Spouse <span lang="am">· የትዳር ጓደኛ</span></legend>
+            <div id="spouse-person"></div>
+          </fieldset>
+          <div id="children"></div>
+          <button id="add-child" class="add-tile" type="button">+ Add a child <span lang="am">· ልጅ ይጨምሩ</span></button>
+        </section>
+
+        <div class="actions">
+          <button id="details-back" class="btn ghost" type="button">← Back</button>
+          <button class="btn primary" type="submit">Save &amp; continue to photos →</button>
+        </div>
+      </div>
+
+      <aside class="side-col">
+        <div class="card navy">
+          <p class="eyebrow pink">Why we ask</p>
+          <p>The official form requires everyone in your immediate family. A missing child is one of the most common reasons entries are disqualified.</p>
+          <p lang="am" class="am-small">ልጅን አለመዘርዘር ምዝገባን ሊያሰርዝ ይችላል።</p>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Your entry</p>
+          <p id="people-count" class="big">1 person</p>
+          <p class="muted">Each person needs a photo in the next step.</p>
+        </div>
+      </aside>
+    </form>
+  </section>
+
+  <!-- Save your code (shown once, right after the entry is created) -->
+  <section id="view-code" class="view narrow" hidden>
+    <div class="card code-card">
+      <p class="eyebrow">Saved</p>
+      <h1>Write down your code</h1>
+      <p lang="am" class="am-sub">ይህን ኮድ ይጻፉት</p>
+      <p class="lead">Use this code to come back to your entry and to follow its progress. We cannot show it to you again.</p>
+      <p id="resume-code" class="the-code"></p>
+      <button id="copy-code" class="btn ghost" type="button">Copy code</button>
+      <label class="check"><input id="code-saved" type="checkbox"> I have written down or saved my code <span lang="am">· ኮዱን አስቀምጫለሁ</span></label>
+      <button id="code-next" class="btn primary" type="button" disabled>Continue to photos →</button>
+    </div>
+  </section>
+
+  <!-- Photos -->
+  <section id="view-photos" class="view" hidden>
+    <div class="intro">
+      <h1>A photo for each person</h1>
+      <p lang="am" class="am-sub">ለእያንዳንዱ ሰው ፎቶ</p>
+      <p class="lead">We crop and resize each photo to exactly 600 × 600 on your device. Our team checks every photo before your entry is filed.</p>
+    </div>
+    <div id="photo-list" class="photo-list"></div>
+    <section class="card tips">
+      <h2>How to take a photo that passes <span lang="am">· ትክክለኛ ፎቶ እንዴት እንደሚነሳ</span></h2>
+      <ul class="tick-list">
+        <li>Stand in front of a plain white wall, a step away from it</li>
+        <li>Face a window or daylight. No flash shadows</li>
+        <li>Remove glasses. Keep the head uncovered unless for religious reasons</li>
+        <li>Taken in the last 6 months, looking straight at the camera</li>
+      </ul>
+    </section>
+    <div class="actions">
+      <button id="photos-back" class="btn ghost" type="button">← Back</button>
+      <span id="photo-count" class="muted"></span>
+      <button id="photos-next" class="btn primary" type="button">Continue to review →</button>
+    </div>
+  </section>
+
+  <!-- Review & send -->
+  <section id="view-review" class="view" hidden>
+    <div class="with-side">
+      <div class="main-col">
+        <div class="intro">
+          <h1>Read it once more</h1>
+          <p lang="am" class="am-sub">አንድ ጊዜ ደግመው ያንብቡት</p>
+        </div>
+        <article id="summary" class="summary"></article>
+        <form id="send-form" class="card">
+          <fieldset class="consents">
+            <legend>Before you send <span lang="am">· ከመላክዎ በፊት</span></legend>
+            <label class="check"><input type="checkbox" required> Everything above is true and complete, including every family member.</label>
+            <label class="check"><input type="checkbox" required> I understand selection is random and no one can improve my chances.</label>
+          </fieldset>
+          <div class="actions">
+            <button id="review-back" class="btn ghost" type="button">← Back</button>
+            <button class="btn primary" type="submit">Send for checking →</button>
+          </div>
+        </form>
+      </div>
+      <aside class="side-col">
+        <div class="card">
+          <p class="eyebrow">What happens next</p>
+          <ol class="rounds">
+            <li><b lang="am">ዐቦል</b> <span>Abol</span><small>Our team checks every detail and photo</small></li>
+            <li><b lang="am">ቶና</b> <span>Tona</span><small>A second person checks it again</small></li>
+            <li><b lang="am">በረካ</b> <span>Baraka</span><small>You give the final approval here</small></li>
+          </ol>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Status -->
+  <section id="view-status" class="view" hidden>
+    <div class="with-side">
+      <div class="main-col">
+        <div class="intro">
+          <p class="eyebrow" id="status-code"></p>
+          <h1 id="status-title"></h1>
+          <p lang="am" class="am-sub" id="status-title-am"></p>
+          <p class="lead" id="status-lead"></p>
+        </div>
+
+        <div id="confirmation" class="card confirmation" hidden>
+          <p class="eyebrow">Confirmation number <span lang="am">· የማረጋገጫ ቁጥር</span></p>
+          <p id="confirmation-number" class="the-code"></p>
+          <p class="muted">Keep it private. You need it, with your birth year, to check results on dvprogram.state.gov.</p>
+        </div>
+
+        <form id="approve-form" class="card approve" hidden>
+          <h2>Your approval — Baraka <span lang="am">· በረካ</span></h2>
+          <p class="muted">Both checks are done. Read your entry below. If anything is wrong, contact our team before approving.</p>
+          <article id="approve-summary" class="summary"></article>
+          <fieldset class="consents">
+            <label class="check"><input type="checkbox" required> Every detail and photo is correct.</label>
+            <label class="check"><input type="checkbox" required> I authorise Ethio DV Assist to submit exactly one entry for me and to pay the official fee on my behalf.</label>
+          </fieldset>
+          <button class="btn primary" type="submit">Approve my entry</button>
+        </form>
+
+        <section class="card">
+          <h2>Progress <span lang="am">· ሂደት</span></h2>
+          <ol id="timeline" class="timeline"></ol>
+        </section>
+      </div>
+      <aside class="side-col">
+        <div id="payment-note" class="card navy">
+          <p class="eyebrow pink">Payment</p>
+          <p>Our team will contact you to arrange payment by Telebirr or CBE Birr before your entry is filed.</p>
+        </div>
+        <div class="card warn">
+          <p class="eyebrow">Beware of scams</p>
+          <p>Results are only on dvprogram.state.gov. No one, including us, can ask you to pay to “win”.</p>
+          <p lang="am" class="am-small">ውጤቱ የሚገኘው በ dvprogram.state.gov ብቻ ነው።</p>
+        </div>
+        <button id="leave" class="btn ghost small" type="button">Sign out of this device</button>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">Independent service. Not affiliated with the U.S. Government. Entries are made only on the official site, dvprogram.state.gov.</footer>
+
+<template id="person-fields">
+  <div class="grid">
+    <label class="field"><span>Last name <span lang="am">· የአያት ስም</span></span><input data-f="lastName" required autocomplete="off"></label>
+    <label class="field"><span>First name <span lang="am">· ስም</span></span><input data-f="firstName" autocomplete="off"></label>
+    <label class="field"><span>Middle name <span class="opt">(optional)</span></span><input data-f="middleName" autocomplete="off"></label>
+  </div>
+  <label class="check small"><input type="checkbox" data-f="noFirstName"> No first name in the passport</label>
+  <div class="grid">
+    <fieldset class="field">
+      <legend>Gender <span lang="am">· ጾታ</span></legend>
+      <div class="toggle">
+        <label><input type="radio" data-f="gender" value="male"> Male</label>
+        <label><input type="radio" data-f="gender" value="female"> Female</label>
+      </div>
+    </fieldset>
+    <label class="field"><span>Birth date <span lang="am">· የትውልድ ቀን</span></span><input type="date" data-f="birthDate" required></label>
+  </div>
+  <div class="grid">
+    <label class="field"><span>City of birth <span lang="am">· የትውልድ ከተማ</span></span><input data-f="birthCity" required></label>
+    <label class="field"><span>Country of birth <span lang="am">· የትውልድ ሀገር</span></span><input data-f="birthCountry" required value="Ethiopia"></label>
+  </div>
+</template>
+
+<script type="module" src="/apply.js"></script>
+</body>
+</html>
