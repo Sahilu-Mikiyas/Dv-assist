@@ -36,8 +36,22 @@ Last updated: 2026-10-30
 - Whitelist Render's outbound IPs on the live Bitnob key.
 - Staff logins: one operator cannot handle about 20,000 entries a month.
 
+## Design (done, awaiting build)
+
+- Canvas: https://claude.ai/artifact/WTEsmBHebRooMcs47ahCVY (private to the owner)
+- Brand: "Ethio DV Assist". English and Amharic side by side. Red, white and blue, with a waving flag and
+  American landmark illustrations; tibeb borders and the coffee-ceremony rounds (Abol, Tona, Baraka) as
+  the three checks.
+- 16 screens: landing, design system, applicant flow (details, photos analyzer, review, payment, submitted),
+  referral partners (landing, dashboard, introduce, fill together, sent), staff (login, queue, case
+  workspace, audit log).
+- Placeholders to decide: entry-window and results dates, phone, office address, data retention, partner
+  commission and payout day, VIP service area.
+- The Amharic copy needs a native-speaker review.
+
 ## Next phase
 
-- Design: landing page, applicant flow, referral partner flow, staff app. See `docs/DESIGN_PLAN.md`.
+- Build the designed screens, plus the backend each needs: applicant accounts, service-fee payments
+  (Telebirr / CBE Birr), referral partners, staff roles and 2FA, and SMS.
 - Photo analyzer (face position, background, etc.), modelled on the Lovable prototype
   (repo `Sahilu-Mikiyas/ethiopia-dv-assist`).
