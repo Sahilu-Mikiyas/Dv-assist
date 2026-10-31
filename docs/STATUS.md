@@ -30,13 +30,22 @@ Last updated: 2026-10-30
 ## Before going live
 
 - Rotate the Bitnob sandbox key and the Turso token. Both were pasted in chat.
-- Choose a real operator password (`ADMIN_PASSWORD_HASH`).
+- Change the first admin's temporary password (it was shared in chat).
 - Card holder KYC on live (Bitnob asks for `id_type` and `id_number`).
 - Set `CARD_AMOUNT_USD` to the official DV fee (minimum $2).
 - Whitelist Render's outbound IPs on the live Bitnob key.
-- Staff logins: one operator cannot handle about 20,000 entries a month.
 
-## Design (done, awaiting build)
+## Staff app (built, live)
+
+- Personal staff accounts (admin / staff), password + authenticator code, set up on first sign-in.
+  First admin: mickeysahilu@gmail.com (created from `ADMIN_EMAIL` + `ADMIN_PASSWORD_HASH`).
+- Stages: draft → Abol → Tona (different person) → Baraka (applicant approval, recorded by staff) → card →
+  submitted. Case numbers EDA-0001…, assignment, queue with counters and search.
+- Case workspace with copy-ready fields, photo downloads, card reveal with billing address, activity.
+- Admin-only team page and audit log (CSV export). Bitnob webhook receiver (`BITNOB_WEBHOOK_SECRET`) and
+  `BITNOB_CARD_TYPE` (virtual / lite) ready but unconfigured.
+
+## Design (done; staff app built, the rest awaiting build)
 
 - Canvas: https://claude.ai/artifact/WTEsmBHebRooMcs47ahCVY (private to the owner)
 - Brand: "Ethio DV Assist". English and Amharic side by side. Red, white and blue, with a waving flag and
@@ -51,7 +60,8 @@ Last updated: 2026-10-30
 
 ## Next phase
 
-- Build the designed screens, plus the backend each needs: applicant accounts, service-fee payments
-  (Telebirr / CBE Birr), referral partners, staff roles and 2FA, and SMS.
+- Landing page and applicant flow, with applicant accounts, Telebirr / CBE Birr payments and SMS.
+  Baraka approval then moves to the applicant.
+- Referral partners: accounts, introductions, fill-together with SMS code, payouts.
 - Photo analyzer (face position, background, etc.), modelled on the Lovable prototype
   (repo `Sahilu-Mikiyas/ethiopia-dv-assist`).
