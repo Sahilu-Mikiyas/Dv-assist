@@ -16,7 +16,7 @@ export function signRequest({ clientId, secretKey, timestamp, nonce, body }) {
   return createHmac('sha256', secretKey).update(`${clientId}:${timestamp}:${nonce}:${body}`).digest('hex');
 }
 
-export function bitnobClient({ baseUrl, clientId, secretKey, cardCustomerId }, fetchImpl = fetch) {
+export function bitnobClient({ baseUrl, clientId, secretKey, cardCustomerId, cardType = 'virtual' }, fetchImpl = fetch) {
   async function request(method, path, body) {
     const rawBody = body ? JSON.stringify(body) : '';
     const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -55,7 +55,7 @@ export function bitnobClient({ baseUrl, clientId, secretKey, cardCustomerId }, f
     // `reference` is unique per case so a retried request cannot create a second card.
     async createCard({ amountUsd, reference }) {
       const data = await request('POST', '/api/cards', {
-        card_type: 'virtual',
+        card_type: cardType,
         customer_id: cardCustomerId,
         currency: 'USD',
         card_brand: 'visa',

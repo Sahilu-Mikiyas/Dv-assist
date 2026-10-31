@@ -3,18 +3,58 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DV Assist — Login</title>
+  <title>Sign in — Ethio DV Assist staff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=Noto+Sans+Ethiopic:wght@400;500&display=swap">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<main class="narrow">
-  <h1>DV Assist</h1>
-  <form id="login">
-    <label>Password <input type="password" name="password" required autofocus></label>
-    <p id="error" hidden></p>
-    <button>Log in</button>
-  </form>
-</main>
+<div class="login">
+  <section class="login-brand">
+    <div class="stripes" aria-hidden="true"></div>
+    <a class="brand rel" href="/login.html">
+      <svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg>
+      <b>Ethio DV Assist</b>
+    </a>
+    <div class="rel">
+      <p class="eyebrow on-navy">Staff workspace</p>
+      <h1>Every entry,<br><i class="light">checked three times.</i></h1>
+      <p class="am tagline" lang="am">ዐቦል · ቶና · በረካ</p>
+    </div>
+    <p class="rel fineprint navy-fine">Internal use only. All access is recorded in the audit log.</p>
+  </section>
+
+  <section class="login-form">
+    <!-- Step 1: sign in -->
+    <form id="signin">
+      <h2 class="form-title">Sign in</h2>
+      <label class="field">Work email<input type="email" name="email" autocomplete="username" required autofocus></label>
+      <label class="field">Password<input type="password" name="password" autocomplete="current-password" required></label>
+      <label class="field">6-digit code from your authenticator
+        <input name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Leave empty on your first sign-in">
+      </label>
+      <p id="error" hidden></p>
+      <button class="btn dark big">Sign in</button>
+      <p class="muted fineprint">5 wrong attempts locks sign-in for 15 minutes.</p>
+    </form>
+
+    <!-- Step 2 (first sign-in only): set up the authenticator -->
+    <form id="setup" hidden>
+      <h2 class="form-title">Set up your authenticator</h2>
+      <p class="muted flat">Every staff member needs one. Use Google Authenticator, Microsoft Authenticator or similar.</p>
+      <ol class="steps">
+        <li>In the app, choose <b>Add account → Enter a setup key</b>.</li>
+        <li>Account name: <b>Ethio DV Assist</b>. Key: the code below. Type: <b>time based</b>.</li>
+        <li>Type the 6-digit code the app shows.</li>
+      </ol>
+      <p class="secret" id="secret">…</p>
+      <a id="otpauth" class="btn small" href="#">On this phone? Open in authenticator app</a>
+      <label class="field">6-digit code<input name="code" inputmode="numeric" autocomplete="one-time-code" required></label>
+      <p id="setup-error" class="error-box" hidden></p>
+      <button class="btn primary big">Confirm and continue</button>
+    </form>
+  </section>
+</div>
 <script type="module" src="/login.js"></script>
 </body>
 </html>

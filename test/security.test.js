@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { cipher, hashPassword, parseKey, verifyPassword } from '../src/infra/crypto.js';
 import { loginLimiter } from '../src/http/rate-limit.js';
+import { base32Encode, totpCode, verifyTotp } from '../src/infra/totp.js';
 
 test('encrypts and decrypts, and detects tampering', () => {
   const c = cipher(randomBytes(32));
@@ -39,4 +40,14 @@ test('limits failed logins per IP and globally, then resets', () => {
   assert.equal(limiter.isBlocked('c'), true); // global cap reached
   t = 1001;
   assert.equal(limiter.isBlocked('a'), false);
+});
+
+test('authenticator codes match the RFC 6238 test vectors and allow one step of drift', () => {
+  const secret = base32Encode(Buffer.from('12345678901234567890'));
+  assert.equal(totpCode(secret, 59_000), '287082');
+  assert.equal(totpCode(secret, 1_111_111_109_000), '081804');
+  assert.equal(totpCode(secret, 20_000_000_000_000), '353130');
+  assert.equal(verifyTotp(secret, '287082', 59_000 + 30_000), true);
+  assert.equal(verifyTotp(secret, '287082', 59_000 + 90_000), false);
+  assert.equal(verifyTotp(secret, 'abc', 59_000), false);
 });

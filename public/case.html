@@ -3,84 +3,106 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DV Assist — Case</title>
+  <title>Case — Ethio DV Assist staff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=Noto+Sans+Ethiopic:wght@400;500&display=swap">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<main>
-  <header>
-    <h1 id="title">New case</h1>
-    <a href="/">← All cases</a>
-  </header>
-  <p id="error" hidden></p>
+<div class="shell">
+  <nav class="sidebar" aria-label="Staff navigation">
+    <a class="brand" href="/"><svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg><b>Staff</b></a>
+    <a class="nav-link" href="/" aria-current="page">Case queue</a>
+    <a class="nav-link" href="/?mine=1">My cases</a>
+    <a class="nav-link" href="/case.html">New case</a>
+    <a class="nav-link" href="/team.html" data-admin hidden>Team</a>
+    <a class="nav-link" href="/audit.html" data-admin hidden>Audit log</a>
+    <div class="me"><span class="avatar" id="me-avatar">·</span><span><span id="me-name">…</span><br><span class="muted" id="me-role"></span></span><button class="btn small ghost" id="logout" type="button">Log out</button></div>
+  </nav>
 
-  <h2>1. Applicant details</h2>
-  <form id="form">
-    <fieldset data-person="applicant"><legend>Applicant</legend></fieldset>
-    <fieldset>
-      <legend>Entry details</legend>
-      <label>Country of eligibility <input name="eligibilityCountry" required></label>
-      <label>Mailing address <textarea name="mailingAddress" rows="3" required></textarea></label>
-      <div class="row">
-        <label>Country where you live today <input name="residenceCountry" required></label>
-        <label>Phone (optional) <input name="phone"></label>
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <a href="/" class="back">← Queue</a>
+        <h1 id="title">New case</h1>
+        <p class="muted flat" id="meta"></p>
       </div>
-      <label>Email <input type="email" name="email" required></label>
-      <div class="row">
-        <label>Highest education <select name="education" required></select></label>
-        <label>Marital status <select name="maritalStatus" required></select></label>
+      <div class="row" id="assign-box" hidden>
+        <label class="field inline">Assigned to <select id="assign"></select></label>
       </div>
-    </fieldset>
-    <fieldset data-person="spouse" hidden><legend>Spouse</legend></fieldset>
-    <div id="children"></div>
-    <p>
-      <button type="button" class="secondary" id="add-child">Add child</button>
-      <button id="save">Save</button>
-    </p>
-  </form>
-
-  <section id="photos-section" hidden>
-    <h2>2. Photos</h2>
-    <p class="muted">Choose any photo: it is cropped to a square, resized to 600×600 and compressed automatically. Check the result: face centred, plain light background, no glasses.</p>
-    <div id="photos"></div>
-  </section>
-
-  <section id="pay-section" hidden>
-    <h2>3. Pay the DV fee</h2>
-    <div id="pay-draft">
-      <p class="muted">Issues a Bitnob virtual USD card loaded with the fee. Upload every photo first.</p>
-      <button id="issue-card">Issue card</button>
-      <span class="muted" id="photo-hint"></span>
     </div>
-    <div id="pay-issued" hidden>
-      <p class="muted">Use this card to pay the fee on the official entry site, then record the confirmation number.</p>
-      <button class="secondary" id="show-card">Show card details</button>
-      <pre class="card-details" id="card" hidden></pre>
-      <form id="submit-form">
-        <label>Confirmation number <input name="confirmationNumber" required></label>
-        <button>Mark as submitted</button>
-      </form>
+    <ol class="stages" id="stages" aria-label="Checks" hidden></ol>
+    <p id="error" hidden></p>
+
+    <div class="split">
+      <div class="main">
+        <!-- Draft: the form -->
+        <form id="form">
+          <fieldset data-person="applicant"><legend>Applicant</legend></fieldset>
+          <fieldset>
+            <legend>Entry details</legend>
+            <div class="stack">
+              <label class="field">Country of eligibility<input name="eligibilityCountry" required></label>
+              <label class="field">Mailing address<textarea name="mailingAddress" rows="3" required></textarea></label>
+              <div class="grid">
+                <label class="field">Country where they live today<input name="residenceCountry" required></label>
+                <label class="field">Phone (optional)<input name="phone"></label>
+              </div>
+              <label class="field">Email<input type="email" name="email" required></label>
+              <div class="grid">
+                <label class="field">Highest education<select name="education" required></select></label>
+                <label class="field">Marital status<select name="maritalStatus" required></select></label>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset data-person="spouse" hidden><legend>Spouse</legend></fieldset>
+          <div id="children" class="stack"></div>
+          <div class="row">
+            <button type="button" class="btn" id="add-child">+ Add child</button>
+            <button class="btn primary" id="save">Save</button>
+          </div>
+        </form>
+
+        <!-- After the first check: data ready to copy into the official form -->
+        <section class="card flush" id="copy-card" hidden>
+          <h2 class="card-title pad">Copy into the official form</h2>
+          <dl class="copy-list" id="copy"></dl>
+        </section>
+
+        <section class="card" id="photos-card" hidden>
+          <h2 class="card-title">Photos</h2>
+          <p class="muted flat small" id="photos-help">Choose any photo: it is cropped to a square, resized to 600×600 and compressed automatically. Check each one: face centred, plain light background, no glasses.</p>
+          <div class="photos" id="photos"></div>
+        </section>
+      </div>
+
+      <aside class="side" id="side" hidden>
+        <section class="dark-card" id="action"></section>
+        <section class="card">
+          <h2 class="card-title">Activity</h2>
+          <ul class="activity" id="activity"></ul>
+        </section>
+      </aside>
     </div>
-    <p id="pay-done" hidden>Submitted. Confirmation number: <strong id="confirmation"></strong></p>
-  </section>
-</main>
+  </main>
+</div>
 
 <template id="person-fields">
-  <div class="row">
-    <label>Last name <input name="lastName" required></label>
-    <label>First name <input name="firstName"></label>
-    <label>Middle name <input name="middleName"></label>
-  </div>
-  <label><input type="checkbox" name="noFirstName"> No first name</label>
-  <div class="row">
-    <label>Gender
-      <select name="gender" required><option value="">—</option><option value="male">Male</option><option value="female">Female</option></select>
-    </label>
-    <label>Birth date <input type="date" name="birthDate" required></label>
-  </div>
-  <div class="row">
-    <label>City of birth <input name="birthCity" required></label>
-    <label>Country of birth <input name="birthCountry" required></label>
+  <div class="stack">
+    <div class="grid">
+      <label class="field">Last name<input name="lastName" required></label>
+      <label class="field">First name<input name="firstName"></label>
+      <label class="field">Middle name<input name="middleName"></label>
+    </div>
+    <label class="check"><input type="checkbox" name="noFirstName"> No first name</label>
+    <div class="grid">
+      <label class="field">Gender
+        <select name="gender" required><option value="">—</option><option value="male">Male</option><option value="female">Female</option></select>
+      </label>
+      <label class="field">Birth date<input type="date" name="birthDate" required></label>
+      <label class="field">City of birth<input name="birthCity" required></label>
+      <label class="field">Country of birth<input name="birthCountry" required></label>
+    </div>
   </div>
 </template>
 

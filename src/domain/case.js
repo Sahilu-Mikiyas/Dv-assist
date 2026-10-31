@@ -1,11 +1,18 @@
 // Applicant case rules: what a DV entry needs and how a case moves through its lifecycle.
 // Pure functions only — no I/O.
 
+// Lifecycle: draft → checked (Abol) → verified (Tona, a different person) → approved (Baraka, the
+// applicant's approval) → card_issued → submitted.
 export const STATUS = Object.freeze({
   DRAFT: 'draft',
+  CHECKED: 'checked',
+  VERIFIED: 'verified',
+  APPROVED: 'approved',
   CARD_ISSUED: 'card_issued',
   SUBMITTED: 'submitted',
 });
+
+export const APPROVAL_METHODS = ['in_person', 'phone', 'online'];
 
 export const GENDERS = ['male', 'female'];
 
@@ -106,18 +113,46 @@ export function photoKeys(applicant) {
   ];
 }
 
-export function assertCanIssueCard(caseRecord, photoKeysPresent) {
-  if (caseRecord.status !== STATUS.DRAFT) {
-    throw new ValidationError([`A card can only be issued for a draft case (status: ${caseRecord.status})`]);
+function assertStatus(caseRecord, expected, action) {
+  if (caseRecord.status !== expected) {
+    throw new ValidationError([`Cannot ${action}: case is ${caseRecord.status.replace('_', ' ')}, expected ${expected.replace('_', ' ')}`]);
   }
+}
+
+// Abol: the first check. Every person on the entry needs a photo first.
+export function assertCanCheck(caseRecord, photoKeysPresent) {
+  assertStatus(caseRecord, STATUS.DRAFT, 'run the first check');
   const missing = photoKeys(caseRecord.applicant).filter((k) => !photoKeysPresent.includes(k));
   if (missing.length) throw new ValidationError(missing.map((k) => `Photo missing for ${k}`));
 }
 
-export function assertCanSubmit(caseRecord, confirmationNumber) {
-  if (caseRecord.status !== STATUS.CARD_ISSUED) {
-    throw new ValidationError([`Only a case with an issued card can be submitted (status: ${caseRecord.status})`]);
+// Tona: the second check, by someone other than whoever did the first.
+export function assertCanVerify(caseRecord, staffId) {
+  assertStatus(caseRecord, STATUS.CHECKED, 'run the second check');
+  if (caseRecord.checks?.abol?.by === staffId) {
+    throw new ValidationError(['The second check must be done by a different person than the first']);
   }
+}
+
+// Baraka: staff record that the applicant approved the final entry, and how.
+export function assertCanApprove(caseRecord, method) {
+  assertStatus(caseRecord, STATUS.VERIFIED, 'record approval');
+  if (!APPROVAL_METHODS.includes(method)) throw new ValidationError(['Say how the applicant approved']);
+}
+
+// Before a card exists, a case can go back to draft for corrections (its checks are cleared).
+export function assertCanReopen(caseRecord) {
+  if (![STATUS.CHECKED, STATUS.VERIFIED, STATUS.APPROVED].includes(caseRecord.status)) {
+    throw new ValidationError([`Cannot reopen a case that is ${caseRecord.status.replace('_', ' ')}`]);
+  }
+}
+
+export function assertCanIssueCard(caseRecord) {
+  assertStatus(caseRecord, STATUS.APPROVED, 'issue a card');
+}
+
+export function assertCanSubmit(caseRecord, confirmationNumber) {
+  assertStatus(caseRecord, STATUS.CARD_ISSUED, 'submit');
   if (!/^[A-Z0-9]{10,20}$/i.test(confirmationNumber ?? '')) {
     throw new ValidationError(['Confirmation number looks invalid']);
   }

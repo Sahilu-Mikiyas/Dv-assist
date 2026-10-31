@@ -3,24 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DV Assist — Cases</title>
+  <title>Case queue — Ethio DV Assist staff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=Noto+Sans+Ethiopic:wght@400;500&display=swap">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<main>
-  <header>
-    <h1>Cases</h1>
-    <div>
-      <a href="/case.html"><button>New case</button></a>
-      <button class="secondary" id="logout">Log out</button>
+<div class="shell">
+  <nav class="sidebar" aria-label="Staff navigation">
+    <a class="brand" href="/"><svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg><b>Staff</b></a>
+    <a class="nav-link" href="/" aria-current="page">Case queue</a>
+    <a class="nav-link" href="/?mine=1" id="mine-link">My cases</a>
+    <a class="nav-link" href="/case.html">New case</a>
+    <a class="nav-link" href="/team.html" data-admin hidden>Team</a>
+    <a class="nav-link" href="/audit.html" data-admin hidden>Audit log</a>
+    <div class="me"><span class="avatar" id="me-avatar">·</span><span><span id="me-name">…</span><br><span class="muted" id="me-role"></span></span><button class="btn small ghost" id="logout" type="button">Log out</button></div>
+  </nav>
+
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1 id="title">Case queue</h1>
+        <p class="muted flat">Every entry goes through Abol, Tona and the applicant's Baraka before a card is issued.</p>
+      </div>
+      <div class="row">
+        <label class="search"><span class="visually-hidden">Search cases</span><input id="search" type="search" placeholder="Name or EDA-0012"></label>
+        <a class="btn primary" href="/case.html">+ New case</a>
+      </div>
     </div>
-  </header>
-  <p id="error" hidden></p>
-  <table>
-    <thead><tr><th>Applicant</th><th>Status</th><th>Confirmation #</th><th>Updated</th></tr></thead>
-    <tbody id="cases"></tbody>
-  </table>
-</main>
+
+    <div class="counters" id="counters" role="group" aria-label="Filter by stage"></div>
+    <p id="error" hidden></p>
+
+    <section class="card flush">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Case</th><th scope="col">Applicant</th><th scope="col">Stage</th><th scope="col">Assigned</th><th scope="col">Updated</th></tr></thead>
+          <tbody id="cases"></tbody>
+        </table>
+      </div>
+      <p class="muted empty-note" id="empty" hidden>No cases here yet.</p>
+    </section>
+  </main>
+</div>
 <script type="module" src="/index.js"></script>
 </body>
 </html>

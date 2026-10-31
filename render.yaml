@@ -20,6 +20,8 @@ services:
         sync: false
       - key: DATABASE_AUTH_TOKEN
         sync: false
+      - key: ADMIN_EMAIL
+        sync: false
       - key: ADMIN_PASSWORD_HASH
         sync: false
       - key: SESSION_SECRET
@@ -31,4 +33,6 @@ services:
       - key: BITNOB_SECRET_KEY
         sync: false
       - key: BITNOB_CARD_CUSTOMER_ID
+        sync: false
+      - key: BITNOB_WEBHOOK_SECRET
         sync: false

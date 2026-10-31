@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audit log — Ethio DV Assist staff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=Noto+Sans+Ethiopic:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar" aria-label="Staff navigation">
+    <a class="brand" href="/"><svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg><b>Staff</b></a>
+    <a class="nav-link" href="/">Case queue</a>
+    <a class="nav-link" href="/?mine=1" id="mine-link">My cases</a>
+    <a class="nav-link" href="/case.html">New case</a>
+    <a class="nav-link" href="/team.html" data-admin hidden>Team</a>
+    <a class="nav-link" href="/audit.html" aria-current="page" data-admin hidden>Audit log</a>
+    <div class="me"><span class="avatar" id="me-avatar">·</span><span><span id="me-name">…</span><br><span class="muted" id="me-role"></span></span><button class="btn small ghost" id="logout" type="button">Log out</button></div>
+  </nav>
+
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1>Audit log</h1>
+        <p class="muted flat">Every sign-in, edit, check, card reveal and submission. Entries cannot be changed or deleted.</p>
+      </div>
+      <a class="btn" href="/api/audit.csv">Export CSV</a>
+    </div>
+    <div class="row" id="filters" role="group" aria-label="Filter events"></div>
+    <p id="error" hidden></p>
+    <section class="card flush">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Time</th><th scope="col">Who</th><th scope="col">Action</th><th scope="col">Case</th><th scope="col">Detail</th><th scope="col">IP address</th></tr></thead>
+          <tbody id="events"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<script type="module" src="/audit.js"></script>
+</body>
+</html>

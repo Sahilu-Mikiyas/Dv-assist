@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team — Ethio DV Assist staff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=Noto+Sans+Ethiopic:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar" aria-label="Staff navigation">
+    <a class="brand" href="/"><svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg><b>Staff</b></a>
+    <a class="nav-link" href="/">Case queue</a>
+    <a class="nav-link" href="/?mine=1" id="mine-link">My cases</a>
+    <a class="nav-link" href="/case.html">New case</a>
+    <a class="nav-link" href="/team.html" aria-current="page" data-admin hidden>Team</a>
+    <a class="nav-link" href="/audit.html" data-admin hidden>Audit log</a>
+    <div class="me"><span class="avatar" id="me-avatar">·</span><span><span id="me-name">…</span><br><span class="muted" id="me-role"></span></span><button class="btn small ghost" id="logout" type="button">Log out</button></div>
+  </nav>
+
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1>Team</h1>
+        <p class="muted flat">Each person signs in with their own email, password and authenticator app.</p>
+      </div>
+    </div>
+    <p id="error" hidden></p>
+    <div class="split">
+      <section class="card flush main">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Authenticator</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody id="team"></tbody>
+          </table>
+        </div>
+      </section>
+      <form class="card side stack" id="add">
+        <h2 class="card-title">Add a team member</h2>
+        <label class="field">Full name<input name="name" required></label>
+        <label class="field">Work email<input type="email" name="email" required></label>
+        <label class="field">Role<select name="role"><option value="staff">Staff</option><option value="admin">Admin</option></select></label>
+        <label class="field">Temporary password<input name="password" minlength="12" required autocomplete="new-password"></label>
+        <p class="muted flat small">At least 12 characters. Give it to them in person; they set up their authenticator on first sign-in.</p>
+        <button class="btn primary">Add member</button>
+      </form>
+    </div>
+  </main>
+</div>
+<script type="module" src="/team.js"></script>
+</body>
+</html>

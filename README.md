@@ -9,13 +9,21 @@ database either as a local file or hosted on Turso.
 
 ## Flow
 
-1. **Applicant details:** the fields the official entry form asks for, including spouse and children.
-2. **Photos:** one per person, checked for JPEG format, exactly 600×600 pixels and 240 KB or less.
-3. **Pay the DV fee:** issue a Bitnob virtual card loaded with `CARD_AMOUNT_USD`, show its details,
-   and pay on the official site.
-4. **Submit:** save the confirmation number. The case is then locked.
+Staff work each case through the checks the design calls the coffee rounds:
 
-Case status: `draft` → `card_issued` → `submitted`.
+1. **Draft:** a staff member enters the applicant, spouse and children, and adds a photo for each person.
+   Photos are cropped, resized to 600×600 and compressed in the browser.
+2. **Abol:** the first check, against the passport.
+3. **Tona:** the second check, which must be done by a *different* staff member.
+4. **Baraka:** the applicant approves the final entry. Staff record whether it was in person, by phone or online.
+5. **Card:** a Bitnob virtual card is issued for the official fee.
+6. **Submitted:** staff file on the official site, using Copy buttons, the photo downloads and the revealed
+   card, then record the confirmation number.
+
+A case can be reopened for corrections before its card is issued, which clears its checks.
+
+Staff sign in with email, password and an authenticator app; the authenticator is set up on first sign-in.
+Admins also manage the team and see the audit log, which records every action with who, when and from which IP.
 
 ## Run locally
 
@@ -101,8 +109,10 @@ test/         node:test suites (Bitnob is faked)
 | Concern | Measure |
 | --- | --- |
 | Data at rest | Applicant details and photos are encrypted with AES-256-GCM before they reach the database. A leaked database or Turso account alone reveals no personal data. |
-| Card data | Card number and CVV are never stored. They're fetched from Bitnob on demand, only while a case awaits submission, and every view is audited. |
-| Login | One operator password, stored only as a scrypt hash. Failed logins are limited per IP (5 per 15 min) and overall (50 per 15 min). |
+| Card data | Card number and CVV are never stored. They're fetched from Bitnob on demand, only while a case awaits submission, and every reveal is audited. |
+| Four eyes | The second check must be done by a different staff member from the first. |
+| Bitnob webhooks | Accepted only with a valid HMAC-SHA512 signature, and logged without card numbers. |
+| Login | Personal accounts: password (scrypt hash) plus a 6-digit authenticator code (RFC 6238). Failed logins are limited per IP (5 per 15 min) and overall (50 per 15 min). Deactivated staff are signed out at once. |
 | Session | HMAC-signed cookie, `__Host-` prefixed, HttpOnly, Secure, SameSite=Strict, 8-hour expiry. Rotating `SESSION_SECRET` logs everyone out. |
 | Cross-site attacks | Strict Content-Security-Policy with no inline scripts, `frame-ancestors 'none'`, Origin check on writes, and JSON/JPEG-only request bodies. |
 | Transport | HSTS. HTTPS is provided by the host. |

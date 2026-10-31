@@ -1,9 +1,11 @@
 // Test fixtures shared across suites.
 
 import { randomBytes } from 'node:crypto';
-import { cipher } from '../src/infra/crypto.js';
-import { auditLog, caseRepository, openDb } from '../src/infra/db.js';
+import { cipher, hashPassword } from '../src/infra/crypto.js';
+import { auditLog, caseRepository, openDb, staffRepository } from '../src/infra/db.js';
+import { newTotpSecret } from '../src/infra/totp.js';
 import { caseService } from '../src/services/cases.js';
+import { staffService } from '../src/services/staff.js';
 
 export const person = (overrides = {}) => ({
   lastName: 'Abebe',
@@ -51,13 +53,41 @@ export function fakeBitnob() {
   };
 }
 
-// A case service on a fresh in-memory database, with the raw db exposed for assertions.
+// Case and staff services on a fresh in-memory database, with the raw db exposed for assertions.
 export async function setupCases() {
   const db = await openDb({ url: ':memory:' });
+  const crypt = cipher(randomBytes(32));
   const bitnob = fakeBitnob();
   const audit = auditLog(db);
-  const cases = caseService({
-    repo: caseRepository(db, cipher(randomBytes(32))), audit, bitnob, cardAmountUsd: 5,
-  });
-  return { db, cases, audit, bitnob };
+  const cases = caseService({ repo: caseRepository(db, crypt), audit, bitnob, cardAmountUsd: 5 });
+  const staffRepo = staffRepository(db, crypt);
+  const staff = staffService({ repo: staffRepo, audit });
+  return { db, cases, audit, bitnob, staff, staffRepo };
+}
+
+// Two signed-in-ready staff members (an admin and a staff member) with authenticators set up.
+export async function seedStaff({ staffRepo }) {
+  const members = {};
+  for (const [key, role] of [['admin', 'admin'], ['meron', 'staff']]) {
+    const id = `${key}-id`;
+    await staffRepo.insert({ id, email: `${key}@example.com`, name: key[0].toUpperCase() + key.slice(1), role,
+      passwordHash: await hashPassword(PASSWORD) });
+    const secret = newTotpSecret();
+    await staffRepo.setTotp(id, secret);
+    members[key] = { ...(await staffRepo.byId(id)), secret };
+  }
+  return members;
+}
+
+export const PASSWORD = 'a-long-password-1';
+
+export const ctxFor = (member) => ({ ip: '203.0.113.7', staff: member });
+
+// Walks a fresh case to "approved": photo, Abol by `first`, Tona by `second`, Baraka in person.
+export async function approvedCase(cases, first, second, overrides = {}) {
+  const c = await cases.create(applicantInput(overrides), ctxFor(first));
+  for (const p of c.photos) await cases.savePhoto(c.id, p.key, fakeJpeg(), ctxFor(first));
+  await cases.check(c.id, ctxFor(first));
+  await cases.verify(c.id, ctxFor(second));
+  return cases.approve(c.id, 'in_person', ctxFor(second));
 }
