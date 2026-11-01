@@ -177,3 +177,10 @@ input[type=radio], input[type=checkbox] { accent-color: var(--navy-2); width: 18
 .confirmation { border: 2px solid var(--green); }
 
 .foot { padding: 20px 24px 28px; text-align: center; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
+
+/* Free photo check page */
+.picker { align-items: flex-start; }
+.result-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.result-row img { width: 240px; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); }
+.result-side { flex: 1 1 260px; display: flex; flex-direction: column; gap: 12px; }
+.tick-list.single { grid-template-columns: 1fr; font-size: 15px; }

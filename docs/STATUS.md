@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-10-31
+Last updated: 2026-11-01
 
 ## Live
 
@@ -14,7 +14,7 @@ Last updated: 2026-10-31
   issue card, show card details, record confirmation number.
 - Bitnob signed requests (HMAC) to `https://api.bitnob.com`. Sandbox key, company "Furii Labs".
 - Sandbox card-holder customer exists (`BITNOB_CARD_CUSTOMER_ID` on Render).
-- 40 automated tests, run by GitHub Actions on every push.
+- 46 automated tests, run by GitHub Actions on every push.
 
 ## Pinned: Bitnob sandbox card test
 
@@ -61,6 +61,19 @@ Last updated: 2026-10-31
 - Payment is a placeholder: "our team will contact you" (Telebirr / CBE Birr).
 - Staff app moved to `/staff/`.
 
+## Photo analyzer (built)
+
+- One editor for applicants (`/apply`), the free check (`/photo`) and staff (case workspace): auto-position,
+  drag and zoom with a "top of head" line and a green chin band, live checks, three confirmations, then a
+  600 × 600 JPEG of 240 KB or less. Staff see the analyzer's flags next to every saved photo.
+- No AI model or download (a face-detection model would add about 10 MB per visitor). The head is found
+  against the plain background with pixel measurements. Head height is an estimate (within about 5% on the
+  test photos); the chin band lets the person line up their real chin.
+- Tuned on synthetic test photos only. Next: try it with 20–30 real photos (different skin tones, hair,
+  headscarves, white and grey walls) and adjust the thresholds in `public/photo/check.js`.
+- Not detected automatically: glasses, closed eyes, expression, photo age. These are confirmations, and
+  staff check them in Abol and Tona.
+
 ## Design (done; staff app and applicant flow built)
 
 - Canvas: https://claude.ai/artifact/WTEsmBHebRooMcs47ahCVY (private to the owner)
@@ -79,5 +92,4 @@ Last updated: 2026-10-31
 - Telebirr / CBE Birr payments (needs merchant accounts) and SMS notifications.
 - Fill in the landing-page facts: phone, office address, entry-window date, data retention.
 - Referral partners: accounts, introductions, fill-together with SMS code, payouts.
-- Photo analyzer (face position, background, etc.), modelled on the Lovable prototype
-  (repo `Sahilu-Mikiyas/ethiopia-dv-assist`).
+- Photo analyzer: real-photo testing and threshold tuning (see above).

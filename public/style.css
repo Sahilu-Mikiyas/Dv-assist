@@ -118,6 +118,11 @@ tbody tr:hover { background: #FAFBFD; }
 .photo { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
 .photo img, .photo .empty { width: 100%; aspect-ratio: 1; border-radius: 10px; object-fit: cover; background: #EEF1F7; border: 1px solid var(--line); }
 .photo .empty { display: grid; place-items: center; color: var(--muted); border-style: dashed; }
+.photo-flags { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; font-weight: 600; }
+.photo-flags small { font-weight: 400; line-height: 1.35; }
+.photo-flags.pass { background: #E7F3EB; color: #1F6B3A; }
+.photo-flags.warn { background: #FFF6E5; color: #8A5A00; }
+.photo-flags.fail { background: #FDECEE; color: #8E1B2A; }
 
 /* Card */
 .vcard { border-radius: 16px; padding: 18px; background: #163A78; border: 1px solid #3B5A93; display: flex; flex-direction: column; gap: 10px; }

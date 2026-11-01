@@ -12,15 +12,30 @@ database either as a local file or hosted on Turso.
 - `/`: public landing page.
 - `/apply`: applicants start an entry, add family and photos, and send it for checking. A resume code
   lets them come back on any device, follow progress, and give their final approval online.
+- `/photo`: free photo check. Nothing is uploaded; the prepared 600 × 600 photo can be downloaded.
 - `/staff/`: the staff app.
+
+## Photo analyzer
+
+Every photo, from applicants or staff, goes through the same on-device editor (`public/photo/`):
+1. It finds the head against the plain background and auto-positions the photo so the head fills about 60%.
+2. The person drags and zooms with guides: a line for the top of the head and a green band where the chin
+   must sit (head height 50–69% of the photo).
+3. Live checks: background (light, plain, not coloured), shadow on one side, head size, centring, light on
+   the face, focus, colour, and whether the photo had to be enlarged.
+4. The person confirms what pixels cannot tell (glasses, eyes open, taken in the last 6 months), and the
+   photo is saved as a 600 × 600 JPEG of at most 240 KB.
+
+Staff see the analyzer's flags next to each saved photo. There is no AI model and no download: the checks are
+plain pixel measurements (`public/photo/check.js`, unit-tested in `test/photo-check.test.js`). They are
+advice, not an official decision.
 
 ## Flow
 
 Entries come from the website (`/apply`) or are typed in by staff. Staff work each case through the checks the design calls the coffee rounds:
 
-1. **Draft:** the applicant (on the website) or a staff member enters the applicant, spouse and children, and adds a photo for each person.
+1. **Draft:** the applicant (on the website) or a staff member enters the applicant, spouse and children, and adds a photo for each person through the photo analyzer.
    Website entries reach the staff queue once the applicant sends them for checking.
-   Photos are cropped, resized to 600×600 and compressed in the browser.
 2. **Abol:** the first check, against the passport.
 3. **Tona:** the second check, which must be done by a *different* staff member.
 4. **Baraka:** the applicant approves the final entry, online with their resume code, or staff record it

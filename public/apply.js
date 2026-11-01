@@ -2,7 +2,7 @@
 // The server keeps the entry; this page only renders it and sends changes.
 
 import { $, el } from '/dom.js';
-import { prepareDvPhoto } from '/photo-prep.js';
+import { openPhotoEditor } from '/photo/editor.js';
 
 const PACKAGES = {
   self: { name: 'Self-guided', am: 'በራስዎ', price: '500', points: ['We review your form', 'Photo checked and resized', 'You submit it yourself'] },
@@ -317,11 +317,13 @@ function renderPhotos() {
       : el('span', { className: 'photo-empty', textContent: name.slice(0, 1).toUpperCase() });
     input.addEventListener('change', () => {
       const file = input.files[0];
+      input.value = ''; // so choosing the same file again still opens the editor
       if (!file) return;
       const label = card.querySelector('label');
       run(label, async () => {
-        const blob = await prepareDvPhoto(file);
-        app = await api('PUT', `/api/apply/photos/${key}`, blob, 'image/jpeg');
+        const edited = await openPhotoEditor(file, { title: `Photo of ${name}` });
+        if (!edited) return;
+        app = await api('PUT', `/api/apply/photos/${key}`, edited.blob, 'image/jpeg');
         renderPhotos();
       });
     });

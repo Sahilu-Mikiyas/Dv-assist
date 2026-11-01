@@ -65,7 +65,7 @@ test('serves pages without login but not files outside public/', async () => {
 });
 
 test('serves clean URLs for the landing page, applicant flow and staff app', async () => {
-  for (const path of ['/', '/apply', '/staff/', '/staff/login.html']) {
+  for (const path of ['/', '/apply', '/photo', '/staff/', '/staff/login.html']) {
     const res = await fetch(`${base}${path}`);
     assert.equal(res.status, 200, path);
     assert.match(res.headers.get('content-type'), /text\/html/);

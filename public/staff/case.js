@@ -1,5 +1,6 @@
 import { api, $, el, label, loadShell, personName, run, showError, sourceLabel, STAGE_LABELS, timeAgo } from '/staff/app.js';
-import { prepareDvPhoto } from '/photo-prep.js';
+import { analyzePhoto } from '/photo/check.js';
+import { openPhotoEditor } from '/photo/editor.js';
 
 const SPOUSE_REQUIRED = 'married_spouse_not_us_citizen_or_lpr';
 const PERSON_FIELDS = ['lastName', 'firstName', 'middleName', 'gender', 'birthDate', 'birthCity', 'birthCountry'];
@@ -139,12 +140,17 @@ function renderPhotos(c) {
       ? el('img', { src: `${src}?t=${Date.now()}`, alt: `Photo of ${name}` })
       : el('div', { className: 'empty', textContent: 'No photo yet' });
     const cell = el('div', { className: 'photo' }, picture, el('b', { textContent: name }));
+    if (uploaded) showPhotoFlags(picture, cell);
     if (draft) {
       const input = el('input', { type: 'file', accept: 'image/*' });
       input.setAttribute('aria-label', `Choose photo for ${name}`);
       input.addEventListener('change', () => run(input, async () => {
-        const photo = await prepareDvPhoto(input.files[0]);
-        await api('PUT', src, photo, 'image/jpeg');
+        const file = input.files[0];
+        input.value = '';
+        if (!file) return;
+        const edited = await openPhotoEditor(file, { title: `Photo of ${name}` });
+        if (!edited) return;
+        await api('PUT', src, edited.blob, 'image/jpeg');
         await reload();
       }));
       cell.append(input);
@@ -153,6 +159,20 @@ function renderPhotos(c) {
     }
     return cell;
   }));
+}
+
+// Runs the photo analyzer on a saved photo so checkers see its flags next to it.
+function showPhotoFlags(img, cell) {
+  img.addEventListener('load', () => {
+    const canvas = Object.assign(document.createElement('canvas'), { width: img.naturalWidth, height: img.naturalHeight });
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const { checks, verdict } = analyzePhoto(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    const flagged = checks.filter((c) => c.level !== 'pass');
+    cell.append(el('div', { className: `photo-flags ${verdict}` },
+      verdict === 'pass' ? 'Analyzer: no problems found' : `Analyzer: ${flagged.length} to look at`,
+      ...flagged.map((c) => el('small', { textContent: `${c.level === 'fail' ? '✕' : '!'} ${c.en}` }))));
+  }, { once: true });
 }
 
 // ---------- the action panel: one next step per stage ----------
