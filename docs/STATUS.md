@@ -16,6 +16,13 @@ Last updated: 2026-11-03
 - Sandbox card-holder customer exists (`BITNOB_CARD_CUSTOMER_ID` on Render).
 - 56 automated tests, run by GitHub Actions on every push.
 
+## Pinned: automatic SMS and email are NOT switched on
+
+- The messaging code is built and live, but no provider is connected: no AfroMessage (SMS) or Brevo (email)
+  account or keys have been added. Every message waits on staff → Messages to be sent by hand.
+- To come back to: open AfroMessage (top-up, registered sender name) and/or Brevo (verified sender), add
+  the keys on Render (see "Messages" below), then send one real test SMS and email before relying on them.
+
 ## Pinned: Bitnob sandbox card test
 
 - "Issue card" reaches Bitnob and is refused only for funds:
