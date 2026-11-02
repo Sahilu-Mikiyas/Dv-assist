@@ -18,7 +18,7 @@ async function startServer({ secureCookies = true, perIp = 5 } = {}) {
   const seeded = await seedStaff(env);
   const secrets = { sessionSecret: 's'.repeat(32), secureCookies };
   const server = createApp({
-    cases: env.cases, staff: env.staff, applications: env.applications, partners: env.partners,
+    cases: env.cases, staff: env.staff, applications: env.applications, partners: env.partners, notifications: env.notifications,
     authn: auth(secrets), applicantAuthn: applicantAuth(secrets), partnerAuthn: partnerAuth(secrets),
     limiter: loginLimiter({ perIp }), startLimiter: loginLimiter({ perIp: 3 }), resumeLimiter: loginLimiter({ perIp }),
     partnerLimiter: loginLimiter({ perIp }),
@@ -164,7 +164,16 @@ test('partners sign in with a code, introduce people, and their short links redi
 
   const follow = await (await admin('GET', '/api/introductions')).json();
   assert.equal(follow[0].name, 'Meseret Bekele');
-  assert.ok(env);
+
+  // With no SMS or email service, messages wait on the staff Messages page; partners cannot see it.
+  await env.notifications.deliverDue();
+  assert.equal((await fetch(`${url}/api/messages`, { headers: { cookie } })).status, 401);
+  const messages = await (await meron('GET', '/api/messages')).json();
+  assert.equal(messages.sms, null);
+  assert.deepEqual(messages.toSend.map((m) => m.template).sort(), ['partner_approved', 'resume_code']);
+  const [first] = messages.toSend;
+  assert.equal((await meron('POST', `/api/messages/${first.id}/sent`)).status, 200);
+  assert.equal((await (await meron('GET', '/api/messages')).json()).toSend.length, 1);
 });
 
 test('API requires a valid session', async () => {

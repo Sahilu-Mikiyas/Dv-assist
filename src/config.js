@@ -40,6 +40,15 @@ export function loadConfig() {
     throw new Error('PARTNER_COMMISSION_ETB must be a whole number of birr');
   }
 
+  // Messages. Each provider is optional; without one, messages wait on the staff Messages page.
+  const afroToken = process.env.AFROMESSAGE_TOKEN || null;
+  const brevoKey = process.env.BREVO_API_KEY || null;
+  const emailFrom = process.env.EMAIL_FROM || null;
+  if (brevoKey && !emailFrom) throw new Error('EMAIL_FROM (a sender verified in Brevo) is required with BREVO_API_KEY');
+  // Links in messages. Render sets RENDER_EXTERNAL_URL itself.
+  const publicUrl = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${process.env.PORT ?? '3000'}`)
+    .replace(/\/+$/, '');
+
   return {
     port: Number(process.env.PORT ?? '3000'),
     database: {
@@ -53,6 +62,15 @@ export function loadConfig() {
     trustProxy: flag('TRUST_PROXY', false),
     cardAmountUsd,
     partnerCommissionEtb,
+    publicUrl,
+    messaging: {
+      sms: afroToken && {
+        token: afroToken,
+        identifierId: process.env.AFROMESSAGE_IDENTIFIER_ID || null,
+        senderName: process.env.AFROMESSAGE_SENDER || null,
+      },
+      email: brevoKey && { apiKey: brevoKey, fromEmail: emailFrom, fromName: process.env.EMAIL_FROM_NAME || 'Ethio DV Assist' },
+    },
     bitnob: {
       baseUrl: process.env.BITNOB_BASE_URL ?? 'https://api.bitnob.com',
       clientId: required('BITNOB_CLIENT_ID'),

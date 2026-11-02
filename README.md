@@ -17,6 +17,25 @@ database either as a local file or hosted on Turso.
 - `/r/<code>` and `/i/<reference>`: a partner's referral link and a personal invitation; both open `/apply`.
 - `/staff/`: the staff app.
 
+## Messages
+
+Applicants and partners get a short English + Amharic message at each step:
+
+| When | To | Message |
+| --- | --- | --- |
+| Entry started on the website | Applicant | Their resume code and link |
+| Entry sent for checking | Applicant | Received, being checked |
+| Both checks done (website entries) | Applicant | Please approve online |
+| Submitted | Applicant | Confirmation number |
+| Partner introduces someone | Invitee | Their personal link (SMS only; otherwise the partner sends it) |
+| Partner approved | Partner | Approved; sign in with the code from the team |
+
+Messages go into an outbox (`messages` table, recipient and text encrypted, erased after delivery). A
+background worker sends them by SMS to Ethiopian mobile numbers (AfroMessage) or else by email (Brevo),
+retrying with backoff up to 5 times. Without a provider, or after repeated failures, they wait on the staff
+**Messages** page with SMS/email/copy buttons and "Mark as sent". Set `AFROMESSAGE_TOKEN` (plus identifier
+and sender name) and/or `BREVO_API_KEY` + `EMAIL_FROM` to send automatically.
+
 ## Referral partners
 
 Shops, schools, faith and community groups introduce applicants.

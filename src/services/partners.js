@@ -17,7 +17,9 @@ import { ForbiddenError } from './staff.js';
 const INVITE_STALE_MS = 2 * 24 * 60 * 60 * 1000; // the team calls invitees who have not started after 2 days
 const fullName = (a) => [a.firstName, a.lastName].filter(Boolean).join(' ');
 
-export function partnerService({ repo, caseRepo, audit, commissionEtb = null }) {
+const QUIET = { notify: async () => {}, smsEnabled: false };
+
+export function partnerService({ repo, caseRepo, audit, commissionEtb = null, notifications = QUIET }) {
   const record = (action, ctx = {}, detail = null) =>
     audit.record({ action, ip: ctx.ip, staffId: ctx.staff?.id ?? null, detail });
 
@@ -109,7 +111,13 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null }) 
       const token = randomChars(8);
       await repo.insertIntroduction({ id: randomUUID(), partnerId: partner.id, token, details });
       await record('partner_introduced', ctx, `${partner.refCode} ${token}`);
-      return { reference: token, firstName: details.name.split(/\s+/)[0], phone: details.phone };
+      const firstName = details.name.split(/\s+/)[0];
+      // Sent by SMS when we can; otherwise the partner sends the same message from their phone.
+      await notifications.notify('invitation', {
+        partnerId: partner.id, phone: details.phone, smsOnly: true,
+        data: { firstName, organisation: partner.organisation, reference: token },
+      });
+      return { reference: token, firstName, phone: details.phone, sentBySms: notifications.smsEnabled };
     },
 
     // For the apply flow: which partner (and introduction) an entry came through, if any.
@@ -157,7 +165,10 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null }) 
       if (partner.status === PARTNER_STATUS.SUSPENDED) throw new ValidationError(['Reactivate this partner first']);
       const code = newAccessCode();
       await repo.setAccessHash(id, hashCode(code));
-      if (partner.status === PARTNER_STATUS.PENDING) await repo.setStatus(id, PARTNER_STATUS.ACTIVE);
+      if (partner.status === PARTNER_STATUS.PENDING) {
+        await repo.setStatus(id, PARTNER_STATUS.ACTIVE);
+        await notifications.notify('partner_approved', { partnerId: id, phone: partner.phone, data: { organisation: partner.organisation } });
+      }
       await record(partner.status === PARTNER_STATUS.PENDING ? 'partner_approved' : 'partner_code_reset', ctx, partner.refCode);
       return { code, partner: await repo.get(id) };
     },

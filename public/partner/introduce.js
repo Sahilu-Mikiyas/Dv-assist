@@ -30,6 +30,7 @@ form.addEventListener('submit', async (event) => {
     const message = `Selam ${invite.firstName}, ${me.organisation} introduced you to Ethio DV Assist. Start your DV entry here: ${link}\n\n`
       + `ሰላም ${invite.firstName}፣ ${me.organisation} ከኢትዮ ዲቪ አሲስት ጋር አስተዋውቆዎታል። የዲቪ ምዝገባዎን እዚህ ይጀምሩ፦ ${link}`;
     $('#sent-title').textContent = `Invitation for ${invite.firstName}`;
+    if (invite.sentBySms) $('#sms-note').hidden = false;
     $('#message').textContent = message;
     $('#reference').textContent = invite.reference;
     $('#send-sms').href = `sms:${invite.phone}?body=${encodeURIComponent(message)}`;

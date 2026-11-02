@@ -36,3 +36,13 @@ services:
         sync: false
       - key: BITNOB_WEBHOOK_SECRET
         sync: false
+      - key: AFROMESSAGE_TOKEN
+        sync: false
+      - key: AFROMESSAGE_IDENTIFIER_ID
+        sync: false
+      - key: AFROMESSAGE_SENDER
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

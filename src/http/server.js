@@ -100,7 +100,7 @@ function verifyWebhook(raw, signature, secret) {
 // `stage`: 'public' (no session), 'applicant' (applicant cookie), 'partner' (partner cookie), 'setup' (staff
 // signed in, authenticator not yet set up) or null (staff fully signed in).
 function routes({
-  cases, staff, applications, partners, authn, applicantAuthn, partnerAuthn,
+  cases, staff, applications, partners, notifications, authn, applicantAuthn, partnerAuthn,
   limiter, startLimiter, resumeLimiter, partnerLimiter, webhookSecret,
 }) {
   const sessionFor = (result) => authn.sessionCookie(result.staff.id, { stage: result.needsAuthenticator ? 'setup' : 'ok' });
@@ -207,6 +207,15 @@ function routes({
     ['POST', /^\/api\/partners\/([\w-]+)\/code$/, null, async (_, [id], ctx) => partners.issueCode(id, ctx)],
     ['POST', /^\/api\/partners\/([\w-]+)\/status$/, null, async (req, [id], ctx) => partners.setStatus(id, (await readJson(req)).status, ctx)],
     ['GET', /^\/api\/introductions$/, null, async (_, __, ctx) => partners.introductions(ctx)],
+
+    // Messages to applicants and partners that need a person to send them.
+    ['GET', /^\/api\/messages$/, null, async () => ({
+      ...(await notifications.overview()), toSend: await notifications.toSend(), recent: await notifications.recent(),
+    })],
+    ['POST', /^\/api\/messages\/(\d+)\/sent$/, null, async (_, [id], ctx) => {
+      await notifications.markSent(Number(id), ctx);
+      return { ok: true };
+    }],
 
     ['GET', /^\/api\/options$/, null, async () => ({
       educationLevels: EDUCATION_LEVELS, maritalStatuses: MARITAL_STATUSES, approvalMethods: APPROVAL_METHODS, roles: ROLES,

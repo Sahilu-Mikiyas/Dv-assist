@@ -78,6 +78,23 @@ const MIGRATIONS = [
   'ALTER TABLE cases ADD COLUMN introduction_id TEXT',
   'ALTER TABLE cases ADD COLUMN filled_together INTEGER NOT NULL DEFAULT 0',
   'CREATE INDEX cases_partner ON cases (partner_id)',
+  `CREATE TABLE messages (
+     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+     template        TEXT NOT NULL,
+     case_id         TEXT,
+     partner_id      TEXT,
+     content         BLOB,
+     sms_only        INTEGER NOT NULL DEFAULT 0,
+     status          TEXT NOT NULL,
+     channel         TEXT,
+     attempts        INTEGER NOT NULL DEFAULT 0,
+     last_error      TEXT,
+     next_attempt_at TEXT NOT NULL,
+     created_at      TEXT NOT NULL,
+     done_at         TEXT,
+     done_by         TEXT
+   )`,
+  'CREATE INDEX messages_due ON messages (status, next_attempt_at)',
 ];
 
 export async function openDb({ url, authToken }) {
@@ -272,6 +289,62 @@ export function partnerRepository(db, crypt) {
     },
     async linkIntroduction(id, caseId) {
       await run('UPDATE introductions SET case_id = ? WHERE id = ? AND case_id IS NULL', caseId, id);
+    },
+  };
+}
+
+// Outbox of messages to applicants and partners. Recipient and text are encrypted, and erased once the
+// message is delivered: they can carry resume codes and confirmation numbers.
+export function messageRepository(db, crypt) {
+  const run = (sql, ...args) => db.execute({ sql, args });
+  const toMessage = (row) =>
+    row && {
+      id: Number(row.id),
+      template: row.template,
+      caseId: row.case_id,
+      partnerId: row.partner_id,
+      ...(row.content ? crypt.decryptJson(row.content) : { to: null, subject: null, text: null }),
+      smsOnly: Boolean(row.sms_only),
+      status: row.status,
+      channel: row.channel,
+      attempts: Number(row.attempts),
+      lastError: row.last_error,
+      nextAttemptAt: row.next_attempt_at,
+      createdAt: row.created_at,
+      doneAt: row.done_at,
+      doneBy: row.done_by,
+    };
+
+  return {
+    async insert({ template, caseId = null, partnerId = null, to, subject, text, smsOnly = false, at = new Date() }) {
+      const ts = at.toISOString();
+      await run(`INSERT INTO messages (template, case_id, partner_id, content, sms_only, status, next_attempt_at, created_at)
+                 VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)`,
+      template, caseId, partnerId, crypt.encryptJson({ to, subject, text }), smsOnly ? 1 : 0, ts, ts);
+    },
+    async due(now, limit = 20) {
+      return (await run("SELECT * FROM messages WHERE status = 'pending' AND next_attempt_at <= ? ORDER BY id LIMIT ?",
+        now, limit)).rows.map(toMessage);
+    },
+    async get(id) {
+      return toMessage((await run('SELECT * FROM messages WHERE id = ?', id)).rows[0]);
+    },
+    async list({ statuses, limit = 200 }) {
+      const marks = statuses.map(() => '?').join(', ');
+      return (await run(`SELECT * FROM messages WHERE status IN (${marks}) ORDER BY id DESC LIMIT ?`, ...statuses, limit)).rows.map(toMessage);
+    },
+    async counts() {
+      const { rows } = await run('SELECT status, COUNT(*) AS n FROM messages GROUP BY status');
+      return Object.fromEntries(rows.map((r) => [r.status, Number(r.n)]));
+    },
+    // Delivered or handled by hand: keep the record, erase who and what.
+    async finish(id, { status, channel = null, doneBy = null }) {
+      await run('UPDATE messages SET status = ?, channel = COALESCE(?, channel), content = NULL, done_at = ?, done_by = ? WHERE id = ?',
+        status, channel, new Date().toISOString(), doneBy, id);
+    },
+    async retryLater(id, { attempts, error, nextAttemptAt, status = 'pending', channel = null }) {
+      await run('UPDATE messages SET attempts = ?, last_error = ?, next_attempt_at = ?, status = ?, channel = COALESCE(?, channel) WHERE id = ?',
+        attempts, error, nextAttemptAt, status, channel, id);
     },
   };
 }

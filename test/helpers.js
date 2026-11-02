@@ -2,10 +2,11 @@
 
 import { randomBytes } from 'node:crypto';
 import { cipher, hashPassword } from '../src/infra/crypto.js';
-import { auditLog, caseRepository, openDb, partnerRepository, staffRepository } from '../src/infra/db.js';
+import { auditLog, caseRepository, messageRepository, openDb, partnerRepository, staffRepository } from '../src/infra/db.js';
 import { newTotpSecret } from '../src/infra/totp.js';
 import { applicationService } from '../src/services/applications.js';
 import { caseService } from '../src/services/cases.js';
+import { notificationService } from '../src/services/notifications.js';
 import { partnerService } from '../src/services/partners.js';
 import { staffService } from '../src/services/staff.js';
 
@@ -56,18 +57,37 @@ export function fakeBitnob() {
 }
 
 // Case and staff services on a fresh in-memory database, with the raw db exposed for assertions.
-export async function setupCases() {
+// Records what would have been sent. `fail` makes the next n sends throw.
+export function fakeChannel(name) {
+  const sent = [];
+  const channel = {
+    name, sent, fail: 0,
+    async send(message) {
+      if (channel.fail > 0) { channel.fail--; throw new Error(`${name} is down`); }
+      sent.push(message);
+    },
+  };
+  return channel;
+}
+
+export async function setupCases({ sms = null, email = null } = {}) {
   const db = await openDb({ url: ':memory:' });
   const crypt = cipher(randomBytes(32));
   const bitnob = fakeBitnob();
   const audit = auditLog(db);
   const repo = caseRepository(db, crypt);
-  const partners = partnerService({ repo: partnerRepository(db, crypt), caseRepo: repo, audit, commissionEtb: 200 });
-  const cases = caseService({ repo, audit, bitnob, cardAmountUsd: 5, partners });
-  const applications = applicationService({ repo, audit, partners });
+  let clock = Date.now();
+  const notifications = notificationService({
+    repo: messageRepository(db, crypt), audit, sms, email, publicUrl: 'https://dv.example', now: () => clock,
+  });
+  notifications.wake = () => {}; // tests deliver explicitly with deliverDue()
+  const partners = partnerService({ repo: partnerRepository(db, crypt), caseRepo: repo, audit, commissionEtb: 200, notifications });
+  const cases = caseService({ repo, audit, bitnob, cardAmountUsd: 5, partners, notifications });
+  const applications = applicationService({ repo, audit, partners, notifications });
+  const advanceClock = (ms) => { clock += ms; };
   const staffRepo = staffRepository(db, crypt);
   const staff = staffService({ repo: staffRepo, audit });
-  return { db, cases, applications, partners, audit, bitnob, staff, staffRepo };
+  return { db, cases, applications, partners, notifications, advanceClock, audit, bitnob, staff, staffRepo };
 }
 
 // Two signed-in-ready staff members (an admin and a staff member) with authenticators set up.

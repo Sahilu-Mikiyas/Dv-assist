@@ -20,7 +20,9 @@ export class NotFoundError extends Error {}
 
 export const caseCode = (n) => `EDA-${String(n).padStart(4, '0')}`;
 
-export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = null }) {
+const QUIET = { notify: async () => {}, smsEnabled: false };
+
+export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = null, notifications = QUIET }) {
   const issuing = new Set(); // case ids with a card request in flight
 
   async function mustGet(id) {
@@ -137,6 +139,12 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       assertCanVerify(existing, ctx?.staff?.id);
       await repo.setStatus(id, { status: STATUS.VERIFIED, checks: { ...existing.checks, tona: stamp(ctx) } });
       await record('check_tona', id, ctx);
+      // Website applicants give their approval online; tell them it is their turn.
+      if (existing.source === 'website') {
+        await notifications.notify('approval_needed', {
+          caseId: id, phone: existing.applicant.phone, email: existing.applicant.email, data: { code: caseCode(existing.caseNumber) },
+        });
+      }
       return withPhotos(await mustGet(id));
     },
 
@@ -189,6 +197,10 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       assertCanSubmit(existing, normalized);
       await repo.markSubmitted(id, { confirmationNumber: normalized, status: STATUS.SUBMITTED });
       await record('case_submitted', id, ctx, normalized);
+      await notifications.notify('submitted', {
+        caseId: id, phone: existing.applicant.phone, email: existing.applicant.email,
+        data: { code: caseCode(existing.caseNumber), confirmationNumber: normalized },
+      });
       return withPhotos(await mustGet(id));
     },
 

@@ -25,7 +25,9 @@ function validatePackage(pkg) {
   return pkg;
 }
 
-export function applicationService({ repo, audit, partners = null }) {
+const QUIET = { notify: async () => {}, smsEnabled: false };
+
+export function applicationService({ repo, audit, partners = null, notifications = QUIET }) {
   async function mustGet(id) {
     const found = await repo.get(id);
     if (!found || found.source !== 'website') throw new NotFoundError('Entry not found');
@@ -65,7 +67,13 @@ export function applicationService({ repo, audit, partners = null }) {
       const together = Boolean(referral && input?.together === true && ctx?.partnerId === referral.partner.id);
       if (referral) await partners.linkCase(id, referral, { together });
       await record('application_started', id, ctx, referral ? `${pkg} via ${referral.partner.refCode}${together ? ' (together)' : ''}` : pkg);
-      return { caseId: id, resumeCode, together, application: await view(await mustGet(id)) };
+      const created = await mustGet(id);
+      // The applicant's own copy of their code, so a lost note is not a lost entry.
+      await notifications.notify('resume_code', {
+        caseId: id, phone: applicant.phone, email: applicant.email,
+        data: { code: caseCode(created.caseNumber), resumeCode },
+      });
+      return { caseId: id, resumeCode, together, application: await view(created) };
     },
 
     // Returns the case id for a valid code, else null.
@@ -110,7 +118,11 @@ export function applicationService({ repo, audit, partners = null }) {
       assertCanSend(await mustGet(id), await repo.photoKeys(id));
       await repo.markSent(id);
       await record('application_sent', id, ctx);
-      return view(await mustGet(id));
+      const sent = await mustGet(id);
+      await notifications.notify('received', {
+        caseId: id, phone: sent.applicant.phone, email: sent.applicant.email, data: { code: caseCode(sent.caseNumber) },
+      });
+      return view(sent);
     },
 
     // Baraka, given online by the applicant after both staff checks.

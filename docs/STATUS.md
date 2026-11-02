@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-11-02
+Last updated: 2026-11-03
 
 ## Live
 
@@ -14,7 +14,7 @@ Last updated: 2026-11-02
   issue card, show card details, record confirmation number.
 - Bitnob signed requests (HMAC) to `https://api.bitnob.com`. Sandbox key, company "Furii Labs".
 - Sandbox card-holder customer exists (`BITNOB_CARD_CUSTOMER_ID` on Render).
-- 51 automated tests, run by GitHub Actions on every push.
+- 56 automated tests, run by GitHub Actions on every push.
 
 ## Pinned: Bitnob sandbox card test
 
@@ -60,6 +60,20 @@ Last updated: 2026-11-02
   hour per IP; wrong codes to 10 per 15 minutes.
 - Payment is a placeholder: "our team will contact you" (Telebirr / CBE Birr).
 - Staff app moved to `/staff/`.
+
+## Messages (built; no provider connected yet)
+
+- Outbox + worker: SMS via AfroMessage for Ethiopian mobiles, email via Brevo otherwise, 5 retries with
+  backoff. Recipient and text encrypted; erased once delivered.
+- Applicant: resume code, received, approval needed (website entries), submitted + confirmation number.
+  Partner: approval. Invitee: partner's invitation (SMS only).
+- Until a provider is set, everything waits on staff → Messages ("SMS …" / "Email …" / Copy / Mark as sent).
+- To switch on SMS: AfroMessage account, top-up, a registered sender name, then on Render set
+  `AFROMESSAGE_TOKEN`, `AFROMESSAGE_IDENTIFIER_ID`, `AFROMESSAGE_SENDER`. The adapter follows AfroMessage's
+  published Node SDK (afromessage.com itself is blocked from the build environment): test one real SMS first.
+- To switch on email: Brevo free account, verify a sender address, set `BREVO_API_KEY` and `EMAIL_FROM`.
+- Not built: reminders (e.g. approval still pending after 3 days), messages when staff reopen a case.
+- Amharic message texts need native review.
 
 ## Referral partners (built)
 
@@ -107,5 +121,6 @@ Last updated: 2026-11-02
 
 - Telebirr / CBE Birr payments (needs merchant accounts) and SMS notifications.
 - Fill in the landing-page facts: phone, office address, entry-window date, data retention.
-- Referral partners: payout records, SMS invitations once an SMS provider is chosen.
+- Referral partners: payout records.
+- Connect AfroMessage (SMS) and/or Brevo (email) for automatic messages.
 - Photo analyzer: real-photo testing and threshold tuning (see above).
