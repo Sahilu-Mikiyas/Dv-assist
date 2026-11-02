@@ -119,6 +119,15 @@ const MIGRATIONS = [
      payout_id  TEXT NOT NULL REFERENCES payouts(id),
      amount_etb INTEGER NOT NULL
    )`,
+  // What an applicant paid us, recorded by staff until Telebirr / CBE Birr payments are connected.
+  `CREATE TABLE payments (
+     case_id     TEXT PRIMARY KEY REFERENCES cases(id),
+     amount_etb  INTEGER NOT NULL,
+     method      TEXT NOT NULL,
+     reference   TEXT,
+     received_at TEXT NOT NULL,
+     recorded_by TEXT NOT NULL
+   )`,
 ];
 
 // What an erased case's applicant reads as: no personal data, but the shape the rest of the code expects.
@@ -176,6 +185,11 @@ export function caseRepository(db, crypt) {
       updatedAt: row.updated_at,
     };
 
+  const toPayment = (row) =>
+    row && {
+      amountEtb: Number(row.amount_etb), method: row.method, reference: row.reference, receivedAt: row.received_at, recordedBy: row.recorded_by,
+    };
+
   return {
     // source: 'staff' or 'website'. Website cases carry the hash of the applicant's resume code.
     async insert({ id, applicant, status, source = 'staff', pkg = null, accessHash = null }) {
@@ -204,6 +218,23 @@ export function caseRepository(db, crypt) {
         { sql: 'DELETE FROM photos WHERE case_id = ?', args: [id] },
         { sql: 'DELETE FROM messages WHERE case_id = ?', args: [id] },
       ], 'write');
+    },
+
+    async recordPayment(caseId, { amountEtb, method, reference, recordedBy }) {
+      await run('INSERT INTO payments (case_id, amount_etb, method, reference, received_at, recorded_by) VALUES (?, ?, ?, ?, ?, ?)',
+        caseId, amountEtb, method, reference, now(), recordedBy);
+    },
+    async removePayment(caseId) {
+      await run('DELETE FROM payments WHERE case_id = ?', caseId);
+    },
+    async payment(caseId) {
+      return toPayment((await run('SELECT * FROM payments WHERE case_id = ?', caseId)).rows[0]);
+    },
+    // Case id → payment, for many cases at once.
+    async paymentsFor(caseIds) {
+      if (!caseIds.length) return new Map();
+      const { rows } = await run(`SELECT * FROM payments WHERE case_id IN (${caseIds.map(() => '?').join(', ')})`, ...caseIds);
+      return new Map(rows.map((r) => [r.case_id, toPayment(r)]));
     },
 
     async setReferral(id, { partnerId, introductionId = null, together = false }) {

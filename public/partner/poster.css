@@ -1,0 +1,35 @@
+/* Printable counter poster (A4 portrait). */
+* { box-sizing: border-box; }
+body { margin: 0; background: #E9ECF2; color: #0D1730; font: 400 16px/1.5 Inter, system-ui, sans-serif; }
+[lang="am"] { font-family: 'Noto Sans Ethiopic', sans-serif; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 16px; background: #0A2350; }
+.toolbar a { color: #fff; font-weight: 600; text-decoration: none; }
+.toolbar .spacer { flex: 1; }
+.toolbar button { min-height: 42px; padding: 0 16px; border-radius: 999px; border: 1.5px solid #fff; background: transparent; color: #fff; font: 600 14px Inter, sans-serif; cursor: pointer; }
+.toolbar button.primary { background: #B22234; border-color: #B22234; }
+.error { margin: 16px; padding: 12px; border-radius: 10px; background: #FDECEE; color: #8E1B2A; }
+.poster { width: min(210mm, calc(100vw - 24px)); margin: 16px auto; padding: 0 0 28px; background: #fff; box-shadow: 0 10px 40px rgba(0, 8, 26, 0.2); text-align: center; overflow: hidden; }
+.flagbar { height: 18px; background: repeating-linear-gradient(90deg, #B22234 0 40px, #fff 40px 52px, #0A3161 52px 92px, #fff 92px 104px); }
+.poster-head { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 26px 0 8px; text-align: left; }
+.poster-head b { display: block; font: 600 26px Fraunces, Georgia, serif; }
+.poster-head span { color: #4A5368; }
+h1 { margin: 18px 24px 0; font: 600 clamp(30px, 6vw, 46px)/1.1 Fraunces, Georgia, serif; }
+.am-title { margin: 8px 24px 0; font: 600 clamp(20px, 4vw, 28px)/1.4 'Noto Serif Ethiopic', serif; color: #B22234; }
+.qr { width: min(92mm, 70vw); margin: 26px auto 8px; padding: 10px; border: 3px solid #0A2350; border-radius: 18px; }
+.qr svg { display: block; width: 100%; height: auto; }
+.scan { margin: 0; font-weight: 600; }
+.link { margin: 6px 0 0; font: 600 18px Menlo, Consolas, monospace; color: #0A3161; overflow-wrap: anywhere; padding: 0 16px; }
+.points { list-style: none; margin: 24px auto 0; padding: 0 24px; max-width: 520px; display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.points li { padding-left: 34px; position: relative; font-weight: 600; }
+.points li::before { content: '✓'; position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: #1F6B3A; color: #fff; display: grid; place-items: center; font-size: 13px; }
+.points span { display: block; font-weight: 400; color: #4A5368; font-size: 15px; }
+.partner { margin: 24px 24px 0; font-size: 18px; }
+.fine { margin: 14px auto 0; max-width: 520px; padding: 0 24px; font-size: 12px; color: #4A5368; }
+
+@page { size: A4 portrait; margin: 10mm; }
+@media print {
+  body { background: #fff; }
+  .toolbar { display: none; }
+  .poster { width: auto; margin: 0; box-shadow: none; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

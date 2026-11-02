@@ -87,6 +87,24 @@
           <h2 class="card-title">Activity</h2>
           <ul class="activity" id="activity"></ul>
         </section>
+        <section class="card stack" id="payment-box" hidden>
+          <h2 class="card-title">Applicant payment</h2>
+          <p class="muted flat small" id="payment-expected"></p>
+          <div id="payment-recorded" hidden></div>
+          <form id="payment-form" class="stack" hidden>
+            <label class="field">Amount (ETB)<input name="amountEtb" type="number" min="1" step="1" required></label>
+            <label class="field">How they paid
+              <select name="method">
+                <option value="telebirr">Telebirr</option>
+                <option value="cbe_birr">CBE Birr</option>
+                <option value="bank">Bank transfer</option>
+                <option value="cash">Cash</option>
+              </select>
+            </label>
+            <label class="field">Transaction number<input name="reference" maxlength="40" autocomplete="off"></label>
+            <button class="btn small primary" type="submit">Record payment</button>
+          </form>
+        </section>
         <section class="card stack" id="erase-box" hidden>
           <h2 class="card-title">Personal data</h2>
           <p class="muted flat small">If the applicant asks to be deleted: erases their details, photos and confirmation number. The case number and history stay. This cannot be undone.</p>

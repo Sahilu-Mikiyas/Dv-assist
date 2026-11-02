@@ -47,7 +47,7 @@
     <div class="with-side">
       <div class="main-col">
         <section class="card">
-          <h2>Your referrals <span lang="am">· ሪፈራሎች</span></h2>
+          <div class="actions"><h2>Your referrals <span lang="am">· ሪፈራሎች</span></h2><a class="btn ghost small" href="/partner/statement.html">Full statement</a></div>
           <div class="table-wrap">
             <table class="referrals">
               <thead><tr><th scope="col">Applicant</th><th scope="col">Package</th><th scope="col">Status</th><th scope="col">Your earning</th></tr></thead>
@@ -61,10 +61,13 @@
         <div class="card">
           <p class="eyebrow">Your referral link</p>
           <p class="muted">Share it on Telegram or print it for your counter. Everyone who starts with it is counted as yours.</p>
+          <div class="qr-small" id="qr"></div>
           <div class="link-box"><code id="ref-link"></code></div>
           <div class="link-box">
             <button id="copy-link" class="btn ghost small" type="button">Copy link</button>
             <a id="share-link" class="btn ghost small" target="_blank" rel="noopener">Share on Telegram</a>
+            <button id="download-qr" class="btn ghost small" type="button">Download QR</button>
+            <a class="btn primary small" href="/partner/poster.html">Print counter poster</a>
           </div>
         </div>
         <div class="card navy">

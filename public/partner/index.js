@@ -2,6 +2,7 @@
 
 import { $, el } from '/dom.js';
 import { PACKAGE_NAMES, loadPartner, showError } from '/partner/app.js';
+import { downloadQr, qrSvgElement } from '/partner/qr.js';
 
 const STAGES = {
   invited: 'Invited',
@@ -34,6 +35,8 @@ try {
 
   const link = `${location.origin}/r/${me.refCode}`;
   $('#ref-link').textContent = link;
+  $('#qr').replaceChildren(qrSvgElement(link, `QR code for your referral link ${link}`));
+  $('#download-qr').addEventListener('click', () => downloadQr(link, `ethio-dv-assist-${me.refCode}.svg`));
   $('#together-link').href = `/apply?ref=${me.refCode}&together=1`;
   $('#share-link').href = `https://t.me/share/url?${new URLSearchParams({ url: link, text: 'Start your DV entry with Ethio DV Assist' })}`;
   $('#copy-link').addEventListener('click', async () => {

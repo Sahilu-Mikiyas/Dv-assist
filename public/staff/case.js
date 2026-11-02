@@ -352,8 +352,46 @@ function render(c) {
     renderAction(c);
   }
   $('#erase-box').hidden = me?.role !== 'admin' || Boolean(c.erasedAt) || c.status === 'card_issued';
+  renderPayment(c);
   loadActivity().catch(showError);
 }
+
+const METHODS = { telebirr: 'Telebirr', cbe_birr: 'CBE Birr', bank: 'Bank transfer', cash: 'Cash' };
+const birr = (n) => `${Number(n).toLocaleString('en-US')} ETB`;
+
+// What the applicant paid us, recorded by staff until online payments are connected.
+function renderPayment(c) {
+  $('#payment-box').hidden = Boolean(c.erasedAt) && !c.payment;
+  $('#payment-expected').textContent = c.expectedEtb ? `Package price: ${birr(c.expectedEtb)}.` : 'Entered by staff: no package price.';
+  const paid = c.payment;
+  $('#payment-form').hidden = Boolean(paid) || Boolean(c.erasedAt);
+  $('#payment-recorded').hidden = !paid;
+  if (paid) {
+    const remove = me?.role === 'admin'
+      ? el('button', { type: 'button', className: 'btn small danger', textContent: 'Remove (wrong entry)' })
+      : null;
+    remove?.addEventListener('click', () => {
+      if (!confirm('Remove this payment record? Record the right one afterwards.')) return;
+      run(remove, async () => render(await api('DELETE', `/api/cases/${caseId}/payment`)));
+    });
+    $('#payment-recorded').replaceChildren(...[
+      el('p', { className: 'flat' }, el('span', { className: 'chip submitted', textContent: 'Paid' }), ` ${birr(paid.amountEtb)} · ${METHODS[paid.method]}`),
+      el('p', { className: 'muted small flat', textContent: `${paid.reference ? `Ref ${paid.reference} · ` : ''}${timeAgo(paid.receivedAt)} · ${paid.recordedBy}` }),
+      paid.amountEtb !== c.expectedEtb && c.expectedEtb ? el('p', { className: 'muted small flat', textContent: `Differs from the package price (${birr(c.expectedEtb)}).` }) : null,
+      remove,
+    ].filter(Boolean));
+  } else {
+    $('#payment-form').elements.namedItem('amountEtb').value = c.expectedEtb ?? '';
+  }
+}
+
+$('#payment-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const f = event.target.elements;
+  run(event.target.querySelector('button'), async () => render(await api('POST', `/api/cases/${caseId}/payment`, {
+    amountEtb: Number(f.namedItem('amountEtb').value), method: f.namedItem('method').value, reference: f.namedItem('reference').value,
+  })));
+});
 
 $('#erase').addEventListener('click', () => {
   const typed = prompt('This erases the applicant\'s details, photos and confirmation number for good. Type ERASE to confirm.');

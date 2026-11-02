@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statement — Ethio DV Assist partners</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&amp;family=Inter:wght@400;500;600&amp;family=Noto+Sans+Ethiopic:wght@400;500;600&amp;family=Noto+Serif+Ethiopic:wght@500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/apply.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="/partner/">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg>
+      <span>Ethio DV Assist · Partners</span>
+    </a>
+    <div class="top-side">
+      <span id="org-name" class="muted-on-navy"></span>
+      <button id="sign-out" class="link-on-navy" type="button">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <p id="error" class="error" role="alert" hidden></p>
+  <section class="view">
+    <a class="back-link" href="/partner/">← Dashboard</a>
+    <div class="actions">
+      <div class="intro">
+        <p class="eyebrow" id="org"></p>
+        <h1>Your statement</h1>
+        <p lang="am" class="am-sub">የእርስዎ ሂሳብ መግለጫ</p>
+        <p class="lead">Everyone you referred, where each entry is, and exactly how your commission adds up. Every line has an entry number you can ask us about.</p>
+      </div>
+      <a class="btn ghost" href="/api/partner/statement.csv">Download CSV</a>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><p>Referrals</p><b id="t-referrals">0</b></div>
+      <div class="stat"><p>People in those entries</p><b id="t-people">0</b></div>
+      <div class="stat"><p>Being processed</p><b id="t-processing">0</b></div>
+      <div class="stat"><p>Processed (submitted)</p><b id="t-processed">0</b></div>
+    </div>
+
+    <div class="with-side">
+      <div class="main-col">
+        <section class="card">
+          <h2>Your commission <span lang="am">· ኮሚሽን</span></h2>
+          <p class="muted" id="rule"></p>
+          <table class="ledger">
+            <tbody>
+              <tr><th scope="row">Submitted entries</th><td id="e-submitted"></td></tr>
+              <tr><th scope="row">Paid to you</th><td id="e-paid"></td></tr>
+              <tr><th scope="row">Being paid now</th><td id="e-waiting"></td></tr>
+              <tr><th scope="row">Due, not yet in a payout</th><td id="e-due"></td></tr>
+              <tr class="total"><th scope="row">Total earned</th><td id="e-earned"></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <h2>Payouts <span lang="am">· ክፍያዎች</span></h2>
+          <ul class="payouts-full" id="payouts"></ul>
+          <p class="muted" id="no-payouts" hidden>No payouts yet.</p>
+        </section>
+
+        <section class="card">
+          <div class="actions">
+            <h2>Every referral <span lang="am">· ሁሉም ሪፈራሎች</span></h2>
+            <div class="filters">
+              <label class="visually-hidden" for="f-stage">Status</label>
+              <select id="f-stage"><option value="">All statuses</option></select>
+              <label class="visually-hidden" for="f-package">Package</label>
+              <select id="f-package"><option value="">All packages</option></select>
+              <label class="visually-hidden" for="f-paid">Applicant payment</label>
+              <select id="f-paid"><option value="">Paid or not</option><option value="yes">Applicant paid</option><option value="no">Not paid yet</option></select>
+              <label class="visually-hidden" for="f-q">Search</label>
+              <input id="f-q" type="search" placeholder="Name or entry number">
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="referrals">
+              <thead><tr><th scope="col">Entry</th><th scope="col">Applicant</th><th scope="col">Package</th><th scope="col">Status</th><th scope="col">Applicant paid</th><th scope="col">Your commission</th></tr></thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+          <p class="muted" id="shown"></p>
+        </section>
+      </div>
+
+      <aside class="side-col">
+        <section class="card">
+          <p class="eyebrow">By status</p>
+          <div class="bars" id="by-stage"></div>
+        </section>
+        <section class="card">
+          <p class="eyebrow">By package</p>
+          <div class="bars" id="by-package"></div>
+        </section>
+        <section class="card">
+          <p class="eyebrow">How they came</p>
+          <div class="bars" id="by-how"></div>
+        </section>
+        <section class="card">
+          <p class="eyebrow">Applicant payments</p>
+          <div class="bars" id="by-payment"></div>
+          <p class="muted small">Whether each applicant has paid us for their package. Your commission is earned when the entry is submitted.</p>
+        </section>
+      </aside>
+    </div>
+  </section>
+</main>
+<script type="module" src="/partner/statement.js"></script>
+</body>
+</html>

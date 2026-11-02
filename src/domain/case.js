@@ -14,8 +14,23 @@ export const STATUS = Object.freeze({
 
 export const APPROVAL_METHODS = ['in_person', 'phone', 'online'];
 
-// Service packages an applicant can choose on the website.
+// Service packages an applicant can choose on the website, and their prices in birr.
 export const PACKAGES = ['self', 'managed', 'assisted', 'vip'];
+export const PACKAGE_PRICES_ETB = Object.freeze({ self: 500, managed: 1500, assisted: 2000, vip: 3000 });
+
+export const PAYMENT_METHODS = ['telebirr', 'cbe_birr', 'bank', 'cash'];
+
+export function validatePayment(input) {
+  const errors = [];
+  const amountEtb = Number(input?.amountEtb);
+  const method = String(input?.method ?? '');
+  const reference = String(input?.reference ?? '').trim().slice(0, 40);
+  if (!Number.isInteger(amountEtb) || amountEtb < 1 || amountEtb > 100_000) errors.push('Amount must be a whole number of birr');
+  if (!PAYMENT_METHODS.includes(method)) errors.push('Choose how they paid');
+  if (method !== 'cash' && !/^[A-Za-z0-9-]{4,40}$/.test(reference)) errors.push('Enter the transaction number');
+  if (errors.length) throw new ValidationError(errors);
+  return { amountEtb, method, reference: reference.toUpperCase() || null };
+}
 
 export const GENDERS = ['male', 'female'];
 

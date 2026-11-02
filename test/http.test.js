@@ -175,6 +175,16 @@ test('partners sign in with a code, introduce people, and their short links redi
   assert.equal((await meron('POST', `/api/messages/${first.id}/sent`)).status, 200);
   assert.equal((await (await meron('GET', '/api/messages')).json()).toSend.length, 1);
 
+  // Statements: a partner reads only their own; the all-partners report is for admins.
+  const statement = await (await fetch(`${url}/api/partner/statement`, { headers: { cookie } })).json();
+  assert.equal(statement.totals.referrals, 2);
+  const statementCsv = await fetch(`${url}/api/partner/statement.csv`, { headers: { cookie } });
+  assert.match(await statementCsv.text(), /^case,name,people/);
+  assert.equal((await fetch(`${url}/api/partners/report`, { headers: { cookie } })).status, 401);
+  assert.equal((await meron('GET', '/api/partners/report')).status, 403);
+  assert.equal((await (await admin('GET', '/api/partners/report')).json()).totals.referrals, 2);
+  assert.equal((await fetch(`${url}/vendor/qrcode.mjs`)).headers.get('content-type'), 'text/javascript; charset=utf-8');
+
   // Payouts are admin-only.
   assert.equal((await meron('GET', '/api/payouts')).status, 403);
   const csv = await admin('GET', '/api/payouts.csv');

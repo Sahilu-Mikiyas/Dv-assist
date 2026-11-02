@@ -63,6 +63,20 @@ Shops, schools, faith and community groups introduce applicants.
 
 Commission per submitted entry comes from `PARTNER_COMMISSION_ETB` (unset: "to be confirmed").
 
+**QR code and poster:** the dashboard shows the partner's QR code (their `/r/<code>` link) with a download, and
+"Print counter poster" opens an A4 poster with the QR code, link and short bilingual pitch. QR codes are made in
+the browser by the vendored `qrcode-generator` (MIT, `public/vendor/qrcode.mjs`).
+
+**Statements:** every partner has a statement page (`/partner/statement.html`, CSV download) listing every
+referral with its entry number, grouped by status, package, route (link / introduced / filled together) and
+applicant payment, plus the commission ledger (paid, being paid, due, total) and each payout with the entry
+numbers it covered. Partners see only their own referrals. Admins see every partner side by side with totals
+on staff → Partners → Partner report (CSV export). All three views come from one calculation
+(`src/domain/statement.js`), so they always agree.
+
+**Applicant payments:** until Telebirr / CBE Birr are connected, staff record what each applicant paid on the
+case page (amount, method, transaction number; one per case; admins can remove a wrong one).
+
 **Payouts** (staff → Payouts, admins): "Owed now" lists each partner's submitted referrals not yet paid.
 "Create payout" fixes the amount and the entries it covers; the admin sends it by Telebirr outside the app,
 then records the Telebirr transaction number ("Mark paid"), and the partner gets a message. A pending payout
@@ -200,6 +214,7 @@ test/         node:test suites (Bitnob is faked)
 | Accountability | `audit_events` table: logins, failed logins, case edits, photo uploads, card issue/view and submission, with time and IP. |
 | Logs | JSON request logs with a request id. They never include applicant or card data. |
 | Retention | Personal data erased by policy or on request (see Data retention); erased cases can't be worked on, and their resume codes stop working. |
+| CSV exports | Cells starting with = + - @ are prefixed so spreadsheet apps never run them as formulas. |
 | Supply chain | One pinned dependency, checked by `npm audit` on every push. |
 | Runtime | The container runs as a non-root user. The host checks `/healthz`. |
 

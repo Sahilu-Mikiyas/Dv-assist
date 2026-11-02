@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Partner report — Ethio DV Assist staff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=Noto+Sans+Ethiopic:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar" aria-label="Staff navigation">
+    <a class="brand" href="/staff/"><svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg><b>Staff</b></a>
+    <a class="nav-link" href="/staff/">Case queue</a>
+    <a class="nav-link" href="/staff/?mine=1" id="mine-link">My cases</a>
+    <a class="nav-link" href="/staff/case.html">New case</a>
+    <a class="nav-link" href="/staff/messages.html">Messages</a>
+    <a class="nav-link" href="/staff/team.html" data-admin hidden>Team</a>
+    <a class="nav-link" href="/staff/partners.html" aria-current="page" data-admin hidden>Partners</a>
+    <a class="nav-link" href="/staff/payouts.html" data-admin hidden>Payouts</a>
+    <a class="nav-link" href="/staff/data.html" data-admin hidden>Data</a>
+    <a class="nav-link" href="/staff/audit.html" data-admin hidden>Audit log</a>
+    <div class="me"><span class="avatar" id="me-avatar">·</span><span><span id="me-name">…</span><br><span class="muted" id="me-role"></span></span><button class="btn small ghost" id="logout" type="button">Log out</button></div>
+  </nav>
+
+  <main class="content">
+    <a href="/staff/partners.html" class="back">← Partners</a>
+    <div class="page-head">
+      <div>
+        <h1>Partner report</h1>
+        <p class="muted flat" id="rate"></p>
+      </div>
+      <a class="btn" href="/api/partners/report.csv">Export CSV</a>
+    </div>
+    <p id="error" hidden></p>
+    <div class="counters report-totals" id="totals"></div>
+    <section class="card flush">
+      <div class="table-wrap">
+        <table class="report">
+          <thead>
+            <tr>
+              <th scope="col">Partner</th><th scope="col">Referrals</th><th scope="col">People</th>
+              <th scope="col">Invited</th><th scope="col">Started</th><th scope="col">Checking</th><th scope="col">Filing</th><th scope="col">Submitted</th>
+              <th scope="col">Applicants paid</th><th scope="col">Commission paid</th><th scope="col">Being paid</th><th scope="col">Due</th><th scope="col">Earned</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+          <tfoot id="foot"></tfoot>
+        </table>
+      </div>
+      <p id="none" class="muted pad" hidden>No partners yet.</p>
+    </section>
+    <p class="muted small">Each partner sees the same numbers for themselves on their statement page (only their own referrals).</p>
+  </main>
+</div>
+<script type="module" src="/staff/partner-report.js"></script>
+</body>
+</html>

@@ -5,7 +5,9 @@ import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { APPROVAL_METHODS, EDUCATION_LEVELS, MARITAL_STATUSES, PACKAGES, ValidationError } from '../domain/case.js';
+import {
+  APPROVAL_METHODS, EDUCATION_LEVELS, MARITAL_STATUSES, PACKAGE_PRICES_ETB, PACKAGES, PAYMENT_METHODS, ValidationError,
+} from '../domain/case.js';
 import { PARTNER_TYPES } from '../domain/partner.js';
 import { MAX_PHOTO_BYTES } from '../domain/photo.js';
 import { BitnobError } from '../infra/bitnob.js';
@@ -20,6 +22,7 @@ const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
   '.svg': 'image/svg+xml',
 };
 
@@ -87,7 +90,18 @@ function send(res, status, body, headers = {}) {
   res.end(isBuffer ? body : JSON.stringify(body ?? {}));
 }
 
-const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+// Spreadsheet-safe cell: quoted, and a leading = + - @ is neutralised so a name cannot run as a formula.
+const csvCell = (v) => {
+  const text = String(v ?? '');
+  return `"${(/^[=+\-@]/.test(text) ? `'${text}` : text).replace(/"/g, '""')}"`;
+};
+
+function csvFile(filename, header, rows) {
+  return {
+    body: `${[header.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n')}\n`,
+    headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${filename}"` },
+  };
+}
 
 // Bitnob signs webhooks with HMAC-SHA512 of the raw body, hex-encoded, in x-bitnob-signature.
 function verifyWebhook(raw, signature, secret) {
@@ -199,6 +213,24 @@ function routes({
     }],
     ['POST', /^\/api\/partner\/logout$/, 'public', async () => ({ body: { ok: true }, headers: { 'Set-Cookie': partnerAuthn.clearCookie() } })],
     ['GET', /^\/api\/partner$/, 'partner', async (_, __, ctx) => partners.dashboard(ctx.partner)],
+    ['GET', /^\/api\/partner\/statement$/, 'partner', async (_, __, ctx) => partners.statement(ctx.partner)],
+    ['GET', /^\/api\/partner\/statement\.csv$/, 'partner', async (_, __, ctx) => {
+      const st = await partners.statement(ctx.partner);
+      return csvFile(`statement-${st.refCode}.csv`,
+        ['case', 'name', 'people', 'package', 'how', 'stage', 'applicant_paid', 'started', 'submitted', 'commission_etb', 'commission_status'],
+        st.rows.map((r) => [r.code, r.name, r.people, r.package, r.how, r.stage, r.applicantPaid ? 'yes' : 'no',
+          r.startedAt, r.submittedAt, r.commission?.amountEtb, r.commission?.status]));
+    }],
+    ['GET', /^\/api\/partners\/report$/, null, async (_, __, ctx) => partners.report(ctx)],
+    ['GET', /^\/api\/partners\/report\.csv$/, null, async (_, __, ctx) => {
+      const report = await partners.report(ctx);
+      return csvFile('partner-report.csv',
+        ['partner', 'code', 'status', 'referrals', 'people', 'invited', 'started', 'checking', 'filing', 'submitted', 'applicants_paid',
+          'commission_paid_etb', 'commission_being_paid_etb', 'commission_due_etb', 'commission_earned_etb'],
+        report.partners.map((r) => [r.organisation, r.refCode, r.status, r.referrals, r.people, r.byStage.invited, r.byStage.started,
+          r.byStage.checking, r.byStage.filing, r.byStage.submitted, r.payments.paid, r.earnings.paidEtb, r.earnings.waitingEtb,
+          r.earnings.dueEtb, r.earnings.earnedEtb]));
+    }],
     ['POST', /^\/api\/partner\/introductions$/, 'partner', async (req, _, ctx) => ({
       status: 201, body: await partners.introduce(ctx.partner, await readJson(req), ctx),
     })],
@@ -271,6 +303,8 @@ function routes({
       const { confirmationNumber } = await readJson(req);
       return cases.submit(id, confirmationNumber, ctx);
     }],
+    ['POST', /^\/api\/cases\/([\w-]+)\/payment$/, null, async (req, [id], ctx) => cases.recordPayment(id, await readJson(req), ctx)],
+    ['DELETE', /^\/api\/cases\/([\w-]+)\/payment$/, null, async (_, [id], ctx) => cases.removePayment(id, ctx)],
     ['GET', /^\/api\/cases\/([\w-]+)\/activity$/, null, async (_, [id]) => cases.activity(id)],
 
     ['GET', /^\/api\/staff\/directory$/, null, async () => staff.directory()],

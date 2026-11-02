@@ -14,7 +14,7 @@ Last updated: 2026-11-04
   issue card, show card details, record confirmation number.
 - Bitnob signed requests (HMAC) to `https://api.bitnob.com`. Sandbox key, company "Furii Labs".
 - Sandbox card-holder customer exists (`BITNOB_CARD_CUSTOMER_ID` on Render).
-- 61 automated tests, run by GitHub Actions on every push.
+- 63 automated tests, run by GitHub Actions on every push.
 
 ## Pinned: automatic SMS and email are NOT switched on
 
@@ -105,8 +105,13 @@ Last updated: 2026-11-04
 - Payouts (built): staff → Payouts. Owed now → Create payout → pay by Telebirr by hand → Mark paid with the
   transaction number → partner is messaged. Cancel releases entries. CSV export. Paying out needs
   `PARTNER_COMMISSION_ETB` set; the money itself is sent outside the app.
+- QR code + printable A4 counter poster (built; QR checked to scan correctly).
+- Partner statement page + CSV, and admin Partner report + CSV (built): referrals by status, package,
+  route and applicant payment; commission ledger; payouts with entry numbers.
+- Applicant payments are recorded by staff on the case page for now (amount, method, transaction number).
+  Commission is earned on submission, not on payment; change if you want it tied to payment.
 - Decide: commission per submitted entry (`PARTNER_COMMISSION_ETB`), payout day, partner terms text.
-  Not built: QR code for the counter, SMS confirmation codes when filling together.
+  Not built: SMS confirmation codes when filling together.
 - The Amharic invitation uses the polite form (አስተዋውቆዎታል / ይጀምሩ) so it fits anyone; needs native review.
 
 ## Photo analyzer (built)

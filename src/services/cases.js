@@ -3,8 +3,10 @@
 
 import { randomUUID } from 'node:crypto';
 import {
+  PACKAGE_PRICES_ETB,
   STATUS,
   ValidationError,
+  validatePayment,
   assertCanApprove,
   assertCanCheck,
   assertCanIssueCard,
@@ -15,6 +17,7 @@ import {
   validateApplicant,
 } from '../domain/case.js';
 import { validatePhoto } from '../domain/photo.js';
+import { ForbiddenError } from './staff.js';
 
 export class NotFoundError extends Error {}
 
@@ -45,6 +48,8 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     return {
       ...c,
       partner: c.partnerId ? ((await partnerNames()).get(c.partnerId) ?? null) : null,
+      expectedEtb: PACKAGE_PRICES_ETB[c.package] ?? null,
+      payment: (await repo.payment(c.id)) ?? null,
       code: caseCode(c.caseNumber),
       photos: photoKeys(c.applicant).map((key) => ({ key, uploaded: present.includes(key) })),
     };
@@ -209,6 +214,27 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
         data: { code: caseCode(existing.caseNumber), confirmationNumber: normalized },
       });
       return withPhotos(await mustGet(id));
+    },
+
+    // The applicant paid us (Telebirr, CBE Birr, bank or cash). One payment per case; an admin can remove a
+    // wrong one and record it again.
+    async recordPayment(id, input, ctx) {
+      const existing = await mustGetActive(id);
+      if (await repo.payment(id)) throw new ValidationError(['A payment is already recorded for this case']);
+      const payment = validatePayment(input);
+      await repo.recordPayment(id, { ...payment, recordedBy: ctx.staff.name });
+      await record('payment_recorded', id, ctx, `${payment.amountEtb} ETB ${payment.method}${payment.reference ? ` ${payment.reference}` : ''}`);
+      return withPhotos(existing);
+    },
+
+    async removePayment(id, ctx) {
+      if (ctx?.staff?.role !== 'admin') throw new ForbiddenError('Only an admin can remove a payment');
+      const existing = await mustGet(id);
+      const payment = await repo.payment(id);
+      if (!payment) throw new ValidationError(['No payment is recorded for this case']);
+      await repo.removePayment(id);
+      await record('payment_removed', id, ctx, `${payment.amountEtb} ETB ${payment.method}`);
+      return withPhotos(existing);
     },
 
     async auditList(options) {

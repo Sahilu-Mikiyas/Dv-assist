@@ -6,16 +6,15 @@ import { ValidationError } from '../domain/case.js';
 import {
   PARTNER_STATUS,
   refCodePrefix,
-  referralStage,
   validateIntroduction,
   validatePartnerApplication,
 } from '../domain/partner.js';
 import { hashCode, newAccessCode, normalizeCode, randomChars } from '../infra/codes.js';
-import { NotFoundError } from './cases.js';
+import { buildStatement } from '../domain/statement.js';
+import { NotFoundError, caseCode } from './cases.js';
 import { ForbiddenError } from './staff.js';
 
 const INVITE_STALE_MS = 2 * 24 * 60 * 60 * 1000; // the team calls invitees who have not started after 2 days
-const fullName = (a) => [a.firstName, a.lastName].filter(Boolean).join(' ');
 
 const QUIET = { notify: async () => {}, smsEnabled: false };
 
@@ -42,51 +41,21 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null, no
     return `${prefix}${randomChars(6)}`;
   }
 
-  // Each referral: a case started through the partner, or an introduction nobody has started yet.
-  async function referralsOf(partnerId) {
+  // Everything about one partner's referrals, from every route, and their earnings (see domain/statement.js).
+  async function statementOf(partnerId) {
     const cases = await caseRepo.listByPartner(partnerId);
-    const paid = await repo.payoutItems(partnerId);
-    const intros = await repo.introductionsFor(partnerId);
-    const fromCases = cases.map((c) => {
-      const stage = referralStage(c);
-      return {
-        name: fullName(c.applicant),
-        package: c.package,
-        people: 1 + (c.applicant.spouse ? 1 : 0) + c.applicant.children.length,
-        how: c.filledTogether ? 'together' : c.introductionId ? 'introduced' : 'link',
-        stage,
-        // Paid: the amount in the payout. Waiting: in a payout not paid yet. Due: not in a payout yet.
-        earning: stage === 'submitted' ? (paid.get(c.id)?.amountEtb ?? commissionEtb) : null,
-        payout: stage === 'submitted' ? ({ paid: 'paid', pending: 'waiting' }[paid.get(c.id)?.status] ?? 'due') : null,
-        at: c.createdAt,
-      };
+    return buildStatement({
+      cases,
+      introductions: await repo.introductionsFor(partnerId),
+      payoutItems: await repo.payoutItems(partnerId),
+      payments: await caseRepo.paymentsFor(cases.map((c) => c.id)),
+      payouts: await repo.payouts(partnerId),
+      commissionEtb,
+      codeOf: caseCode,
     });
-    const waiting = intros.filter((i) => !i.caseId).map((i) => ({
-      name: i.name, package: i.package, people: i.people, how: 'introduced', stage: 'invited', earning: null, at: i.createdAt,
-    }));
-    return [...fromCases, ...waiting].sort((a, b) => b.at.localeCompare(a.at));
   }
 
-  // Paid so far, and what is owed (in a payout being paid, or not yet in one).
-  async function payoutTotals(partnerId, referrals) {
-    const payouts = (await repo.payouts(partnerId)).filter((p) => p.status !== 'cancelled');
-    const paidEtb = payouts.filter((p) => p.status === 'paid').reduce((sum, p) => sum + p.amountEtb, 0);
-    const waitingEtb = payouts.filter((p) => p.status === 'pending').reduce((sum, p) => sum + p.amountEtb, 0);
-    const dueCount = referrals.filter((r) => r.payout === 'due').length;
-    const owedEtb = commissionEtb == null && dueCount ? null : waitingEtb + dueCount * (commissionEtb ?? 0);
-    return {
-      paidEtb,
-      owedEtb,
-      earned: owedEtb == null ? null : paidEtb + owedEtb,
-      payouts: payouts.map((p) => ({ amountEtb: p.amountEtb, entries: p.entries, status: p.status, reference: p.reference, at: p.settledAt ?? p.createdAt })),
-    };
-  }
-
-  const countsOf = (rows) => ({
-    introduced: rows.length,
-    inProgress: rows.filter((r) => ['started', 'checking', 'filing'].includes(r.stage)).length,
-    submitted: rows.filter((r) => r.stage === 'submitted').length,
-  });
+  const countsOf = (st) => ({ introduced: st.totals.referrals, inProgress: st.totals.processing, submitted: st.totals.processed });
 
   return {
     // Public: anyone can apply; an admin approves.
@@ -111,16 +80,60 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null, no
     },
 
     async dashboard(partner) {
-      const referrals = await referralsOf(partner.id);
+      const st = await statementOf(partner.id);
       return {
         name: partner.name,
         organisation: partner.organisation,
         refCode: partner.refCode,
         payoutPhoneEnding: partner.payoutPhone.slice(-2),
         commissionEtb,
-        counts: countsOf(referrals),
-        ...(await payoutTotals(partner.id, referrals)),
-        referrals,
+        counts: countsOf(st),
+        paidEtb: st.earnings.paidEtb,
+        owedEtb: st.earnings.owedEtb,
+        earned: st.earnings.earnedEtb,
+        payouts: st.payouts,
+        referrals: st.rows.map(({ caseId, ...row }) => row),
+      };
+    },
+
+    // The full statement for the partner's own statement page: nothing about other partners.
+    async statement(partner) {
+      const st = await statementOf(partner.id);
+      return {
+        organisation: partner.organisation, refCode: partner.refCode, payoutPhoneEnding: partner.payoutPhone.slice(-2),
+        ...st, rows: st.rows.map(({ caseId, ...row }) => row),
+      };
+    },
+
+    // Admins: every partner's statement summary side by side, with totals.
+    async report(ctx) {
+      requireAdmin(ctx);
+      const rows = [];
+      for (const p of await repo.list()) {
+        const st = await statementOf(p.id);
+        rows.push({
+          partnerId: p.id, organisation: p.organisation, refCode: p.refCode, status: p.status,
+          ...st.totals, byStage: st.byStage, byPackage: st.byPackage, byHow: st.byHow, payments: st.payments, earnings: st.earnings,
+        });
+      }
+      const sum = (pick) => rows.reduce((s, r) => s + (pick(r) ?? 0), 0);
+      const unknown = rows.some((r) => r.earnings.owedEtb == null);
+      return {
+        commissionEtb,
+        partners: rows,
+        totals: {
+          partners: rows.length,
+          active: rows.filter((r) => r.status === 'active').length,
+          referrals: sum((r) => r.referrals),
+          people: sum((r) => r.people),
+          processing: sum((r) => r.processing),
+          processed: sum((r) => r.processed),
+          applicantsPaid: sum((r) => r.payments.paid),
+          paidEtb: sum((r) => r.earnings.paidEtb),
+          waitingEtb: sum((r) => r.earnings.waitingEtb),
+          dueEtb: unknown ? null : sum((r) => r.earnings.dueEtb),
+          earnedEtb: unknown ? null : sum((r) => r.earnings.earnedEtb),
+        },
       };
     },
 
@@ -173,7 +186,7 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null, no
     async list(ctx) {
       requireAdmin(ctx);
       const partners = await repo.list();
-      return Promise.all(partners.map(async (p) => ({ ...p, counts: countsOf(await referralsOf(p.id)) })));
+      return Promise.all(partners.map(async (p) => ({ ...p, counts: countsOf(await statementOf(p.id)) })));
     },
 
     // Approving (or resetting) shows a new sign-in code once; only its hash is kept.

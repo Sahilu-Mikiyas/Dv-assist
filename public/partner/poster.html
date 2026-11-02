@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Counter poster — Ethio DV Assist partners</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&amp;family=Inter:wght@400;500;600&amp;family=Noto+Sans+Ethiopic:wght@400;600&amp;family=Noto+Serif+Ethiopic:wght@600&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/partner/poster.css">
+</head>
+<body>
+<div class="toolbar">
+  <a href="/partner/">← Dashboard</a>
+  <span class="spacer"></span>
+  <button id="download" type="button">Download QR (SVG)</button>
+  <button id="print" type="button" class="primary">Print poster</button>
+</div>
+<p id="error" class="error" role="alert" hidden></p>
+
+<main class="poster" id="poster" hidden>
+  <div class="flagbar" aria-hidden="true"></div>
+  <header class="poster-head">
+    <svg width="56" height="56" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#0A2350"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#fff"/></svg>
+    <div><b>Ethio DV Assist</b><span lang="am">ኢትዮ ዲቪ አሲስት</span></div>
+  </header>
+
+  <h1>Start your DV lottery entry here</h1>
+  <p lang="am" class="am-title">የዲቪ ሎተሪ ምዝገባዎን እዚህ ይጀምሩ</p>
+
+  <div class="qr" id="qr"></div>
+  <p class="scan">Scan with your phone camera <span lang="am">· በስልክዎ ካሜራ ይቃኙ</span></p>
+  <p class="link" id="link"></p>
+
+  <ul class="points">
+    <li>Every detail checked twice <span lang="am">ሁሉም መረጃ ሁለት ጊዜ ይጣራል</span></li>
+    <li>Photo prepared to the official size <span lang="am">ፎቶ በትክክለኛ መጠን ይዘጋጃል</span></li>
+    <li>Filed for you, with your confirmation number <span lang="am">ምዝገባው ገብቶ የማረጋገጫ ቁጥር ይሰጥዎታል</span></li>
+  </ul>
+
+  <p class="partner">Ask us for help: <b id="org"></b></p>
+  <p class="fine">Independent service, not the U.S. Government. Selection is random: no one can improve your chances. Entries are only made on dvprogram.state.gov.</p>
+</main>
+<script type="module" src="/partner/poster.js"></script>
+</body>
+</html>
