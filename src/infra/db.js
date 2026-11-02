@@ -98,6 +98,27 @@ const MIGRATIONS = [
   'ALTER TABLE cases ADD COLUMN submitted_at TEXT',
   "UPDATE cases SET submitted_at = updated_at WHERE status = 'submitted'",
   'ALTER TABLE cases ADD COLUMN erased_at TEXT',
+  `CREATE TABLE payouts (
+     id          TEXT PRIMARY KEY,
+     partner_id  TEXT NOT NULL REFERENCES partners(id),
+     rate_etb    INTEGER NOT NULL,
+     amount_etb  INTEGER NOT NULL,
+     entries     INTEGER NOT NULL,
+     pay_to      BLOB NOT NULL,
+     status      TEXT NOT NULL,
+     reference   TEXT,
+     created_at  TEXT NOT NULL,
+     created_by  TEXT,
+     settled_at  TEXT,
+     settled_by  TEXT
+   )`,
+  'CREATE INDEX payouts_partner ON payouts (partner_id)',
+  // Each submitted referral is paid at most once: the primary key is the case.
+  `CREATE TABLE payout_items (
+     case_id    TEXT PRIMARY KEY,
+     payout_id  TEXT NOT NULL REFERENCES payouts(id),
+     amount_etb INTEGER NOT NULL
+   )`,
 ];
 
 // What an erased case's applicant reads as: no personal data, but the shape the rest of the code expects.
@@ -263,6 +284,21 @@ export function partnerRepository(db, crypt) {
       createdAt: row.created_at,
       approvedAt: row.approved_at,
     };
+  const toPayout = (row) =>
+    row && {
+      id: row.id,
+      partnerId: row.partner_id,
+      rateEtb: Number(row.rate_etb),
+      amountEtb: Number(row.amount_etb),
+      entries: Number(row.entries),
+      payTo: crypt.decryptJson(row.pay_to).payTo,
+      status: row.status,
+      reference: row.reference,
+      createdAt: row.created_at,
+      createdBy: row.created_by,
+      settledAt: row.settled_at,
+      settledBy: row.settled_by,
+    };
   const toIntroduction = (row) =>
     row && {
       id: row.id,
@@ -311,6 +347,42 @@ export function partnerRepository(db, crypt) {
     async listIntroductions() {
       return (await run('SELECT * FROM introductions ORDER BY created_at DESC')).rows.map(toIntroduction);
     },
+    // ---- payouts ----
+    async insertPayout({ id, partnerId, rateEtb, caseIds, payTo, createdBy }) {
+      const ts = new Date().toISOString();
+      await db.batch([
+        { sql: `INSERT INTO payouts (id, partner_id, rate_etb, amount_etb, entries, pay_to, status, created_at, created_by)
+                VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+          args: [id, partnerId, rateEtb, rateEtb * caseIds.length, caseIds.length, crypt.encryptJson({ payTo }), ts, createdBy] },
+        ...caseIds.map((caseId) => ({ sql: 'INSERT INTO payout_items (case_id, payout_id, amount_etb) VALUES (?, ?, ?)', args: [caseId, id, rateEtb] })),
+      ], 'write');
+    },
+    async payout(id) {
+      return toPayout((await run('SELECT * FROM payouts WHERE id = ?', id)).rows[0]);
+    },
+    async payouts(partnerId = null) {
+      const rows = partnerId
+        ? (await run('SELECT * FROM payouts WHERE partner_id = ? ORDER BY created_at DESC', partnerId)).rows
+        : (await run('SELECT * FROM payouts ORDER BY created_at DESC')).rows;
+      return rows.map(toPayout);
+    },
+    // Case id → { payoutId, amountEtb, status } for every case already in a (non-cancelled) payout.
+    async payoutItems(partnerId) {
+      const { rows } = await run(`SELECT i.case_id, i.payout_id, i.amount_etb, p.status FROM payout_items i
+        JOIN payouts p ON p.id = i.payout_id WHERE p.partner_id = ?`, partnerId);
+      return new Map(rows.map((r) => [r.case_id, { payoutId: r.payout_id, amountEtb: Number(r.amount_etb), status: r.status }]));
+    },
+    async settlePayout(id, { status, reference = null, settledBy }) {
+      const ts = new Date().toISOString();
+      const statements = [{
+        sql: "UPDATE payouts SET status = ?, reference = ?, settled_at = ?, settled_by = ? WHERE id = ? AND status = 'pending'",
+        args: [status, reference, ts, settledBy, id],
+      }];
+      // A cancelled payout releases its entries so they can go into the next one.
+      if (status === 'cancelled') statements.push({ sql: 'DELETE FROM payout_items WHERE payout_id = ?', args: [id] });
+      await db.batch(statements, 'write');
+    },
+
     async deleteIntroduction(id) {
       await run('DELETE FROM introductions WHERE id = ?', id);
     },

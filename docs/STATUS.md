@@ -14,7 +14,7 @@ Last updated: 2026-11-04
   issue card, show card details, record confirmation number.
 - Bitnob signed requests (HMAC) to `https://api.bitnob.com`. Sandbox key, company "Furii Labs".
 - Sandbox card-holder customer exists (`BITNOB_CARD_CUSTOMER_ID` on Render).
-- 59 automated tests, run by GitHub Actions on every push.
+- 61 automated tests, run by GitHub Actions on every push.
 
 ## Pinned: automatic SMS and email are NOT switched on
 
@@ -102,8 +102,11 @@ Last updated: 2026-11-04
   applicant writes down their own code; the session on the partner's phone ends after 2 hours or at
   "Finish & hand back".
 - Staff: "via <partner>" on cases; follow-up list flags introductions not started after 2 days.
+- Payouts (built): staff → Payouts. Owed now → Create payout → pay by Telebirr by hand → Mark paid with the
+  transaction number → partner is messaged. Cancel releases entries. CSV export. Paying out needs
+  `PARTNER_COMMISSION_ETB` set; the money itself is sent outside the app.
 - Decide: commission per submitted entry (`PARTNER_COMMISSION_ETB`), payout day, partner terms text.
-  Not built: payout records, QR code for the counter, SMS invitations and SMS confirmation codes.
+  Not built: QR code for the counter, SMS confirmation codes when filling together.
 - The Amharic invitation uses the polite form (አስተዋውቆዎታል / ይጀምሩ) so it fits anyone; needs native review.
 
 ## Photo analyzer (built)
@@ -136,6 +139,5 @@ Last updated: 2026-11-04
 
 - Telebirr / CBE Birr payments (needs merchant accounts) and SMS notifications.
 - Fill in the landing-page facts: phone, office address, entry-window date, data retention.
-- Referral partners: payout records.
 - Connect AfroMessage (SMS) and/or Brevo (email) for automatic messages.
 - Photo analyzer: real-photo testing and threshold tuning (see above).

@@ -45,6 +45,7 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null, no
   // Each referral: a case started through the partner, or an introduction nobody has started yet.
   async function referralsOf(partnerId) {
     const cases = await caseRepo.listByPartner(partnerId);
+    const paid = await repo.payoutItems(partnerId);
     const intros = await repo.introductionsFor(partnerId);
     const fromCases = cases.map((c) => {
       const stage = referralStage(c);
@@ -54,7 +55,9 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null, no
         people: 1 + (c.applicant.spouse ? 1 : 0) + c.applicant.children.length,
         how: c.filledTogether ? 'together' : c.introductionId ? 'introduced' : 'link',
         stage,
-        earning: stage === 'submitted' ? commissionEtb : null,
+        // Paid: the amount in the payout. Waiting: in a payout not paid yet. Due: not in a payout yet.
+        earning: stage === 'submitted' ? (paid.get(c.id)?.amountEtb ?? commissionEtb) : null,
+        payout: stage === 'submitted' ? ({ paid: 'paid', pending: 'waiting' }[paid.get(c.id)?.status] ?? 'due') : null,
         at: c.createdAt,
       };
     });
@@ -62,6 +65,21 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null, no
       name: i.name, package: i.package, people: i.people, how: 'introduced', stage: 'invited', earning: null, at: i.createdAt,
     }));
     return [...fromCases, ...waiting].sort((a, b) => b.at.localeCompare(a.at));
+  }
+
+  // Paid so far, and what is owed (in a payout being paid, or not yet in one).
+  async function payoutTotals(partnerId, referrals) {
+    const payouts = (await repo.payouts(partnerId)).filter((p) => p.status !== 'cancelled');
+    const paidEtb = payouts.filter((p) => p.status === 'paid').reduce((sum, p) => sum + p.amountEtb, 0);
+    const waitingEtb = payouts.filter((p) => p.status === 'pending').reduce((sum, p) => sum + p.amountEtb, 0);
+    const dueCount = referrals.filter((r) => r.payout === 'due').length;
+    const owedEtb = commissionEtb == null && dueCount ? null : waitingEtb + dueCount * (commissionEtb ?? 0);
+    return {
+      paidEtb,
+      owedEtb,
+      earned: owedEtb == null ? null : paidEtb + owedEtb,
+      payouts: payouts.map((p) => ({ amountEtb: p.amountEtb, entries: p.entries, status: p.status, reference: p.reference, at: p.settledAt ?? p.createdAt })),
+    };
   }
 
   const countsOf = (rows) => ({
@@ -101,7 +119,7 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null, no
         payoutPhoneEnding: partner.payoutPhone.slice(-2),
         commissionEtb,
         counts: countsOf(referrals),
-        earned: commissionEtb == null ? null : countsOf(referrals).submitted * commissionEtb,
+        ...(await payoutTotals(partner.id, referrals)),
         referrals,
       };
     },

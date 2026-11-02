@@ -214,3 +214,4 @@ p.pad { padding: 16px 20px; margin: 0; }
 .policy.off .state { color: #8A5A00; }
 .policy.on .state { color: #1F6B3A; }
 .env { font: 13px var(--mono); background: #F4F6FA; padding: 2px 6px; border-radius: 6px; }
+.ref-input { min-height: 36px; width: 190px; padding: 0 10px; border: 1px solid #C5CDDC; border-radius: 8px; font: 14px var(--mono); text-transform: uppercase; }

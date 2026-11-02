@@ -100,7 +100,7 @@ function verifyWebhook(raw, signature, secret) {
 // `stage`: 'public' (no session), 'applicant' (applicant cookie), 'partner' (partner cookie), 'setup' (staff
 // signed in, authenticator not yet set up) or null (staff fully signed in).
 function routes({
-  cases, staff, applications, partners, notifications, retention, authn, applicantAuthn, partnerAuthn,
+  cases, staff, applications, partners, payouts, notifications, retention, authn, applicantAuthn, partnerAuthn,
   limiter, startLimiter, resumeLimiter, partnerLimiter, webhookSecret,
 }) {
   const sessionFor = (result) => authn.sessionCookie(result.staff.id, { stage: result.needsAuthenticator ? 'setup' : 'ok' });
@@ -207,6 +207,20 @@ function routes({
     ['POST', /^\/api\/partners\/([\w-]+)\/code$/, null, async (_, [id], ctx) => partners.issueCode(id, ctx)],
     ['POST', /^\/api\/partners\/([\w-]+)\/status$/, null, async (req, [id], ctx) => partners.setStatus(id, (await readJson(req)).status, ctx)],
     ['GET', /^\/api\/introductions$/, null, async (_, __, ctx) => partners.introductions(ctx)],
+    ['GET', /^\/api\/payouts$/, null, async (_, __, ctx) => payouts.overview(ctx)],
+    ['POST', /^\/api\/payouts$/, null, async (req, _, ctx) => ({ status: 201, body: await payouts.create((await readJson(req)).partnerId, ctx) })],
+    ['POST', /^\/api\/payouts\/([\w-]+)\/paid$/, null, async (req, [id], ctx) => payouts.markPaid(id, await readJson(req), ctx)],
+    ['POST', /^\/api\/payouts\/([\w-]+)\/cancel$/, null, async (_, [id], ctx) => payouts.cancel(id, ctx)],
+    ['GET', /^\/api\/payouts\.csv$/, null, async (_, __, ctx) => {
+      const rows = await payouts.rows(ctx);
+      const lines = [['created', 'partner', 'entries', 'rate_etb', 'amount_etb', 'status', 'telebirr_to', 'reference', 'settled', 'by'].join(','),
+        ...rows.map((r) => [r.createdAt, r.organisation, r.entries, r.rateEtb, r.amountEtb, r.status, r.payTo, r.reference, r.settledAt, r.settledBy]
+          .map(csvCell).join(','))];
+      return {
+        body: `${lines.join('\n')}\n`,
+        headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="partner-payouts.csv"' },
+      };
+    }],
 
     // Messages to applicants and partners that need a person to send them.
     ['GET', /^\/api\/messages$/, null, async () => ({

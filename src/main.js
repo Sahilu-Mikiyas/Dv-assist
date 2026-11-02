@@ -13,6 +13,7 @@ import { applicationService } from './services/applications.js';
 import { caseService } from './services/cases.js';
 import { notificationService } from './services/notifications.js';
 import { partnerService } from './services/partners.js';
+import { payoutService } from './services/payouts.js';
 import { retentionService } from './services/retention.js';
 import { staffService } from './services/staff.js';
 
@@ -54,6 +55,7 @@ const server = createApp({
   applications: applicationService({ repo: caseRepo, audit, partners, notifications }),
   notifications,
   retention,
+  payouts: payoutService({ partnerRepo, caseRepo, audit, notifications, commissionEtb: config.partnerCommissionEtb }),
   authn: auth(config),
   applicantAuthn: applicantAuth(config),
   partnerAuthn: partnerAuth(config),

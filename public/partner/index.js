@@ -12,6 +12,12 @@ const STAGES = {
 };
 const HOW = { introduced: 'Introduced', link: 'Used your link', together: 'Filled together' };
 const birr = (n) => `${n.toLocaleString('en-US')} ETB`;
+const PAYOUT = { paid: 'Paid', waiting: 'Being paid', due: 'Due' };
+
+function earningCell(r) {
+  if (r.stage !== 'submitted') return [r.stage === 'invited' ? '—' : 'When submitted'];
+  return [r.earning != null ? birr(r.earning) : 'To be confirmed', el('br'), el('small', { textContent: PAYOUT[r.payout] })];
+}
 
 try {
   const me = await loadPartner();
@@ -23,6 +29,7 @@ try {
   $('#n-progress').textContent = me.counts.inProgress;
   $('#n-submitted').textContent = me.counts.submitted;
   $('#earned').textContent = me.earned == null ? 'To be confirmed' : birr(me.earned);
+  if (me.earned != null) $('#paid-split').textContent = `${birr(me.paidEtb)} paid · ${birr(me.owedEtb)} owed`;
   $('#earned').classList.toggle('words', me.earned == null);
 
   const link = `${location.origin}/r/${me.refCode}`;
@@ -41,12 +48,15 @@ try {
     ? `Commission per submitted entry is being finalised. Payouts go to your Telebirr number ending ··${me.payoutPhoneEnding}.`
     : `${birr(me.commissionEtb)} for each submitted entry, paid to your Telebirr number ending ··${me.payoutPhoneEnding}.`;
 
+  $('#payout-list').replaceChildren(...me.payouts.map((p) => el('li', {},
+    el('b', { textContent: birr(p.amountEtb) }), ` · ${p.entries} ${p.entries === 1 ? 'entry' : 'entries'} · `,
+    p.status === 'paid' ? `paid ${new Date(p.at).toLocaleDateString('en-GB')} · ${p.reference}` : 'being paid')));
   $('#rows').replaceChildren(...me.referrals.map((r) => el('tr', {},
     el('td', {}, el('b', { textContent: r.name }), el('br'),
       el('small', { textContent: `${HOW[r.how]} · ${r.people} ${r.people === 1 ? 'person' : 'people'}` })),
     el('td', { textContent: PACKAGE_NAMES[r.package] ?? '—' }),
     el('td', {}, el('span', { className: `pill ${r.stage}`, textContent: STAGES[r.stage] })),
-    el('td', { textContent: r.earning != null ? birr(r.earning) : r.stage === 'submitted' ? 'To be confirmed' : r.stage === 'invited' ? '—' : 'Pending' }))));
+    el('td', {}, ...earningCell(r)))));
   $('#empty').hidden = me.referrals.length > 0;
 } catch (err) {
   showError(err);

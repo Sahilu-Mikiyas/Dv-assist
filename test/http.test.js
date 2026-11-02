@@ -18,7 +18,7 @@ async function startServer({ secureCookies = true, perIp = 5 } = {}) {
   const seeded = await seedStaff(env);
   const secrets = { sessionSecret: 's'.repeat(32), secureCookies };
   const server = createApp({
-    cases: env.cases, staff: env.staff, applications: env.applications, partners: env.partners, notifications: env.notifications, retention: env.retention,
+    cases: env.cases, staff: env.staff, applications: env.applications, partners: env.partners, notifications: env.notifications, retention: env.retention, payouts: env.payouts,
     authn: auth(secrets), applicantAuthn: applicantAuth(secrets), partnerAuthn: partnerAuth(secrets),
     limiter: loginLimiter({ perIp }), startLimiter: loginLimiter({ perIp: 3 }), resumeLimiter: loginLimiter({ perIp }),
     partnerLimiter: loginLimiter({ perIp }),
@@ -174,6 +174,12 @@ test('partners sign in with a code, introduce people, and their short links redi
   const [first] = messages.toSend;
   assert.equal((await meron('POST', `/api/messages/${first.id}/sent`)).status, 200);
   assert.equal((await (await meron('GET', '/api/messages')).json()).toSend.length, 1);
+
+  // Payouts are admin-only.
+  assert.equal((await meron('GET', '/api/payouts')).status, 403);
+  const csv = await admin('GET', '/api/payouts.csv');
+  assert.match(csv.headers.get('content-type'), /text\/csv/);
+  assert.match(await csv.text(), /^created,partner,entries/);
 
   // Data retention is admin-only.
   assert.equal((await meron('GET', '/api/retention')).status, 403);

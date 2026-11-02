@@ -8,6 +8,7 @@ import { applicationService } from '../src/services/applications.js';
 import { caseService } from '../src/services/cases.js';
 import { notificationService } from '../src/services/notifications.js';
 import { partnerService } from '../src/services/partners.js';
+import { payoutService } from '../src/services/payouts.js';
 import { retentionService } from '../src/services/retention.js';
 import { staffService } from '../src/services/staff.js';
 
@@ -71,7 +72,7 @@ export function fakeChannel(name) {
   return channel;
 }
 
-export async function setupCases({ sms = null, email = null, retentionPolicy = {} } = {}) {
+export async function setupCases({ sms = null, email = null, retentionPolicy = {}, commissionEtb = 200 } = {}) {
   const db = await openDb({ url: ':memory:' });
   const crypt = cipher(randomBytes(32));
   const bitnob = fakeBitnob();
@@ -83,14 +84,15 @@ export async function setupCases({ sms = null, email = null, retentionPolicy = {
   });
   notifications.wake = () => {}; // tests deliver explicitly with deliverDue()
   const partnerRepo = partnerRepository(db, crypt);
-  const partners = partnerService({ repo: partnerRepo, caseRepo: repo, audit, commissionEtb: 200, notifications });
+  const partners = partnerService({ repo: partnerRepo, caseRepo: repo, audit, commissionEtb, notifications });
+  const payouts = payoutService({ partnerRepo, caseRepo: repo, audit, notifications, commissionEtb });
   const retention = retentionService({ caseRepo: repo, partnerRepo, audit, policy: retentionPolicy, now: () => clock });
   const cases = caseService({ repo, audit, bitnob, cardAmountUsd: 5, partners, notifications });
   const applications = applicationService({ repo, audit, partners, notifications });
   const advanceClock = (ms) => { clock += ms; };
   const staffRepo = staffRepository(db, crypt);
   const staff = staffService({ repo: staffRepo, audit });
-  return { db, cases, applications, partners, notifications, retention, advanceClock, audit, bitnob, staff, staffRepo };
+  return { db, cases, applications, partners, payouts, notifications, retention, advanceClock, audit, bitnob, staff, staffRepo };
 }
 
 // Two signed-in-ready staff members (an admin and a staff member) with authenticators set up.

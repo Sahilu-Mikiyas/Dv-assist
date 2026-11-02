@@ -61,8 +61,13 @@ Shops, schools, faith and community groups introduce applicants.
 4. Staff see "via <partner>" on every referred case, and a follow-up list of introductions not started after
    two days.
 
-Commission per submitted entry comes from `PARTNER_COMMISSION_ETB` (unset: "to be confirmed"). Payouts are
-not tracked in the app yet.
+Commission per submitted entry comes from `PARTNER_COMMISSION_ETB` (unset: "to be confirmed").
+
+**Payouts** (staff → Payouts, admins): "Owed now" lists each partner's submitted referrals not yet paid.
+"Create payout" fixes the amount and the entries it covers; the admin sends it by Telebirr outside the app,
+then records the Telebirr transaction number ("Mark paid"), and the partner gets a message. A pending payout
+can be cancelled, which releases its entries. Each entry can be paid only once (enforced by the database).
+Partners see paid and owed amounts and their payout history. CSV export for bookkeeping.
 
 ## Photo analyzer
 
