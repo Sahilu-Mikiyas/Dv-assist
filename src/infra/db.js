@@ -95,7 +95,17 @@ const MIGRATIONS = [
      done_by         TEXT
    )`,
   'CREATE INDEX messages_due ON messages (status, next_attempt_at)',
+  'ALTER TABLE cases ADD COLUMN submitted_at TEXT',
+  "UPDATE cases SET submitted_at = updated_at WHERE status = 'submitted'",
+  'ALTER TABLE cases ADD COLUMN erased_at TEXT',
 ];
+
+// What an erased case's applicant reads as: no personal data, but the shape the rest of the code expects.
+const ERASED_APPLICANT = Object.freeze({
+  erased: true, lastName: '(erased)', firstName: '', middleName: '', gender: '', birthDate: '', birthCity: '',
+  birthCountry: '', eligibilityCountry: '', mailingAddress: '', residenceCountry: '', phone: '', email: '',
+  education: '', maritalStatus: '', spouse: null, children: [],
+});
 
 export async function openDb({ url, authToken }) {
   if (url.startsWith('file:') && url !== 'file::memory:') {
@@ -125,9 +135,11 @@ export function caseRepository(db, crypt) {
   const toCase = (row) =>
     row && {
       id: row.id,
-      applicant: crypt.decryptJson(row.applicant),
+      applicant: row.erased_at ? ERASED_APPLICANT : crypt.decryptJson(row.applicant),
       status: row.status,
       caseNumber: Number(row.case_number),
+      submittedAt: row.submitted_at,
+      erasedAt: row.erased_at,
       assignedTo: row.assigned_to,
       checks: row.checks ? JSON.parse(row.checks) : {},
       source: row.source,
@@ -159,6 +171,18 @@ export function caseRepository(db, crypt) {
 
     async setPackage(id, pkg) {
       await run('UPDATE cases SET package = ?, updated_at = ? WHERE id = ?', pkg, now(), id);
+    },
+
+    // Erases everything personal about a case: applicant details, photos, confirmation number, resume code
+    // and queued messages. The row stays (case number, status, dates) so counts and the audit trail add up.
+    async erase(id) {
+      const ts = now();
+      await db.batch([
+        { sql: 'UPDATE cases SET applicant = ?, confirmation_number = NULL, access_hash = NULL, erased_at = ?, updated_at = ? WHERE id = ?',
+          args: [crypt.encryptJson({ erased: true }), ts, ts, id] },
+        { sql: 'DELETE FROM photos WHERE case_id = ?', args: [id] },
+        { sql: 'DELETE FROM messages WHERE case_id = ?', args: [id] },
+      ], 'write');
     },
 
     async setReferral(id, { partnerId, introductionId = null, together = false }) {
@@ -197,8 +221,8 @@ export function caseRepository(db, crypt) {
     },
 
     async markSubmitted(id, { confirmationNumber, status }) {
-      await run('UPDATE cases SET confirmation_number = ?, status = ?, updated_at = ? WHERE id = ?',
-        confirmationNumber, status, now(), id);
+      await run('UPDATE cases SET confirmation_number = ?, status = ?, updated_at = ?, submitted_at = ? WHERE id = ?',
+        confirmationNumber, status, now(), now(), id);
     },
 
     async get(id) {
@@ -286,6 +310,9 @@ export function partnerRepository(db, crypt) {
     },
     async listIntroductions() {
       return (await run('SELECT * FROM introductions ORDER BY created_at DESC')).rows.map(toIntroduction);
+    },
+    async deleteIntroduction(id) {
+      await run('DELETE FROM introductions WHERE id = ?', id);
     },
     async linkIntroduction(id, caseId) {
       await run('UPDATE introductions SET case_id = ? WHERE id = ? AND case_id IS NULL', caseId, id);

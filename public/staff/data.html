@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data retention — Ethio DV Assist staff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=Noto+Sans+Ethiopic:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar" aria-label="Staff navigation">
+    <a class="brand" href="/staff/"><svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg><b>Staff</b></a>
+    <a class="nav-link" href="/staff/">Case queue</a>
+    <a class="nav-link" href="/staff/?mine=1" id="mine-link">My cases</a>
+    <a class="nav-link" href="/staff/case.html">New case</a>
+    <a class="nav-link" href="/staff/messages.html">Messages</a>
+    <a class="nav-link" href="/staff/team.html" data-admin hidden>Team</a>
+    <a class="nav-link" href="/staff/partners.html" data-admin hidden>Partners</a>
+    <a class="nav-link" href="/staff/data.html" aria-current="page" data-admin hidden>Data</a>
+    <a class="nav-link" href="/staff/audit.html" data-admin hidden>Audit log</a>
+    <div class="me"><span class="avatar" id="me-avatar">·</span><span><span id="me-name">…</span><br><span class="muted" id="me-role"></span></span><button class="btn small ghost" id="logout" type="button">Log out</button></div>
+  </nav>
+
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1>Data retention</h1>
+        <p class="muted flat">How long applicants' personal data is kept. Erasing removes details, photos, confirmation numbers and codes; case numbers, stages and the audit trail stay.</p>
+      </div>
+    </div>
+    <p id="error" hidden></p>
+    <div class="policy-grid">
+      <section class="card policy" id="rule-submitted">
+        <h2 class="card-title">Submitted entries</h2>
+        <p class="state"></p>
+        <p class="muted flat detail"></p>
+        <p class="muted flat small">Setting: <span class="env">RETENTION_DAYS_AFTER_SUBMISSION</span>. Selected applicants need their details for the visa forms until the end of the following DV year, so keep this long: about 18 months (548 days).</p>
+      </section>
+      <section class="card policy" id="rule-unsent">
+        <h2 class="card-title">Unsent website entries and unused invitations</h2>
+        <p class="state"></p>
+        <p class="muted flat detail"></p>
+        <p class="muted flat small">Setting: <span class="env">RETENTION_DAYS_UNSENT</span>. Entries never sent for checking and invitations nobody used, counted from their last change. For example 60 days.</p>
+      </section>
+    </div>
+    <section class="card stack">
+      <p class="flat" id="totals"></p>
+      <p class="muted flat small">Rules that are switched on run by themselves every 6 hours. Set the numbers on Render (Environment), then redeploy. An admin can also erase a single case from its page when an applicant asks to be deleted.</p>
+      <div class="row"><button class="btn small" id="run" type="button" hidden>Run the rules now</button><span class="muted small" id="ran"></span></div>
+    </section>
+  </main>
+</div>
+<script type="module" src="/staff/data.js"></script>
+</body>
+</html>

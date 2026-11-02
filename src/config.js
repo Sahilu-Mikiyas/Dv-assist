@@ -40,6 +40,16 @@ export function loadConfig() {
     throw new Error('PARTNER_COMMISSION_ETB must be a whole number of birr');
   }
 
+  // Data retention, in days. Unset = that rule is off and nothing is erased by it.
+  const days = (name) => {
+    const raw = process.env[name];
+    if (!raw) return null;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1) throw new Error(`${name} must be a whole number of days`);
+    return n;
+  };
+  const retention = { afterSubmissionDays: days('RETENTION_DAYS_AFTER_SUBMISSION'), unsentDays: days('RETENTION_DAYS_UNSENT') };
+
   // Messages. Each provider is optional; without one, messages wait on the staff Messages page.
   const afroToken = process.env.AFROMESSAGE_TOKEN || null;
   const brevoKey = process.env.BREVO_API_KEY || null;
@@ -63,6 +73,7 @@ export function loadConfig() {
     cardAmountUsd,
     partnerCommissionEtb,
     publicUrl,
+    retention,
     messaging: {
       sms: afroToken && {
         token: afroToken,

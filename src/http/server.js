@@ -100,7 +100,7 @@ function verifyWebhook(raw, signature, secret) {
 // `stage`: 'public' (no session), 'applicant' (applicant cookie), 'partner' (partner cookie), 'setup' (staff
 // signed in, authenticator not yet set up) or null (staff fully signed in).
 function routes({
-  cases, staff, applications, partners, notifications, authn, applicantAuthn, partnerAuthn,
+  cases, staff, applications, partners, notifications, retention, authn, applicantAuthn, partnerAuthn,
   limiter, startLimiter, resumeLimiter, partnerLimiter, webhookSecret,
 }) {
   const sessionFor = (result) => authn.sessionCookie(result.staff.id, { stage: result.needsAuthenticator ? 'setup' : 'ok' });
@@ -216,6 +216,14 @@ function routes({
       await notifications.markSent(Number(id), ctx);
       return { ok: true };
     }],
+
+    // Data retention (admins).
+    ['GET', /^\/api\/retention$/, null, async (_, __, ctx) => retention.overview(ctx)],
+    ['POST', /^\/api\/retention\/run$/, null, async (_, __, ctx) => {
+      if (ctx.staff.role !== 'admin') throw new ForbiddenError('Admins only');
+      return retention.run(ctx);
+    }],
+    ['POST', /^\/api\/cases\/([\w-]+)\/erase$/, null, async (_, [id], ctx) => retention.eraseOne(id, ctx)],
 
     ['GET', /^\/api\/options$/, null, async () => ({
       educationLevels: EDUCATION_LEVELS, maritalStatuses: MARITAL_STATUSES, approvalMethods: APPROVAL_METHODS, roles: ROLES,

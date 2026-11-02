@@ -30,7 +30,7 @@ const QUIET = { notify: async () => {}, smsEnabled: false };
 export function applicationService({ repo, audit, partners = null, notifications = QUIET }) {
   async function mustGet(id) {
     const found = await repo.get(id);
-    if (!found || found.source !== 'website') throw new NotFoundError('Entry not found');
+    if (!found || found.source !== 'website' || found.erasedAt) throw new NotFoundError('Entry not found');
     return found;
   }
 

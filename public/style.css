@@ -204,3 +204,13 @@ p.pad { padding: 16px 20px; margin: 0; }
 .message-text { margin: 0; padding: 12px 14px; border-radius: 10px; background: #F4F6FA; font: 14px/1.55 Inter, 'Noto Sans Ethiopic', sans-serif; white-space: pre-wrap; overflow-wrap: anywhere; }
 .row.between { justify-content: space-between; align-items: center; }
 @media (max-width: 480px) { .message-list { grid-template-columns: 1fr; } }
+.btn.danger { background: #fff; color: #8E1B2A; border-color: #E8A9B2; }
+.btn.danger:hover { background: #FDECEE; }
+
+/* Data retention page */
+.policy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 8px; }
+.policy { display: flex; flex-direction: column; gap: 8px; }
+.policy .state { font: 600 22px var(--serif, Georgia, serif); margin: 0; }
+.policy.off .state { color: #8A5A00; }
+.policy.on .state { color: #1F6B3A; }
+.env { font: 13px var(--mono); background: #F4F6FA; padding: 2px 6px; border-radius: 6px; }

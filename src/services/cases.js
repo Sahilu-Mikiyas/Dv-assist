@@ -31,6 +31,13 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     return found;
   }
 
+  // Erased cases can be looked at (number, status, history) but no longer worked on.
+  async function mustGetActive(id) {
+    const found = await mustGet(id);
+    if (found.erasedAt) throw new ValidationError(['This case\'s personal data was erased']);
+    return found;
+  }
+
   const partnerNames = async () => (partners ? partners.names() : new Map());
 
   async function withPhotos(c) {
@@ -44,7 +51,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
   }
 
   async function mustGetDraft(id) {
-    const existing = await mustGet(id);
+    const existing = await mustGetActive(id);
     if (existing.status !== STATUS.DRAFT) throw new ValidationError(['Only draft cases can be edited. Reopen it first.']);
     return existing;
   }
@@ -126,7 +133,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
 
     // Abol: first check.
     async check(id, ctx) {
-      const existing = await mustGet(id);
+      const existing = await mustGetActive(id);
       assertCanCheck(existing, await repo.photoKeys(id));
       await repo.setStatus(id, { status: STATUS.CHECKED, checks: { abol: stamp(ctx) } });
       await record('check_abol', id, ctx);
@@ -135,7 +142,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
 
     // Tona: second check, by a different person.
     async verify(id, ctx) {
-      const existing = await mustGet(id);
+      const existing = await mustGetActive(id);
       assertCanVerify(existing, ctx?.staff?.id);
       await repo.setStatus(id, { status: STATUS.VERIFIED, checks: { ...existing.checks, tona: stamp(ctx) } });
       await record('check_tona', id, ctx);
@@ -150,7 +157,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
 
     // Baraka: the applicant approved the final entry; staff record how.
     async approve(id, method, ctx) {
-      const existing = await mustGet(id);
+      const existing = await mustGetActive(id);
       assertCanApprove(existing, method);
       await repo.setStatus(id, { status: STATUS.APPROVED, checks: { ...existing.checks, baraka: stamp(ctx, { method }) } });
       await record('check_baraka', id, ctx, method);
@@ -158,7 +165,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     },
 
     async reopen(id, reason, ctx) {
-      const existing = await mustGet(id);
+      const existing = await mustGetActive(id);
       assertCanReopen(existing);
       await repo.setStatus(id, { status: STATUS.DRAFT, checks: {} });
       await record('case_reopened', id, ctx, (reason ?? '').slice(0, 200) || null);
@@ -170,7 +177,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       if (issuing.has(id)) throw new ValidationError(['A card is already being issued for this case']);
       issuing.add(id);
       try {
-        assertCanIssueCard(await mustGet(id));
+        assertCanIssueCard(await mustGetActive(id));
         // Reference is derived from the case id so a retried request cannot create a second card.
         const cardReference = `dv-${id}`;
         const { cardId } = await bitnob.createCard({ amountUsd: cardAmountUsd, reference: cardReference });
@@ -183,7 +190,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     },
 
     async getCard(id, ctx) {
-      const existing = await mustGet(id);
+      const existing = await mustGetActive(id);
       if (existing.status !== STATUS.CARD_ISSUED) {
         throw new ValidationError(['Card details are only shown while the case awaits submission']);
       }
@@ -192,7 +199,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     },
 
     async submit(id, confirmationNumber, ctx) {
-      const existing = await mustGet(id);
+      const existing = await mustGetActive(id);
       const normalized = (confirmationNumber ?? '').trim().toUpperCase();
       assertCanSubmit(existing, normalized);
       await repo.markSubmitted(id, { confirmationNumber: normalized, status: STATUS.SUBMITTED });

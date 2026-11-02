@@ -13,6 +13,7 @@ import { applicationService } from './services/applications.js';
 import { caseService } from './services/cases.js';
 import { notificationService } from './services/notifications.js';
 import { partnerService } from './services/partners.js';
+import { retentionService } from './services/retention.js';
 import { staffService } from './services/staff.js';
 
 const config = loadConfig();
@@ -32,9 +33,11 @@ const notifications = notificationService({
 });
 
 const caseRepo = caseRepository(db, crypt);
+const partnerRepo = partnerRepository(db, crypt);
 const partners = partnerService({
-  repo: partnerRepository(db, crypt), caseRepo, audit, commissionEtb: config.partnerCommissionEtb, notifications,
+  repo: partnerRepo, caseRepo, audit, commissionEtb: config.partnerCommissionEtb, notifications,
 });
+const retention = retentionService({ caseRepo, partnerRepo, audit, policy: config.retention });
 const cases = caseService({
   repo: caseRepo,
   partners,
@@ -50,6 +53,7 @@ const server = createApp({
   partners,
   applications: applicationService({ repo: caseRepo, audit, partners, notifications }),
   notifications,
+  retention,
   authn: auth(config),
   applicantAuthn: applicantAuth(config),
   partnerAuthn: partnerAuth(config),
@@ -71,9 +75,17 @@ const messageTimer = setInterval(() => notifications.wake(), 30_000);
 messageTimer.unref();
 notifications.wake();
 
+// Data retention: applies the switched-on rules at start and every 6 hours.
+const sweep = () => retention.run().then((n) => n.submitted + n.unsent + n.introductions && log.info('retention_run', n))
+  .catch((err) => log.error('retention_failed', { message: err.message }));
+const retentionTimer = setInterval(sweep, 6 * 60 * 60 * 1000);
+retentionTimer.unref();
+sweep();
+
 function shutdown(signal) {
   log.info('shutting_down', { signal });
   clearInterval(messageTimer);
+  clearInterval(retentionTimer);
   server.close(() => {
     db.close();
     process.exit(0);

@@ -19,6 +19,7 @@
     <a class="nav-link" href="/staff/messages.html">Messages</a>
     <a class="nav-link" href="/staff/team.html" data-admin hidden>Team</a>
     <a class="nav-link" href="/staff/partners.html" data-admin hidden>Partners</a>
+    <a class="nav-link" href="/staff/data.html" data-admin hidden>Data</a>
     <a class="nav-link" href="/staff/audit.html" data-admin hidden>Audit log</a>
     <div class="me"><span class="avatar" id="me-avatar">·</span><span><span id="me-name">…</span><br><span class="muted" id="me-role"></span></span><button class="btn small ghost" id="logout" type="button">Log out</button></div>
   </nav>
@@ -84,6 +85,11 @@
         <section class="card">
           <h2 class="card-title">Activity</h2>
           <ul class="activity" id="activity"></ul>
+        </section>
+        <section class="card stack" id="erase-box" hidden>
+          <h2 class="card-title">Personal data</h2>
+          <p class="muted flat small">If the applicant asks to be deleted: erases their details, photos and confirmation number. The case number and history stay. This cannot be undone.</p>
+          <button class="btn small danger" id="erase" type="button">Erase personal data</button>
         </section>
       </aside>
     </div>

@@ -36,6 +36,17 @@ retrying with backoff up to 5 times. Without a provider, or after repeated failu
 **Messages** page with SMS/email/copy buttons and "Mark as sent". Set `AFROMESSAGE_TOKEN` (plus identifier
 and sender name) and/or `BREVO_API_KEY` + `EMAIL_FROM` to send automatically.
 
+## Data retention
+
+Two rules, each off until its number of days is set (staff → **Data** shows what each would erase):
+- `RETENTION_DAYS_AFTER_SUBMISSION`: submitted entries, counted from submission. Selected applicants need
+  their details for the visa forms into the following year, so keep this long (about 548 days).
+- `RETENTION_DAYS_UNSENT`: website entries never sent for checking, and unused partner invitations.
+
+Erasing removes applicant details, photos, confirmation number, resume code and queued messages; the case
+number, stage and audit trail stay. Rules run at start and every 6 hours. Entries still in progress are never
+erased automatically. Admins can erase one case on request from its page (not while a card is issued).
+
 ## Referral partners
 
 Shops, schools, faith and community groups introduce applicants.
@@ -183,6 +194,7 @@ test/         node:test suites (Bitnob is faked)
 | Duplicate payments | One card per case: requests for the same case are serialized, and Bitnob gets the idempotent reference `dv-<caseId>`. |
 | Accountability | `audit_events` table: logins, failed logins, case edits, photo uploads, card issue/view and submission, with time and IP. |
 | Logs | JSON request logs with a request id. They never include applicant or card data. |
+| Retention | Personal data erased by policy or on request (see Data retention); erased cases can't be worked on, and their resume codes stop working. |
 | Supply chain | One pinned dependency, checked by `npm audit` on every push. |
 | Runtime | The container runs as a non-root user. The host checks `/healthz`. |
 

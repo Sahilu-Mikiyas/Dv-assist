@@ -339,9 +339,30 @@ function render(c) {
   $('#photos-card').hidden = false;
   renderPhotos(c);
   $('#side').hidden = false;
-  renderAction(c);
+  if (c.erasedAt) {
+    // Nothing left to work on: show only the number, stage and history.
+    form.hidden = true;
+    $('#copy-card').hidden = true;
+    $('#photos-card').hidden = true;
+    $('#action').replaceChildren(
+      el('p', { className: 'eyebrow on-navy', textContent: 'Erased' }),
+      el('h2', { textContent: 'Personal data erased' }),
+      el('p', { className: 'muted', textContent: `Erased ${timeAgo(c.erasedAt)}. The case number and history are kept; the activity list shows why.` }));
+  } else {
+    renderAction(c);
+  }
+  $('#erase-box').hidden = me?.role !== 'admin' || Boolean(c.erasedAt) || c.status === 'card_issued';
   loadActivity().catch(showError);
 }
+
+$('#erase').addEventListener('click', () => {
+  const typed = prompt('This erases the applicant\'s details, photos and confirmation number for good. Type ERASE to confirm.');
+  if (typed !== 'ERASE') return;
+  run($('#erase'), async () => {
+    await api('POST', `/api/cases/${caseId}/erase`);
+    render(await api('GET', `/api/cases/${caseId}`));
+  });
+});
 
 async function reload() {
   render(await api('GET', `/api/cases/${caseId}`));

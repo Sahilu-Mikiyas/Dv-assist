@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-11-03
+Last updated: 2026-11-04
 
 ## Live
 
@@ -14,7 +14,7 @@ Last updated: 2026-11-03
   issue card, show card details, record confirmation number.
 - Bitnob signed requests (HMAC) to `https://api.bitnob.com`. Sandbox key, company "Furii Labs".
 - Sandbox card-holder customer exists (`BITNOB_CARD_CUSTOMER_ID` on Render).
-- 56 automated tests, run by GitHub Actions on every push.
+- 59 automated tests, run by GitHub Actions on every push.
 
 ## Pinned: automatic SMS and email are NOT switched on
 
@@ -67,6 +67,14 @@ Last updated: 2026-11-03
   hour per IP; wrong codes to 10 per 15 minutes.
 - Payment is a placeholder: "our team will contact you" (Telebirr / CBE Birr).
 - Staff app moved to `/staff/`.
+
+## Data retention (built; rules off until you set the days)
+
+- Staff → Data shows each rule, and what it would erase if switched on. Rules run every 6 hours.
+- Decide and set on Render: `RETENTION_DAYS_AFTER_SUBMISSION` (suggested 548, about 18 months) and
+  `RETENTION_DAYS_UNSENT` (suggested 60). Then the landing page FAQ can state the period.
+- Admins can erase a single case on request from its page ("Erase personal data", type ERASE).
+- Audit log entries (who did what, IPs) are kept; decide whether they also need a limit.
 
 ## Messages (built; no provider connected yet)
 

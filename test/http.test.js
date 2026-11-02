@@ -18,7 +18,7 @@ async function startServer({ secureCookies = true, perIp = 5 } = {}) {
   const seeded = await seedStaff(env);
   const secrets = { sessionSecret: 's'.repeat(32), secureCookies };
   const server = createApp({
-    cases: env.cases, staff: env.staff, applications: env.applications, partners: env.partners, notifications: env.notifications,
+    cases: env.cases, staff: env.staff, applications: env.applications, partners: env.partners, notifications: env.notifications, retention: env.retention,
     authn: auth(secrets), applicantAuthn: applicantAuth(secrets), partnerAuthn: partnerAuth(secrets),
     limiter: loginLimiter({ perIp }), startLimiter: loginLimiter({ perIp: 3 }), resumeLimiter: loginLimiter({ perIp }),
     partnerLimiter: loginLimiter({ perIp }),
@@ -66,7 +66,7 @@ test('serves pages without login but not files outside public/', async () => {
 });
 
 test('serves clean URLs for the landing page, applicant flow and staff app', async () => {
-  for (const path of ['/', '/apply', '/photo', '/staff/', '/staff/login.html']) {
+  for (const path of ['/', '/apply', '/photo', '/partners', '/partner/login.html', '/staff/', '/staff/login.html', '/staff/data.html', '/staff/messages.html']) {
     const res = await fetch(`${base}${path}`);
     assert.equal(res.status, 200, path);
     assert.match(res.headers.get('content-type'), /text\/html/);
@@ -174,6 +174,12 @@ test('partners sign in with a code, introduce people, and their short links redi
   const [first] = messages.toSend;
   assert.equal((await meron('POST', `/api/messages/${first.id}/sent`)).status, 200);
   assert.equal((await (await meron('GET', '/api/messages')).json()).toSend.length, 1);
+
+  // Data retention is admin-only.
+  assert.equal((await meron('GET', '/api/retention')).status, 403);
+  assert.equal((await meron('POST', '/api/retention/run')).status, 403);
+  const retention = await (await admin('GET', '/api/retention')).json();
+  assert.deepEqual(retention.policy, { afterSubmissionDays: null, unsentDays: null });
 });
 
 test('API requires a valid session', async () => {
