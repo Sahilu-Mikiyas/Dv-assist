@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Partners — Ethio DV Assist staff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=Noto+Sans+Ethiopic:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar" aria-label="Staff navigation">
+    <a class="brand" href="/staff/"><svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg><b>Staff</b></a>
+    <a class="nav-link" href="/staff/">Case queue</a>
+    <a class="nav-link" href="/staff/?mine=1" id="mine-link">My cases</a>
+    <a class="nav-link" href="/staff/case.html">New case</a>
+    <a class="nav-link" href="/staff/team.html" data-admin hidden>Team</a>
+    <a class="nav-link" href="/staff/partners.html" aria-current="page" data-admin hidden>Partners</a>
+    <a class="nav-link" href="/staff/audit.html" data-admin hidden>Audit log</a>
+    <div class="me"><span class="avatar" id="me-avatar">·</span><span><span id="me-name">…</span><br><span class="muted" id="me-role"></span></span><button class="btn small ghost" id="logout" type="button">Log out</button></div>
+  </nav>
+
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1>Referral partners</h1>
+        <p class="muted flat">Approve applications after a verification call. Approving shows the partner's sign-in code once: give it to them by phone or in person.</p>
+      </div>
+    </div>
+    <p id="error" hidden></p>
+    <div id="code-box" class="card code-reveal" hidden>
+      <h2 class="card-title" id="code-title"></h2>
+      <p class="code" id="code-value"></p>
+      <p class="muted flat small">Shown only now. If it is lost, issue a new code; the old one stops working.</p>
+    </div>
+    <section class="card flush">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Partner</th><th scope="col">Contact</th><th scope="col">Referral code</th><th scope="col">Referrals</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+          <tbody id="partners"></tbody>
+        </table>
+      </div>
+      <p id="no-partners" class="muted pad" hidden>No partner applications yet. The sign-up form is at /partners.</p>
+    </section>
+
+    <h2 class="section-title">Introductions to follow up</h2>
+    <p class="muted flat">People partners introduced. Call anyone marked “Call” who has not started their entry after two days.</p>
+    <section class="card flush">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Person</th><th scope="col">Phone</th><th scope="col">Partner</th><th scope="col">Package</th><th scope="col">Note</th><th scope="col">Status</th></tr></thead>
+          <tbody id="introductions"></tbody>
+        </table>
+      </div>
+      <p id="no-introductions" class="muted pad" hidden>No introductions yet.</p>
+    </section>
+  </main>
+</div>
+<script type="module" src="/staff/partners.js"></script>
+</body>
+</html>

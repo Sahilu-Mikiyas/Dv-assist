@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — Ethio DV Assist partners</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&amp;family=Inter:wght@400;500;600&amp;family=Noto+Sans+Ethiopic:wght@400;500;600&amp;family=Noto+Serif+Ethiopic:wght@500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/apply.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="/partner/">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg>
+      <span>Ethio DV Assist · Partners</span>
+    </a>
+    <div class="top-side">
+      <span id="org-name" class="muted-on-navy"></span>
+      <button id="sign-out" class="link-on-navy" type="button">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <p id="error" class="error" role="alert" hidden></p>
+  <section class="view">
+    <div class="actions">
+      <div class="intro">
+        <p class="eyebrow" id="org-eyebrow"></p>
+        <h1 id="hello"></h1>
+        <p lang="am" class="am-sub" id="hello-am"></p>
+      </div>
+      <div class="choice-row-actions">
+        <a id="together-link" class="btn ghost" href="/apply">Fill a form together</a>
+        <a class="btn primary" href="/partner/introduce.html">Introduce someone</a>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><p>Introduced</p><b id="n-introduced">0</b></div>
+      <div class="stat"><p>In progress</p><b id="n-progress">0</b></div>
+      <div class="stat"><p>Submitted</p><b id="n-submitted">0</b></div>
+      <div class="stat navy"><p>Earned</p><b id="earned">—</b></div>
+    </div>
+
+    <div class="with-side">
+      <div class="main-col">
+        <section class="card">
+          <h2>Your referrals <span lang="am">· ሪፈራሎች</span></h2>
+          <div class="table-wrap">
+            <table class="referrals">
+              <thead><tr><th scope="col">Applicant</th><th scope="col">Package</th><th scope="col">Status</th><th scope="col">Your earning</th></tr></thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+          <p id="empty" class="muted" hidden>No referrals yet. Introduce someone, or share your link.</p>
+        </section>
+      </div>
+      <aside class="side-col">
+        <div class="card">
+          <p class="eyebrow">Your referral link</p>
+          <p class="muted">Share it on Telegram or print it for your counter. Everyone who starts with it is counted as yours.</p>
+          <div class="link-box"><code id="ref-link"></code></div>
+          <div class="link-box">
+            <button id="copy-link" class="btn ghost small" type="button">Copy link</button>
+            <a id="share-link" class="btn ghost small" target="_blank" rel="noopener">Share on Telegram</a>
+          </div>
+        </div>
+        <div class="card navy">
+          <p class="eyebrow pink">Payouts</p>
+          <p id="payout"></p>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+<script type="module" src="/partner/index.js"></script>
+</body>
+</html>

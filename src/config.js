@@ -33,6 +33,13 @@ export function loadConfig() {
 
   const secureCookies = flag('SECURE_COOKIES', true);
 
+  // What a referral partner earns per submitted entry. Unset until agreed; partners then see "to be confirmed".
+  const commission = process.env.PARTNER_COMMISSION_ETB;
+  const partnerCommissionEtb = commission ? Number(commission) : null;
+  if (partnerCommissionEtb !== null && !(Number.isInteger(partnerCommissionEtb) && partnerCommissionEtb >= 0)) {
+    throw new Error('PARTNER_COMMISSION_ETB must be a whole number of birr');
+  }
+
   return {
     port: Number(process.env.PORT ?? '3000'),
     database: {
@@ -45,6 +52,7 @@ export function loadConfig() {
     secureCookies,
     trustProxy: flag('TRUST_PROXY', false),
     cardAmountUsd,
+    partnerCommissionEtb,
     bitnob: {
       baseUrl: process.env.BITNOB_BASE_URL ?? 'https://api.bitnob.com',
       clientId: required('BITNOB_CLIENT_ID'),

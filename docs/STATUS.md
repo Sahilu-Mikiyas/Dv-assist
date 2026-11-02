@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-11-01
+Last updated: 2026-11-02
 
 ## Live
 
@@ -14,7 +14,7 @@ Last updated: 2026-11-01
   issue card, show card details, record confirmation number.
 - Bitnob signed requests (HMAC) to `https://api.bitnob.com`. Sandbox key, company "Furii Labs".
 - Sandbox card-holder customer exists (`BITNOB_CARD_CUSTOMER_ID` on Render).
-- 46 automated tests, run by GitHub Actions on every push.
+- 51 automated tests, run by GitHub Actions on every push.
 
 ## Pinned: Bitnob sandbox card test
 
@@ -61,6 +61,22 @@ Last updated: 2026-11-01
 - Payment is a placeholder: "our team will contact you" (Telebirr / CBE Birr).
 - Staff app moved to `/staff/`.
 
+## Referral partners (built)
+
+- `/partners` sign-up → admin approves on staff Partners page (code shown once) → partner signs in at
+  `/partner/` with the code.
+- Dashboard: counts, referrals (name, package, stage, earning), referral link `/r/<CODE>` with copy and
+  Telegram share, payout note.
+- Introduce someone: creates `/i/<REF>` and an English + Amharic message for the partner to send by SMS or
+  Telegram themselves (no SMS provider yet). The invitee's page greets them and preselects the package.
+- Fill together: `/apply?ref=…&together=1`. Counts only when the partner is signed in on that device. The
+  applicant writes down their own code; the session on the partner's phone ends after 2 hours or at
+  "Finish & hand back".
+- Staff: "via <partner>" on cases; follow-up list flags introductions not started after 2 days.
+- Decide: commission per submitted entry (`PARTNER_COMMISSION_ETB`), payout day, partner terms text.
+  Not built: payout records, QR code for the counter, SMS invitations and SMS confirmation codes.
+- The Amharic invitation uses the polite form (አስተዋውቆዎታል / ይጀምሩ) so it fits anyone; needs native review.
+
 ## Photo analyzer (built)
 
 - One editor for applicants (`/apply`), the free check (`/photo`) and staff (case workspace): auto-position,
@@ -91,5 +107,5 @@ Last updated: 2026-11-01
 
 - Telebirr / CBE Birr payments (needs merchant accounts) and SMS notifications.
 - Fill in the landing-page facts: phone, office address, entry-window date, data retention.
-- Referral partners: accounts, introductions, fill-together with SMS code, payouts.
+- Referral partners: payout records, SMS invitations once an SMS provider is chosen.
 - Photo analyzer: real-photo testing and threshold tuning (see above).

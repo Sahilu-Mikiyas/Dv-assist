@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — Ethio DV Assist partners</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&amp;family=Inter:wght@400;500;600&amp;family=Noto+Sans+Ethiopic:wght@400;500;600&amp;family=Noto+Serif+Ethiopic:wght@500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/apply.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="/partner/">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg>
+      <span>Ethio DV Assist · Partners</span>
+    </a>
+    <div class="top-side">
+      <a class="top-link" href="/partners">Become a partner</a>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <section class="view narrow">
+    <form id="login-form" class="card">
+      <p class="eyebrow">Partners</p>
+      <h1>Sign in with your partner code</h1>
+      <p lang="am" class="am-sub">በአጋር ኮድዎ ይግቡ</p>
+      <p id="error" class="error" role="alert" hidden></p>
+      <label class="field"><span>Partner code <span lang="am">· ኮድ</span></span>
+        <input name="code" class="code-input" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" required maxlength="20">
+      </label>
+      <button class="btn primary" type="submit">Sign in</button>
+      <p class="muted">Our team gives you this code when your partnership is approved. Lost it? Call us and we will issue a new one.</p>
+    </form>
+  </section>
+</main>
+<script type="module" src="/partner/login.js"></script>
+</body>
+</html>

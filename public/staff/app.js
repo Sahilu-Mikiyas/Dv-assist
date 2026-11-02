@@ -49,7 +49,10 @@ export const STAGE_LABELS = {
 export const PACKAGE_LABELS = { self: 'Self-guided', managed: 'Managed', assisted: 'Assisted', vip: 'VIP' };
 
 // "Website · Managed" for applicant-started entries, "Staff" for entries typed in by the team.
-export const sourceLabel = (c) => (c.source === 'website' ? `Website · ${PACKAGE_LABELS[c.package] ?? '—'}` : 'Staff');
+export const sourceLabel = (c) => [
+  c.source === 'website' ? `Website · ${PACKAGE_LABELS[c.package] ?? '—'}` : 'Staff',
+  c.partner ? `via ${c.partner}${c.filledTogether ? ' (filled together)' : ''}` : null,
+].filter(Boolean).join(' · ');
 
 export const initials = (name) => (name ?? '?').split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 

@@ -187,3 +187,9 @@ tbody tr:hover { background: #FAFBFD; }
 .sidebar .btn.ghost { color: #fff; border-color: #3B5A93; }
 .sidebar .btn.ghost:hover { background: rgba(255,255,255,.1); color: #fff; }
 .counters { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+
+/* Partners page */
+.code-reveal { margin-bottom: 20px; border: 2px solid var(--green, #1F6B3A); }
+.code-reveal .code { margin: 6px 0; font: 600 28px var(--mono); letter-spacing: 0.08em; color: #0A3161; }
+p.pad { padding: 16px 20px; margin: 0; }
+.section-title { margin: 32px 0 4px; font-size: 20px; }

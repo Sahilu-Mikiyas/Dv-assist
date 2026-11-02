@@ -1,7 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { applicantAuth, auth } from '../src/http/auth.js';
+import { applicantAuth, auth, partnerAuth } from '../src/http/auth.js';
 import { loginLimiter } from '../src/http/rate-limit.js';
 import { createApp } from '../src/http/server.js';
 import { totpCode } from '../src/infra/totp.js';
@@ -18,9 +18,10 @@ async function startServer({ secureCookies = true, perIp = 5 } = {}) {
   const seeded = await seedStaff(env);
   const secrets = { sessionSecret: 's'.repeat(32), secureCookies };
   const server = createApp({
-    cases: env.cases, staff: env.staff, applications: env.applications,
-    authn: auth(secrets), applicantAuthn: applicantAuth(secrets),
+    cases: env.cases, staff: env.staff, applications: env.applications, partners: env.partners,
+    authn: auth(secrets), applicantAuthn: applicantAuth(secrets), partnerAuthn: partnerAuth(secrets),
     limiter: loginLimiter({ perIp }), startLimiter: loginLimiter({ perIp: 3 }), resumeLimiter: loginLimiter({ perIp }),
+    partnerLimiter: loginLimiter({ perIp }),
     hsts: true, webhookSecret: WEBHOOK_SECRET,
   });
   await new Promise((resolve) => server.listen(0, resolve));
@@ -113,6 +114,57 @@ test('website applicants start, resume and send over HTTP with their own cookie'
   assert.equal((await start()).status, 201);
   assert.equal((await start()).status, 201);
   assert.equal((await start()).status, 429);
+});
+
+test('partners sign in with a code, introduce people, and their short links redirect to /apply', async () => {
+  const { url, members: m, env } = await startServer();
+  const json = { 'content-type': 'application/json' };
+  const applied = await fetch(`${url}/api/partners/apply`, { method: 'POST', headers: json, body: JSON.stringify({
+    name: 'Tigist', organisation: 'Haile Internet Cafe', type: 'shop', phone: '0911234567', city: 'Adama', payoutPhone: '0911234567', agree: true,
+  }) });
+  assert.equal(applied.status, 201);
+
+  const admin = await signedIn(url, m.admin);
+  const meron = await signedIn(url, m.meron);
+  assert.equal((await meron('GET', '/api/partners')).status, 403);
+  const [partner] = await (await admin('GET', '/api/partners')).json();
+  const { code } = await (await admin('POST', `/api/partners/${partner.id}/code`)).json();
+
+  assert.equal((await fetch(`${url}/api/partner`)).status, 401);
+  const wrong = await fetch(`${url}/api/partner/login`, { method: 'POST', headers: json, body: JSON.stringify({ code: 'AAAA-AAAA-AAAA' }) });
+  assert.equal(wrong.status, 401);
+  const login = await fetch(`${url}/api/partner/login`, { method: 'POST', headers: json, body: JSON.stringify({ code }) });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  assert.match(cookie, /^__Host-dv_partner=/);
+  // The partner cookie opens the partner API only.
+  assert.equal((await fetch(`${url}/api/cases`, { headers: { cookie } })).status, 401);
+  const board = await (await fetch(`${url}/api/partner`, { headers: { cookie } })).json();
+  assert.equal(board.organisation, 'Haile Internet Cafe');
+
+  const intro = await fetch(`${url}/api/partner/introductions`, { method: 'POST', headers: { cookie, ...json }, body: JSON.stringify({
+    name: 'Meseret Bekele', phone: '0922000111', people: 2, package: 'self', consent: true,
+  }) });
+  assert.equal(intro.status, 201);
+  const { reference } = await intro.json();
+
+  const short = await fetch(`${url}/i/${reference.toLowerCase()}`, { redirect: 'manual' });
+  assert.equal(short.status, 302);
+  assert.equal(short.headers.get('location'), `/apply?invite=${reference}`);
+  assert.equal((await fetch(`${url}/r/${board.refCode}`, { redirect: 'manual' })).headers.get('location'), `/apply?ref=${board.refCode}`);
+  const greeting = await (await fetch(`${url}/api/apply/referrer?invite=${reference}`)).json();
+  assert.equal(greeting.firstName, 'Meseret');
+
+  // Filling together on the partner's phone: the entry is linked and its session is short.
+  const start = await fetch(`${url}/api/apply/start`, { method: 'POST', headers: { cookie, ...json }, body: JSON.stringify({
+    package: 'self', applicant: applicantInput(), ref: board.refCode, together: true,
+  }) });
+  assert.equal(start.status, 201);
+  assert.equal((await start.json()).together, true);
+  assert.match(start.headers.get('set-cookie'), /Max-Age=7200;/);
+
+  const follow = await (await admin('GET', '/api/introductions')).json();
+  assert.equal(follow[0].name, 'Meseret Bekele');
+  assert.ok(env);
 });
 
 test('API requires a valid session', async () => {

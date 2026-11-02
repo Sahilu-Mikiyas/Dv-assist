@@ -56,6 +56,28 @@ const MIGRATIONS = [
   'ALTER TABLE cases ADD COLUMN access_hash TEXT',
   'ALTER TABLE cases ADD COLUMN sent_at TEXT',
   'CREATE UNIQUE INDEX cases_access_hash ON cases (access_hash)',
+  `CREATE TABLE partners (
+     id          TEXT PRIMARY KEY,
+     details     BLOB NOT NULL,
+     status      TEXT NOT NULL,
+     ref_code    TEXT NOT NULL UNIQUE,
+     access_hash TEXT UNIQUE,
+     created_at  TEXT NOT NULL,
+     approved_at TEXT
+   )`,
+  `CREATE TABLE introductions (
+     id         TEXT PRIMARY KEY,
+     partner_id TEXT NOT NULL REFERENCES partners(id),
+     token      TEXT NOT NULL UNIQUE,
+     details    BLOB NOT NULL,
+     case_id    TEXT,
+     created_at TEXT NOT NULL
+   )`,
+  'CREATE INDEX introductions_partner ON introductions (partner_id)',
+  'ALTER TABLE cases ADD COLUMN partner_id TEXT',
+  'ALTER TABLE cases ADD COLUMN introduction_id TEXT',
+  'ALTER TABLE cases ADD COLUMN filled_together INTEGER NOT NULL DEFAULT 0',
+  'CREATE INDEX cases_partner ON cases (partner_id)',
 ];
 
 export async function openDb({ url, authToken }) {
@@ -94,6 +116,9 @@ export function caseRepository(db, crypt) {
       source: row.source,
       package: row.package,
       sentAt: row.sent_at,
+      partnerId: row.partner_id,
+      introductionId: row.introduction_id,
+      filledTogether: Boolean(row.filled_together),
       cardId: row.card_id,
       cardReference: row.card_reference,
       confirmationNumber: row.confirmation_number,
@@ -117,6 +142,15 @@ export function caseRepository(db, crypt) {
 
     async setPackage(id, pkg) {
       await run('UPDATE cases SET package = ?, updated_at = ? WHERE id = ?', pkg, now(), id);
+    },
+
+    async setReferral(id, { partnerId, introductionId = null, together = false }) {
+      await run('UPDATE cases SET partner_id = ?, introduction_id = ?, filled_together = ? WHERE id = ?',
+        partnerId, introductionId, together ? 1 : 0, id);
+    },
+
+    async listByPartner(partnerId) {
+      return (await run('SELECT * FROM cases WHERE partner_id = ? ORDER BY created_at DESC', partnerId)).rows.map(toCase);
     },
 
     async markSent(id) {
@@ -171,6 +205,73 @@ export function caseRepository(db, crypt) {
 
     async photoKeys(caseId) {
       return (await run('SELECT person_key FROM photos WHERE case_id = ?', caseId)).rows.map((r) => r.person_key);
+    },
+  };
+}
+
+// Partner contact details and introductions are personal data, so they are encrypted like applicants'.
+export function partnerRepository(db, crypt) {
+  const run = (sql, ...args) => db.execute({ sql, args });
+  const toPartner = (row) =>
+    row && {
+      id: row.id,
+      ...crypt.decryptJson(row.details),
+      status: row.status,
+      refCode: row.ref_code,
+      hasAccessCode: Boolean(row.access_hash),
+      createdAt: row.created_at,
+      approvedAt: row.approved_at,
+    };
+  const toIntroduction = (row) =>
+    row && {
+      id: row.id,
+      partnerId: row.partner_id,
+      token: row.token,
+      ...crypt.decryptJson(row.details),
+      caseId: row.case_id,
+      createdAt: row.created_at,
+    };
+
+  return {
+    async insert({ id, details, status, refCode }) {
+      await run('INSERT INTO partners (id, details, status, ref_code, created_at) VALUES (?, ?, ?, ?, ?)',
+        id, crypt.encryptJson(details), status, refCode, new Date().toISOString());
+    },
+    async get(id) {
+      return toPartner((await run('SELECT * FROM partners WHERE id = ?', id)).rows[0]);
+    },
+    async byRefCode(refCode) {
+      return toPartner((await run('SELECT * FROM partners WHERE ref_code = ?', refCode)).rows[0]);
+    },
+    async byAccessHash(accessHash) {
+      return toPartner((await run('SELECT * FROM partners WHERE access_hash = ?', accessHash)).rows[0]);
+    },
+    async list() {
+      return (await run('SELECT * FROM partners ORDER BY created_at DESC')).rows.map(toPartner);
+    },
+    async setStatus(id, status) {
+      await run('UPDATE partners SET status = ?, approved_at = COALESCE(approved_at, ?) WHERE id = ?',
+        status, status === 'active' ? new Date().toISOString() : null, id);
+    },
+    async setAccessHash(id, accessHash) {
+      await run('UPDATE partners SET access_hash = ? WHERE id = ?', accessHash, id);
+    },
+
+    async insertIntroduction({ id, partnerId, token, details }) {
+      await run('INSERT INTO introductions (id, partner_id, token, details, created_at) VALUES (?, ?, ?, ?, ?)',
+        id, partnerId, token, crypt.encryptJson(details), new Date().toISOString());
+    },
+    async introductionByToken(token) {
+      return toIntroduction((await run('SELECT * FROM introductions WHERE token = ?', token)).rows[0]);
+    },
+    async introductionsFor(partnerId) {
+      return (await run('SELECT * FROM introductions WHERE partner_id = ? ORDER BY created_at DESC', partnerId)).rows.map(toIntroduction);
+    },
+    async listIntroductions() {
+      return (await run('SELECT * FROM introductions ORDER BY created_at DESC')).rows.map(toIntroduction);
+    },
+    async linkIntroduction(id, caseId) {
+      await run('UPDATE introductions SET case_id = ? WHERE id = ? AND case_id IS NULL', caseId, id);
     },
   };
 }

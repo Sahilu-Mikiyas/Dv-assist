@@ -6,9 +6,11 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { APPROVAL_METHODS, EDUCATION_LEVELS, MARITAL_STATUSES, PACKAGES, ValidationError } from '../domain/case.js';
+import { PARTNER_TYPES } from '../domain/partner.js';
 import { MAX_PHOTO_BYTES } from '../domain/photo.js';
 import { BitnobError } from '../infra/bitnob.js';
 import { log } from '../infra/log.js';
+import { TOGETHER_SESSION_MS } from './auth.js';
 import { NotFoundError } from '../services/cases.js';
 import { AuthError, ForbiddenError, ROLES } from '../services/staff.js';
 
@@ -95,9 +97,12 @@ function verifyWebhook(raw, signature, secret) {
 }
 
 // Each route: [method, pattern, stage, handler(req, params, ctx, url)] → { status?, body, headers? } | body.
-// `stage`: 'public' (no session), 'applicant' (applicant cookie), 'setup' (staff signed in, authenticator not
-// yet set up) or null (staff fully signed in).
-function routes({ cases, staff, applications, authn, applicantAuthn, limiter, startLimiter, resumeLimiter, webhookSecret }) {
+// `stage`: 'public' (no session), 'applicant' (applicant cookie), 'partner' (partner cookie), 'setup' (staff
+// signed in, authenticator not yet set up) or null (staff fully signed in).
+function routes({
+  cases, staff, applications, partners, authn, applicantAuthn, partnerAuthn,
+  limiter, startLimiter, resumeLimiter, partnerLimiter, webhookSecret,
+}) {
   const sessionFor = (result) => authn.sessionCookie(result.staff.id, { stage: result.needsAuthenticator ? 'setup' : 'ok' });
 
   return [
@@ -142,9 +147,12 @@ function routes({ cases, staff, applications, authn, applicantAuthn, limiter, st
     ['POST', /^\/api\/apply\/start$/, 'public', async (req, _, ctx) => {
       if (startLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many new entries from this connection. Try again later.');
       const input = await readJson(req);
-      const { caseId, resumeCode, application } = await applications.start(input, ctx);
+      // A partner filling the entry in with the applicant is signed in on this device.
+      const partnerSession = partnerAuthn.readSession(req);
+      const { caseId, resumeCode, together, application } = await applications.start(input, { ...ctx, partnerId: partnerSession?.subject });
       startLimiter.recordFailure(ctx.ip); // counts every entry started, not only failures
-      return { status: 201, body: { resumeCode, application }, headers: { 'Set-Cookie': applicantAuthn.sessionCookie(caseId) } };
+      const cookie = applicantAuthn.sessionCookie(caseId, together ? { maxAgeMs: TOGETHER_SESSION_MS } : {});
+      return { status: 201, body: { resumeCode, together, application }, headers: { 'Set-Cookie': cookie } };
     }],
     ['POST', /^\/api\/apply\/resume$/, 'public', async (req, _, ctx) => {
       if (resumeLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many wrong codes. Try again later.');
@@ -166,6 +174,39 @@ function routes({ cases, staff, applications, authn, applicantAuthn, limiter, st
       applications.savePhoto(ctx.caseId, key, await readJpeg(req), ctx)],
     ['POST', /^\/api\/apply\/send$/, 'applicant', async (_, __, ctx) => applications.send(ctx.caseId, ctx)],
     ['POST', /^\/api\/apply\/approve$/, 'applicant', async (req, _, ctx) => applications.approve(ctx.caseId, await readJson(req), ctx)],
+
+    ['GET', /^\/api\/apply\/referrer$/, 'public', async (_, __, ___, url) => (await partners.referrer({
+      ref: url.searchParams.get('ref'), invite: url.searchParams.get('invite'),
+    })) ?? {}],
+
+    // Referral partners.
+    ['GET', /^\/api\/partners\/options$/, 'public', async () => ({ types: PARTNER_TYPES, packages: PACKAGES })],
+    ['POST', /^\/api\/partners\/apply$/, 'public', async (req, _, ctx) => {
+      if (startLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many applications from this connection. Try again later.');
+      const result = await partners.apply(await readJson(req), ctx);
+      startLimiter.recordFailure(ctx.ip);
+      return { status: 201, body: result };
+    }],
+    ['POST', /^\/api\/partner\/login$/, 'public', async (req, _, ctx) => {
+      if (partnerLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many wrong codes. Try again later.');
+      const partnerId = await partners.signIn((await readJson(req)).code);
+      if (!partnerId) {
+        partnerLimiter.recordFailure(ctx.ip);
+        throw new HttpError(401, 'That code was not found, or this partner account is not active.');
+      }
+      partnerLimiter.recordSuccess(ctx.ip);
+      return { body: { ok: true }, headers: { 'Set-Cookie': partnerAuthn.sessionCookie(partnerId) } };
+    }],
+    ['POST', /^\/api\/partner\/logout$/, 'public', async () => ({ body: { ok: true }, headers: { 'Set-Cookie': partnerAuthn.clearCookie() } })],
+    ['GET', /^\/api\/partner$/, 'partner', async (_, __, ctx) => partners.dashboard(ctx.partner)],
+    ['POST', /^\/api\/partner\/introductions$/, 'partner', async (req, _, ctx) => ({
+      status: 201, body: await partners.introduce(ctx.partner, await readJson(req), ctx),
+    })],
+
+    ['GET', /^\/api\/partners$/, null, async (_, __, ctx) => partners.list(ctx)],
+    ['POST', /^\/api\/partners\/([\w-]+)\/code$/, null, async (_, [id], ctx) => partners.issueCode(id, ctx)],
+    ['POST', /^\/api\/partners\/([\w-]+)\/status$/, null, async (req, [id], ctx) => partners.setStatus(id, (await readJson(req)).status, ctx)],
+    ['GET', /^\/api\/introductions$/, null, async (_, __, ctx) => partners.introductions(ctx)],
 
     ['GET', /^\/api\/options$/, null, async () => ({
       educationLevels: EDUCATION_LEVELS, maritalStatuses: MARITAL_STATUSES, approvalMethods: APPROVAL_METHODS, roles: ROLES,
@@ -270,11 +311,9 @@ function assertSameOrigin(req) {
   if (host !== req.headers.host) throw new HttpError(403, 'Cross-origin request blocked');
 }
 
-export function createApp({
-  cases, staff, applications, authn, applicantAuthn, limiter, startLimiter, resumeLimiter,
-  trustProxy = false, hsts = false, webhookSecret = null,
-}) {
-  const table = routes({ cases, staff, applications, authn, applicantAuthn, limiter, startLimiter, resumeLimiter, webhookSecret });
+export function createApp(deps) {
+  const { staff, authn, applicantAuthn, partnerAuthn, partners, trustProxy = false, hsts = false } = deps;
+  const table = routes({ webhookSecret: null, ...deps });
   const clientIp = (req) =>
     (trustProxy && req.headers['x-forwarded-for']?.split(',')[0].trim()) || req.socket.remoteAddress;
 
@@ -292,6 +331,12 @@ export function createApp({
 
     try {
       if (pathname === '/healthz') return send(res, 200, { ok: true });
+      // Short links: /r/<partner code> for a partner's own link, /i/<reference> for a personal invitation.
+      const short = pathname.match(/^\/(r|i)\/([A-Za-z0-9]{2,16})$/);
+      if (short) {
+        const param = short[1] === 'r' ? 'ref' : 'invite';
+        return send(res, 302, {}, { Location: `/apply?${param}=${short[2].toUpperCase()}` });
+      }
       if (!pathname.startsWith('/api/')) return await serveStatic(res, pathname);
 
       const route = table.find(([method, pattern]) => method === req.method && pattern.test(pathname));
@@ -305,6 +350,11 @@ export function createApp({
         const session = applicantAuthn.readSession(req);
         if (!session) throw new HttpError(401, 'Enter your resume code to continue');
         ctx.caseId = session.subject;
+      } else if (stage === 'partner') {
+        const session = partnerAuthn.readSession(req);
+        const partner = session && (await partners.activeById(session.subject));
+        if (!partner) throw new HttpError(401, 'Sign in with your partner code');
+        ctx.partner = partner;
       } else if (stage !== 'public') {
         const session = authn.readSession(req);
         const member = session && (await staff.activeById(session.subject));

@@ -20,7 +20,7 @@ export class NotFoundError extends Error {}
 
 export const caseCode = (n) => `EDA-${String(n).padStart(4, '0')}`;
 
-export function caseService({ repo, audit, bitnob, cardAmountUsd }) {
+export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = null }) {
   const issuing = new Set(); // case ids with a card request in flight
 
   async function mustGet(id) {
@@ -29,10 +29,13 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd }) {
     return found;
   }
 
+  const partnerNames = async () => (partners ? partners.names() : new Map());
+
   async function withPhotos(c) {
     const present = await repo.photoKeys(c.id);
     return {
       ...c,
+      partner: c.partnerId ? ((await partnerNames()).get(c.partnerId) ?? null) : null,
       code: caseCode(c.caseNumber),
       photos: photoKeys(c.applicant).map((key) => ({ key, uploaded: present.includes(key) })),
     };
@@ -50,7 +53,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd }) {
   const stamp = (ctx, extra = {}) => ({ by: ctx.staff?.id, name: ctx.staff?.name, at: new Date().toISOString(), ...extra });
 
   // A short row for the queue: no photos, no full applicant record.
-  const summarize = (c) => ({
+  const summarize = (c, names = new Map()) => ({
     id: c.id,
     code: caseCode(c.caseNumber),
     name: [c.applicant.firstName, c.applicant.lastName].filter(Boolean).join(' '),
@@ -58,6 +61,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd }) {
     status: c.status,
     source: c.source,
     package: c.package,
+    partner: c.partnerId ? (names.get(c.partnerId) ?? null) : null,
     assignedTo: c.assignedTo,
     updatedAt: c.updatedAt,
   });
@@ -67,7 +71,9 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd }) {
     // Website entries appear once their applicant has sent them for checking.
     async list({ status, q, assignedTo } = {}) {
       const needle = (q ?? '').trim().toLowerCase();
-      const rows = (await repo.list()).filter((c) => c.source !== 'website' || c.sentAt).map(summarize);
+      const all = (await repo.list()).filter((c) => c.source !== 'website' || c.sentAt);
+      const names = await partnerNames();
+      const rows = all.map((c) => summarize(c, names));
       const counts = rows.reduce((acc, r) => ({ ...acc, [r.status]: (acc[r.status] ?? 0) + 1 }), {});
       const cases = rows.filter((r) =>
         (!status || r.status === status)

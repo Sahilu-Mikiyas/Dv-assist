@@ -30,9 +30,9 @@ export function auth({
   const sign = (value) => createHmac('sha256', sessionSecret).update(`${cookie}|${value}`).digest('base64url');
 
   return {
-    sessionCookie(subject, { stage = stages[0] } = {}) {
-      const value = `${subject}.${Date.now() + maxAgeMs}.${stage}`;
-      return `${name}=${value}.${sign(value)}; Max-Age=${Math.floor(maxAgeMs / 1000)}; ${attrs}`;
+    sessionCookie(subject, { stage = stages[0], maxAgeMs: ttl = maxAgeMs } = {}) {
+      const value = `${subject}.${Date.now() + ttl}.${stage}`;
+      return `${name}=${value}.${sign(value)}; Max-Age=${Math.floor(ttl / 1000)}; ${attrs}`;
     },
 
     clearCookie: () => `${name}=; Max-Age=0; ${attrs}`,
@@ -51,3 +51,9 @@ export function auth({
 
 export const applicantAuth = ({ sessionSecret, secureCookies }) =>
   auth({ sessionSecret, secureCookies, cookie: 'dv_applicant', maxAgeMs: 30 * 24 * HOUR_MS, stages: ['applicant'] });
+
+export const partnerAuth = ({ sessionSecret, secureCookies }) =>
+  auth({ sessionSecret, secureCookies, cookie: 'dv_partner', maxAgeMs: 30 * 24 * HOUR_MS, stages: ['partner'] });
+
+// An entry filled in on a partner's phone stays open there only briefly.
+export const TOGETHER_SESSION_MS = 2 * HOUR_MS;

@@ -1,7 +1,7 @@
 // Website applicants: start an entry, come back to it with a resume code, add photos, send it for
 // checking, and give the final (Baraka) approval online. Applicants only ever see their own case.
 
-import { createHash, randomInt, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import {
   PACKAGES,
   STATUS,
@@ -13,27 +13,19 @@ import {
   validateApplicant,
 } from '../domain/case.js';
 import { validatePhoto } from '../domain/photo.js';
+import { hashCode, newAccessCode, normalizeCode } from '../infra/codes.js';
 import { NotFoundError, caseCode } from './cases.js';
 
-// No 0/O or 1/I, so a code read out over the phone cannot be misheard.
-const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const CODE_LENGTH = 12; // 32^12 = 2^60 possibilities
+const CODE_LENGTH = 12;
 
-export function newResumeCode() {
-  const chars = Array.from({ length: CODE_LENGTH }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]);
-  return chars.join('').match(/.{4}/g).join('-');
-}
-
-const normalizeCode = (code) => String(code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-// Only the hash is stored, so a copy of the database cannot be used to open applicants' entries.
-const hashCode = (code) => createHash('sha256').update(normalizeCode(code)).digest('hex');
+export const newResumeCode = newAccessCode;
 
 function validatePackage(pkg) {
   if (!PACKAGES.includes(pkg)) throw new ValidationError(['package is invalid']);
   return pkg;
 }
 
-export function applicationService({ repo, audit }) {
+export function applicationService({ repo, audit, partners = null }) {
   async function mustGet(id) {
     const found = await repo.get(id);
     if (!found || found.source !== 'website') throw new NotFoundError('Entry not found');
@@ -61,14 +53,19 @@ export function applicationService({ repo, audit }) {
   }
 
   return {
+    // `input.ref` / `input.invite` link the entry to a referral partner. `input.together` marks it as filled in
+    // with that partner, which only counts when the partner is signed in on this device (ctx.partnerId).
     async start(input, ctx) {
       const pkg = validatePackage(input?.package);
       const applicant = validateApplicant(input?.applicant);
       const id = randomUUID();
       const resumeCode = newResumeCode();
       await repo.insert({ id, applicant, status: STATUS.DRAFT, source: 'website', pkg, accessHash: hashCode(resumeCode) });
-      await record('application_started', id, ctx, pkg);
-      return { caseId: id, resumeCode, application: await view(await mustGet(id)) };
+      const referral = partners && (await partners.resolve({ ref: input?.ref, invite: input?.invite }));
+      const together = Boolean(referral && input?.together === true && ctx?.partnerId === referral.partner.id);
+      if (referral) await partners.linkCase(id, referral, { together });
+      await record('application_started', id, ctx, referral ? `${pkg} via ${referral.partner.refCode}${together ? ' (together)' : ''}` : pkg);
+      return { caseId: id, resumeCode, together, application: await view(await mustGet(id)) };
     },
 
     // Returns the case id for a valid code, else null.

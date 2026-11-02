@@ -34,6 +34,10 @@
 </nav>
 
 <main class="page">
+  <div id="referral-banner" class="together-banner" hidden>
+    <span id="referral-text"></span>
+    <button id="finish-together" class="btn ghost small" type="button" hidden>Finish &amp; hand back</button>
+  </div>
   <p id="error" class="error" role="alert" hidden></p>
   <p id="loading" class="loading">Loading…</p>
 
@@ -135,6 +139,7 @@
       <h1>Write down your code</h1>
       <p lang="am" class="am-sub">ይህን ኮድ ይጻፉት</p>
       <p class="lead">Use this code to come back to your entry and to follow its progress. We cannot show it to you again.</p>
+      <p id="code-together" class="error" hidden>Filling in together: the applicant should write this code down themselves. It is theirs, and the partner will not see it again.</p>
       <p id="resume-code" class="the-code"></p>
       <button id="copy-code" class="btn ghost" type="button">Copy code</button>
       <label class="check"><input id="code-saved" type="checkbox"> I have written down or saved my code <span lang="am">· ኮዱን አስቀምጫለሁ</span></label>

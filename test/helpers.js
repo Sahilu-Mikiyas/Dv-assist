@@ -2,10 +2,11 @@
 
 import { randomBytes } from 'node:crypto';
 import { cipher, hashPassword } from '../src/infra/crypto.js';
-import { auditLog, caseRepository, openDb, staffRepository } from '../src/infra/db.js';
+import { auditLog, caseRepository, openDb, partnerRepository, staffRepository } from '../src/infra/db.js';
 import { newTotpSecret } from '../src/infra/totp.js';
 import { applicationService } from '../src/services/applications.js';
 import { caseService } from '../src/services/cases.js';
+import { partnerService } from '../src/services/partners.js';
 import { staffService } from '../src/services/staff.js';
 
 export const person = (overrides = {}) => ({
@@ -61,11 +62,12 @@ export async function setupCases() {
   const bitnob = fakeBitnob();
   const audit = auditLog(db);
   const repo = caseRepository(db, crypt);
-  const cases = caseService({ repo, audit, bitnob, cardAmountUsd: 5 });
-  const applications = applicationService({ repo, audit });
+  const partners = partnerService({ repo: partnerRepository(db, crypt), caseRepo: repo, audit, commissionEtb: 200 });
+  const cases = caseService({ repo, audit, bitnob, cardAmountUsd: 5, partners });
+  const applications = applicationService({ repo, audit, partners });
   const staffRepo = staffRepository(db, crypt);
   const staff = staffService({ repo: staffRepo, audit });
-  return { db, cases, applications, audit, bitnob, staff, staffRepo };
+  return { db, cases, applications, partners, audit, bitnob, staff, staffRepo };
 }
 
 // Two signed-in-ready staff members (an admin and a staff member) with authenticators set up.

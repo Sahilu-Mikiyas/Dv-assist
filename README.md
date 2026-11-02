@@ -13,7 +13,26 @@ database either as a local file or hosted on Turso.
 - `/apply`: applicants start an entry, add family and photos, and send it for checking. A resume code
   lets them come back on any device, follow progress, and give their final approval online.
 - `/photo`: free photo check. Nothing is uploaded; the prepared 600 × 600 photo can be downloaded.
+- `/partners`: referral partner sign-up. `/partner/`: the partner's own dashboard (sign-in with a partner code).
+- `/r/<code>` and `/i/<reference>`: a partner's referral link and a personal invitation; both open `/apply`.
 - `/staff/`: the staff app.
+
+## Referral partners
+
+Shops, schools, faith and community groups introduce applicants.
+1. They apply at `/partners`. An admin calls them, then approves them on the staff Partners page, which shows
+   a sign-in code once (only its hash is stored).
+2. In their dashboard they see each referral's name, package and stage (invited, started, being checked,
+   being filed, submitted), never the entry's details, plus their referral link and earnings.
+3. Three ways to refer: share their link; introduce someone (creates a personal link and a ready-made
+   English and Amharic message to send by SMS or Telegram); or fill the form together on their phone. Together
+   entries close on the partner's phone after 2 hours or when they tap "Finish & hand back"; the applicant
+   keeps their own resume code.
+4. Staff see "via <partner>" on every referred case, and a follow-up list of introductions not started after
+   two days.
+
+Commission per submitted entry comes from `PARTNER_COMMISSION_ETB` (unset: "to be confirmed"). Payouts are
+not tracked in the app yet.
 
 ## Photo analyzer
 
@@ -137,6 +156,7 @@ test/         node:test suites (Bitnob is faked)
 | Four eyes | The second check must be done by a different staff member from the first. |
 | Bitnob webhooks | Accepted only with a valid HMAC-SHA512 signature, and logged without card numbers. |
 | Login | Personal accounts: password (scrypt hash) plus a 6-digit authenticator code (RFC 6238). Failed logins are limited per IP (5 per 15 min) and overall (50 per 15 min). Deactivated staff are signed out at once. |
+| Partners | Sign-in with an admin-issued 12-character code (hash stored, rate-limited), on a separate signed cookie. Contact details and introductions are encrypted at rest. Partners see referrals' names and stages only. Introductions require the partner to confirm the person agreed. |
 | Applicants | No accounts: a random 12-character resume code (60 bits). Only its SHA-256 hash is stored. Wrong codes and new entries are rate-limited per IP. Applicants see only their own entry, never staff names or card data. Their cookie is signed separately and cannot be used as a staff session. |
 | Session | HMAC-signed cookie, `__Host-` prefixed, HttpOnly, Secure, SameSite=Strict, 8-hour expiry. Rotating `SESSION_SECRET` logs everyone out. |
 | Cross-site attacks | Strict Content-Security-Policy with no inline scripts, `frame-ancestors 'none'`, Origin check on writes, and JSON/JPEG-only request bodies. |

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduce someone — Ethio DV Assist partners</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&amp;family=Inter:wght@400;500;600&amp;family=Noto+Sans+Ethiopic:wght@400;500;600&amp;family=Noto+Serif+Ethiopic:wght@500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/apply.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="/partner/">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg>
+      <span>Ethio DV Assist · Partners</span>
+    </a>
+    <div class="top-side">
+      <span id="org-name" class="muted-on-navy"></span>
+      <button id="sign-out" class="link-on-navy" type="button">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <section class="view">
+    <a class="back-link" href="/partner/">← Dashboard</a>
+    <div class="with-side">
+      <div class="main-col">
+        <form id="intro-form" class="card" novalidate>
+          <div class="intro">
+            <h1>Introduce someone</h1>
+            <p lang="am" class="am-sub">አዲስ ሰው ያስተዋውቁ</p>
+          </div>
+          <p id="error" class="error" role="alert" hidden></p>
+          <div class="grid">
+            <label class="field"><span>Their name <span lang="am">· ስም</span></span><input name="name" required></label>
+            <label class="field"><span>Their phone <span lang="am">· ስልክ</span></span><input name="phone" type="tel" required placeholder="09…"></label>
+          </div>
+          <div class="field">
+            <span>People in their family entry <span lang="am">· በምዝገባው ያሉ ሰዎች</span></span>
+            <div class="stepper">
+              <button type="button" id="fewer" aria-label="Fewer people">−</button>
+              <output id="people" aria-live="polite">1</output>
+              <button type="button" id="more" aria-label="More people">+</button>
+            </div>
+          </div>
+          <fieldset class="field">
+            <legend>Suggested package <span class="opt">(they can change it)</span></legend>
+            <div class="choice-row">
+              <label><input type="radio" name="package" value="self"> Self · 500</label>
+              <label><input type="radio" name="package" value="managed" checked> Managed · 1,500</label>
+              <label><input type="radio" name="package" value="assisted"> Assisted · 2,000</label>
+              <label><input type="radio" name="package" value="vip"> VIP · 3,000</label>
+            </div>
+          </fieldset>
+          <label class="field"><span>Note for our team <span class="opt">(optional)</span></span><textarea name="note" rows="2" maxlength="300" placeholder="e.g. Prefers Amharic. Free after 5 pm."></textarea></label>
+          <label class="check"><input name="consent" type="checkbox"> <span id="consent-text">They asked me to share their number with Ethio DV Assist.</span></label>
+          <button class="btn primary" type="submit">Create invitation</button>
+        </form>
+
+        <div id="sent" class="card success" hidden>
+          <p class="eyebrow">Invitation ready</p>
+          <h1 id="sent-title"></h1>
+          <p class="muted">Send them this message. If they have not started within 2 days, our team will give them a friendly call.</p>
+          <div id="message" class="message"></div>
+          <div class="link-box">
+            <button id="copy-message" class="btn ghost small" type="button">Copy message</button>
+            <a id="send-sms" class="btn ghost small">Send by SMS</a>
+            <a id="send-telegram" class="btn ghost small" target="_blank" rel="noopener">Send on Telegram</a>
+          </div>
+          <p class="muted">Reference: <b id="reference"></b></p>
+          <div class="actions">
+            <a class="btn ghost" href="/partner/introduce.html">Introduce someone else</a>
+            <a class="btn primary" href="/partner/">Back to dashboard</a>
+          </div>
+        </div>
+      </div>
+      <aside class="side-col">
+        <div class="card navy">
+          <p class="eyebrow pink">Only with permission</p>
+          <p>Introduce people who asked you for help, and only share a number they agreed to share.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+<script type="module" src="/partner/introduce.js"></script>
+</body>
+</html>

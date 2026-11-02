@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Referral partners — Ethio DV Assist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&amp;family=Inter:wght@400;500;600&amp;family=Noto+Sans+Ethiopic:wght@400;500;600&amp;family=Noto+Serif+Ethiopic:wght@500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/apply.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="/">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg>
+      <span>Ethio DV Assist</span>
+    </a>
+    <div class="top-side">
+      <a class="top-link" href="/partner/login.html">Partner sign-in</a>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <section class="view">
+    <div class="intro">
+      <p class="eyebrow">Referral partners</p>
+      <h1>You introduce. We support.</h1>
+      <p lang="am" class="am-sub">እርስዎ ያስተዋውቃሉ፤ እኛ እንደግፋለን።</p>
+      <p class="lead">People already come to you for advice. Send them to a service that does it properly, follow every referral, and earn a commission for each entry we submit.</p>
+    </div>
+
+    <ul class="who">
+      <li>Shops &amp; internet cafés <span lang="am">ሱቆች እና ኢንተርኔት ካፌዎች</span></li>
+      <li>Schools &amp; tutors <span lang="am">ትምህርት ቤቶች</span></li>
+      <li>Faith communities <span lang="am">የእምነት ማኅበረሰቦች</span></li>
+      <li>Iddir &amp; community groups <span lang="am">እድር እና ማኅበራት</span></li>
+    </ul>
+
+    <div class="with-side">
+      <div class="main-col">
+        <section class="card">
+          <h2>Three ways to help <span lang="am">· ሦስት መንገዶች</span></h2>
+          <ol class="ways">
+            <li><b>Introduce someone</b><span>Enter their name and phone. You get a personal link to send them, and our team takes it from there.</span></li>
+            <li><b>Fill the form together</b><span>Sit with them and complete it on your phone. They write down their own code to follow their entry.</span></li>
+            <li><b>Follow each referral</b><span>See every person you sent, from introduction to submitted entry.</span></li>
+          </ol>
+        </section>
+
+        <form id="apply-form" class="card" novalidate>
+          <h2>Become a partner <span lang="am">· አጋር ይሁኑ</span></h2>
+          <p id="error" class="error" role="alert" hidden></p>
+          <div class="grid">
+            <label class="field"><span>Your full name <span lang="am">· ሙሉ ስም</span></span><input name="name" required autocomplete="name"></label>
+            <label class="field"><span>Organisation <span lang="am">· ድርጅት</span></span><input name="organisation" required></label>
+          </div>
+          <div class="grid">
+            <label class="field"><span>Type <span lang="am">· ዓይነት</span></span>
+              <select name="type" required>
+                <option value="">Choose…</option>
+                <option value="shop">Shop / internet café</option>
+                <option value="school">School / tutor</option>
+                <option value="faith">Faith community</option>
+                <option value="community">Iddir / community group</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label class="field"><span>City <span lang="am">· ከተማ</span></span><input name="city" required></label>
+          </div>
+          <div class="grid">
+            <label class="field"><span>Phone <span lang="am">· ስልክ</span></span><input name="phone" type="tel" required placeholder="09…" autocomplete="tel"></label>
+            <label class="field"><span>Telebirr number for payouts</span><input name="payoutPhone" type="tel" required placeholder="09…"></label>
+          </div>
+          <label class="check"><input name="agree" type="checkbox"> I agree to the partner promises on this page.</label>
+          <button class="btn primary" type="submit">Apply to become a partner</button>
+        </form>
+
+        <div id="applied" class="card success" hidden>
+          <p class="eyebrow">Application received</p>
+          <h2>Thank you. We will call you to verify.</h2>
+          <p class="muted">Once approved, you get a partner code to sign in, your own referral link, and access to your dashboard.</p>
+        </div>
+      </div>
+
+      <aside class="side-col">
+        <div class="card navy">
+          <p class="eyebrow pink">Partner promises · የአጋር ቃል</p>
+          <ul class="promises">
+            <li>Never charge applicants anything extra</li>
+            <li>Only refer people who asked for help</li>
+            <li>Never promise anyone they will be selected</li>
+            <li>Keep applicants' details private</li>
+          </ul>
+        </div>
+        <div class="card">
+          <p class="eyebrow">Already a partner?</p>
+          <a class="btn ghost" href="/partner/login.html">Sign in with your code</a>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">Independent service. Not affiliated with the U.S. Government. Entries are made only on the official site, dvprogram.state.gov.</footer>
+<script type="module" src="/partners.js"></script>
+</body>
+</html>

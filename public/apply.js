@@ -41,8 +41,17 @@ const FIELD_NAMES = {
 };
 
 let app = null; // the entry as the server sees it, once created
-let chosenPackage = new URLSearchParams(location.search).get('package');
+const params = new URLSearchParams(location.search);
+let chosenPackage = params.get('package');
 if (!PACKAGES[chosenPackage]) chosenPackage = 'managed';
+// Referral partner links: ?ref=<partner code>, ?invite=<introduction reference>, and ?together=1 when a
+// partner fills the entry in with the applicant on the partner's own phone.
+const referral = { ref: params.get('ref'), invite: params.get('invite'), together: params.get('together') === '1' };
+// Remembers, for this browser tab only, that a together-entry is in progress, so a reload keeps it open.
+const tabFlag = {
+  get: () => { try { return sessionStorage.getItem('together-started') === '1'; } catch { return false; } },
+  set: (on) => { try { if (on) sessionStorage.setItem('together-started', '1'); else sessionStorage.removeItem('together-started'); } catch { /* private mode */ } },
+};
 
 // ---------- server ----------
 
@@ -258,9 +267,13 @@ form.addEventListener('submit', (event) => {
       renderPhotos();
       show('photos');
     } else {
-      const started = await api('POST', '/api/apply/start', body);
+      const started = await api('POST', '/api/apply/start', {
+        ...body, ref: referral.ref ?? undefined, invite: referral.invite ?? undefined, together: referral.together,
+      });
       app = started.application;
       $('#resume-code').textContent = started.resumeCode;
+      $('#code-together').hidden = !started.together;
+      tabFlag.set(started.together);
       show('code', 'details');
     }
   });
@@ -451,6 +464,30 @@ $('#leave').addEventListener('click', async () => {
   location.href = '/';
 });
 
+// ---------- referral partners ----------
+
+async function setupReferral() {
+  if (!referral.ref && !referral.invite) return;
+  const res = await fetch(`/api/apply/referrer?${new URLSearchParams(Object.entries(referral).filter(([k, v]) => v && k !== 'together'))}`);
+  const found = res.ok ? await res.json() : {};
+  if (!found.organisation) return;
+  if (found.package && !params.get('package')) chosenPackage = found.package;
+  if (found.firstName) $('#applicant-person [data-f="firstName"]').value = found.firstName;
+  $('#referral-text').textContent = referral.together
+    ? `Filling in together with ${found.organisation}. When you are done, tap “Finish & hand back”.`
+    : `${found.firstName ? `Welcome, ${found.firstName}. ` : ''}You were referred by ${found.organisation}.`;
+  $('#finish-together').hidden = !referral.together;
+  $('#referral-banner').hidden = false;
+}
+
+// Ends the applicant's session on the partner's phone, so the next person cannot open this entry.
+$('#finish-together').addEventListener('click', async () => {
+  if (app && !confirm('Has the applicant written down their code? They need it to follow their entry.')) return;
+  await api('POST', '/api/apply/leave').catch(() => {});
+  tabFlag.set(false);
+  location.href = '/partner/';
+});
+
 // ---------- start ----------
 
 function route() {
@@ -470,7 +507,12 @@ window.addEventListener('hashchange', () => {
 });
 
 setupDetailsForm();
+await setupReferral().catch(() => {});
 renderPackages();
+if (referral.together && !tabFlag.get()) {
+  // A partner's phone may still hold the previous applicant's session: always start clean.
+  await api('POST', '/api/apply/leave').catch(() => {});
+}
 try {
   app = await api('GET', '/api/apply');
 } catch (err) {
