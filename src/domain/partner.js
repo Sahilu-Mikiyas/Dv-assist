@@ -7,6 +7,7 @@ export const PARTNER_TYPES = ['shop', 'school', 'faith', 'community', 'other'];
 export const PARTNER_STATUS = Object.freeze({ PENDING: 'pending', ACTIVE: 'active', SUSPENDED: 'suspended' });
 
 const text = (v, max = 120) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+const tooLong = (v, max = 120) => typeof v === 'string' && v.trim().length > max;
 // Ethiopian numbers: +251 or 0, then 9 or 7, then 8 digits. Spaces and dashes are ignored.
 const ETHIOPIAN_PHONE = /^(?:\+?251|0)([79]\d{8})$/;
 
@@ -28,6 +29,7 @@ export function validatePartnerApplication(input) {
   };
   if (!clean.name) errors.push('Your name is required');
   if (!clean.organisation) errors.push('Organisation is required');
+  if (tooLong(a.organisation) || tooLong(a.name)) errors.push('Name and organisation must be 120 characters or fewer');
   if (!PARTNER_TYPES.includes(clean.type)) errors.push('Choose a type of organisation');
   if (!clean.phone) errors.push('Phone must be an Ethiopian mobile number, e.g. 0911 234 567');
   if (!clean.city) errors.push('City is required');

@@ -17,7 +17,7 @@ test('a website entry goes from applicant to staff checks to online approval', a
   const { admin, meron } = await seedStaff(env);
 
   await assert.rejects(applications.start({ package: 'gold', applicant: applicantInput() }, ctx), /package is invalid/);
-  const input = { package: 'managed', applicant: applicantInput({ children: [person({ firstName: 'Liya' })] }) };
+  const input = { package: 'managed', applicant: applicantInput({ children: [person({ birthDate: '2015-06-01',  firstName: 'Liya' })] }) };
   const { caseId, resumeCode, application } = await applications.start(input, ctx);
   assert.equal(application.code, 'EDA-0001');
   assert.equal(application.editable, true);
@@ -45,7 +45,7 @@ test('a website entry goes from applicant to staff checks to online approval', a
   assert.equal(row.source, 'website');
   assert.equal(row.package, 'managed');
 
-  await assert.rejects(applications.approve(caseId, { confirm: true }, ctx), /expected verified/);
+  await assert.rejects(applications.approve(caseId, { confirm: true }, ctx), /not waiting for your approval/);
   await cases.check(caseId, ctxFor(meron));
   await cases.verify(caseId, ctxFor(admin));
   await assert.rejects(applications.approve(caseId, {}, ctx), /Confirm/);
@@ -64,4 +64,23 @@ test('applicants cannot open staff-created cases', async () => {
   const { meron } = await seedStaff(env);
   const c = await env.cases.create(applicantInput(), ctxFor(meron));
   await assert.rejects(env.applications.get(c.id), /not found/);
+});
+
+test('removing a child moves the other children\'s photos with them, never to someone else', async () => {
+  const env = await setupCases();
+  const kids = [person({ firstName: 'Red', birthDate: '2015-01-01' }), person({ firstName: 'Blue', birthDate: '2017-01-01' })];
+  const input = { package: 'self', applicant: applicantInput({ children: kids }) };
+  const { caseId, application } = await env.applications.start(input, ctx);
+  const red = fakeJpeg(600, 600, 300);
+  const blue = fakeJpeg(600, 600, 400);
+  await env.applications.savePhoto(caseId, 'child0', red, ctx);
+  await env.applications.savePhoto(caseId, 'child1', blue, ctx);
+
+  // Remove Red: Blue becomes child0 and keeps Blue's photo.
+  const after = await env.applications.update(caseId, { ...input, applicant: { ...input.applicant, children: [kids[1]] }, expectedUpdatedAt: application.updatedAt }, ctx);
+  assert.deepEqual(after.photos.map((p) => [p.key, p.uploaded]), [['applicant', false], ['child0', true]]);
+  assert.equal((await env.applications.getPhoto(caseId, 'child0')).length, blue.length);
+
+  // A save from an older copy of the form (another tab) is refused instead of undoing this change.
+  await assert.rejects(env.applications.update(caseId, { ...input, expectedUpdatedAt: application.updatedAt }, ctx), /changed in another tab/);
 });

@@ -15,6 +15,7 @@ import {
   assertCanSubmit,
   assertCanVerify,
   photoKeys,
+  photoMapping,
   validateApplicant,
 } from '../domain/case.js';
 import { validateDocument, validatePhoto } from '../domain/photo.js';
@@ -46,6 +47,13 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
   async function documentsOf(id) {
     const present = await repo.documentKinds(id);
     return DOCUMENT_KINDS.map((kind) => ({ kind, uploaded: present.includes(kind) }));
+  }
+
+  // Saving a form based on an old copy (another tab, another staff member) would silently undo their changes.
+  function assertCurrent(existing, input) {
+    if (input?.expectedUpdatedAt && input.expectedUpdatedAt !== existing.updatedAt) {
+      throw new ValidationError(['Someone changed this case since you opened it. Reload to see their changes, then edit again.']);
+    }
   }
 
   // A state change that did not apply means someone else changed the case first.
@@ -126,8 +134,11 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     },
 
     async update(id, input, ctx) {
-      await mustGetDraft(id);
-      await repo.updateApplicant(id, validateApplicant(input));
+      const existing = await mustGetDraft(id);
+      assertCurrent(existing, input);
+      const applicant = validateApplicant(input);
+      await repo.updateApplicant(id, applicant);
+      await repo.rearrangePhotos(id, photoMapping(existing.applicant, applicant));
       await record('case_updated', id, ctx);
       return withPhotos(await mustGet(id));
     },

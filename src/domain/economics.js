@@ -39,7 +39,8 @@ export function validateEconomics(input) {
 // applied to all of them, e.g. [{ from: 0, pct: 45 }, { from: 1000, pct: 55 }, { from: 5000, pct: 60 }].
 export function validateDeal(input) {
   const errors = [];
-  const pct = (v) => Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 100;
+  // An empty box is not 0%: a percentage must be given.
+  const pct = (v) => v !== null && v !== undefined && String(v).trim() !== '' && Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 100;
   if (!pct(input?.directPct)) errors.push('Direct share must be a percentage from 0 to 100');
   if (!pct(input?.throughUsPct)) errors.push('Through-us share must be a percentage from 0 to 100');
   let ladder = null;

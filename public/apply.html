@@ -274,9 +274,9 @@
 
 <template id="person-fields">
   <div class="grid">
-    <label class="field"><span>Last name <span lang="am">· የአያት ስም</span></span><input data-f="lastName" required autocomplete="off"></label>
-    <label class="field"><span>First name <span lang="am">· ስም</span></span><input data-f="firstName" autocomplete="off"></label>
-    <label class="field"><span>Middle name <span class="opt">(optional)</span></span><input data-f="middleName" autocomplete="off"></label>
+    <label class="field"><span>Last name <span lang="am">· የአያት ስም</span></span><input data-f="lastName" maxlength="60" required autocomplete="off"></label>
+    <label class="field"><span>First name <span lang="am">· ስም</span></span><input data-f="firstName" maxlength="60" autocomplete="off"></label>
+    <label class="field"><span>Middle name <span class="opt">(optional)</span></span><input data-f="middleName" maxlength="60" autocomplete="off"></label>
   </div>
   <label class="check small"><input type="checkbox" data-f="noFirstName"> No first name in the passport</label>
   <div class="grid">
@@ -290,8 +290,8 @@
     <label class="field"><span>Birth date <span lang="am">· የትውልድ ቀን</span></span><input type="date" data-f="birthDate" required></label>
   </div>
   <div class="grid">
-    <label class="field"><span>City of birth <span lang="am">· የትውልድ ከተማ</span></span><input data-f="birthCity" required></label>
-    <label class="field"><span>Country of birth <span lang="am">· የትውልድ ሀገር</span></span><input data-f="birthCountry" required value="Ethiopia"></label>
+    <label class="field"><span>City of birth <span lang="am">· የትውልድ ከተማ</span></span><input data-f="birthCity" maxlength="60" required></label>
+    <label class="field"><span>Country of birth <span lang="am">· የትውልድ ሀገር</span></span><input data-f="birthCountry" maxlength="60" required value="Ethiopia"></label>
   </div>
 </template>
 

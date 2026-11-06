@@ -254,3 +254,5 @@ input[type=radio], input[type=checkbox] { accent-color: var(--navy-2); width: 18
 .ledger.streams th[scope=col]:first-child { text-align: left; }
 .ledger.streams td { padding-left: 16px; }
 .row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+h1, .summary-name, .photo-name, .family-card strong { overflow-wrap: anywhere; }

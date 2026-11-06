@@ -47,7 +47,7 @@ test("a partner's statement counts every referral, payment and birr, and shows n
 
   const start = (p, extra = {}, applicant = {}) => env.applications.start({ package: 'managed', applicant: applicantInput(applicant), ref: p.refCode, ...extra }, ctx);
   // Two submitted (one paid out), one being filed, one being checked, one only started, one invitation.
-  const a = await start(haile, { package: 'vip' }, { maritalStatus: 'married_spouse_not_us_citizen_or_lpr', spouse: person({ firstName: 'Selam', gender: 'female' }), children: [person({ firstName: 'Liya' })] });
+  const a = await start(haile, { package: 'vip' }, { maritalStatus: 'married_spouse_not_us_citizen_or_lpr', spouse: person({ firstName: 'Selam', gender: 'female' }), children: [person({ birthDate: '2015-06-01',  firstName: 'Liya' })] });
   const b = await start(haile);
   const c = await start(haile, { package: 'self' });
   const d = await start(haile, { together: true }, {});

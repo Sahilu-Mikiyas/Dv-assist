@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-11-06
+Last updated: 2026-11-06 (break-test round)
 
 ## Live
 
@@ -14,7 +14,7 @@ Last updated: 2026-11-06
   issue card, show card details, record confirmation number.
 - Bitnob signed requests (HMAC) to `https://api.bitnob.com`. Sandbox key, company "Furii Labs".
 - Sandbox card-holder customer exists (`BITNOB_CARD_CUSTOMER_ID` on Render).
-- 71 automated tests, run by GitHub Actions on every push.
+- 85 automated tests, run by GitHub Actions on every push.
 
 ## Pinned: automatic SMS and email are NOT switched on
 
@@ -67,6 +67,23 @@ Last updated: 2026-11-06
   hour per IP; wrong codes to 10 per 15 minutes.
 - Payment is a placeholder: "our team will contact you" (Telebirr / CBE Birr).
 - Staff app moved to `/staff/`.
+
+## Break-test round (6 Nov 2026)
+
+- Three independent reviews (security, money/logic, every page in a browser) plus my own attacks. Found and
+  fixed: 2 critical money races (double revenue-share payout; cancel/paid race re-paying entries), 1 critical
+  photo mix-up (removing a child gave the next child the wrong photo), unrevocable sessions, authenticator
+  takeover by a stale setup session, resume codes visible to staff and on partner phones, global rate limits
+  that could lock everyone out, spoofable client IP, case-state races (edit/reopen/erase during card issuing,
+  double submits), stale-tab overwrites, duplicate-entry race, impossible names/dates, layout overflow, and
+  more. Each fix has a permanent test; the browser findings were re-run in Chromium and all pass.
+- Decided in this round (change if you disagree): tech-centre commission now needs a cleared payment (like the
+  revenue share); cost changes apply from the day saved; the Messages page is admin-only; staff cannot open a
+  website entry until the applicant sends it; names must be in English letters as in the passport; only
+  children under 21; one partner account per phone; invitations limited to 30 a day.
+- Known limits: one server process assumed (in-process locks for card issuing and one-entry-per-passport);
+  rate-limit counters reset on restart; Bitnob webhook replays only add audit rows.
+- The offer's 5,000-direct chart bars use 55%, the ladder says 60% (~131k ETB Model A / ~293k Model B low).
 
 ## Revenue share for Mr. Ermiyas Abera (built; terms not yet signed)
 

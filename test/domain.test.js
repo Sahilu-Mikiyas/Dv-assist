@@ -30,7 +30,7 @@ test('requires spouse details only for a non-US-citizen spouse', () => {
 
 test('lists a photo slot per person', () => {
   const a = validateApplicant(applicantInput({
-    maritalStatus: 'married_spouse_not_us_citizen_or_lpr', spouse: person(), children: [person(), person()],
+    maritalStatus: 'married_spouse_not_us_citizen_or_lpr', spouse: person(), children: [person({ birthDate: '2015-06-01',  birthDate: '2015-06-01' }), person({ birthDate: '2015-06-01',  birthDate: '2015-06-01' })],
   }));
   assert.deepEqual(photoKeys(a), ['applicant', 'spouse', 'child0', 'child1']);
 });

@@ -66,9 +66,15 @@ export class ValidationError extends Error {
 }
 
 const text = (v) => (typeof v === 'string' ? v.trim() : '');
-const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+// A real calendar date (2026-02-31 is refused: it does not survive a round trip).
+const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v;
+const today = () => new Date().toISOString().slice(0, 10);
+const yearsAgo = (n) => { const d = new Date(); d.setUTCFullYear(d.getUTCFullYear() - n); return d.toISOString().slice(0, 10); };
+// Names and places as printed in the passport: Latin letters, spaces, hyphens, apostrophes and dots.
+const PASSPORT_TEXT = /^[A-Za-z][A-Za-z .'-]*$/;
+const MAX_NAME = 60;
 
-function validatePerson(person, prefix, errors) {
+function validatePerson(person, prefix, errors, { maxAgeYears = null } = {}) {
   const p = person ?? {};
   const clean = {
     lastName: text(p.lastName),
@@ -81,9 +87,16 @@ function validatePerson(person, prefix, errors) {
     birthCountry: text(p.birthCountry),
   };
   if (!clean.lastName) errors.push(`${prefix}.lastName is required`);
-  if (!clean.firstName && !clean.noFirstName)errors.push(`${prefix}.firstName is required`);
+  if (!clean.firstName && !clean.noFirstName) errors.push(`${prefix}.firstName is required`);
+  for (const f of ['lastName', 'firstName', 'middleName', 'birthCity', 'birthCountry']) {
+    if (clean[f] && (!PASSPORT_TEXT.test(clean[f]) || clean[f].length > MAX_NAME)) {
+      errors.push(`${prefix}.${f} must be written in English letters as in the passport`);
+    }
+  }
   if (!GENDERS.includes(clean.gender)) errors.push(`${prefix}.gender is invalid`);
   if (!isDate(clean.birthDate)) errors.push(`${prefix}.birthDate must be YYYY-MM-DD`);
+  else if (clean.birthDate > today() || clean.birthDate < '1900-01-01') errors.push(`${prefix}.birthDate is not possible`);
+  else if (maxAgeYears && clean.birthDate <= yearsAgo(maxAgeYears)) errors.push(`${prefix}.birthDate: only children under ${maxAgeYears} are listed`);
   if (!clean.birthCity) errors.push(`${prefix}.birthCity is required`);
   if (!clean.birthCountry) errors.push(`${prefix}.birthCountry is required`);
   return clean;
@@ -125,10 +138,34 @@ export function validateApplicant(input) {
     applicant.maritalStatus === MARRIED_NEEDS_SPOUSE ? validatePerson(a.spouse, 'spouse', errors) : null;
 
   const children = Array.isArray(a.children) ? a.children : [];
-  applicant.children = children.map((c, i) => validatePerson(c, `children[${i}]`, errors));
+  if (children.length > 20) errors.push('No more than 20 children can be listed');
+  // The DV form lists unmarried children under 21.
+  applicant.children = children.map((c, i) => validatePerson(c, `children[${i}]`, errors, { maxAgeYears: 21 }));
 
   if (errors.length) throw new ValidationError(errors);
   return applicant;
+}
+
+// Photos are stored per position (child0, child1…). When the family changes, each photo must follow its
+// person: returns { newKey: oldKey } for every person who keeps a photo. A person whose details changed
+// enough to look like someone else, or who was removed, keeps none, so a photo is never shown for the wrong
+// person.
+export function photoMapping(before, after) {
+  const who = (p) => [p.lastName, p.firstName, p.birthDate].map((v) => String(v ?? '').trim().toLowerCase()).join('|');
+  const people = (a) => [
+    ['applicant', a],
+    ...(a.spouse ? [['spouse', a.spouse]] : []),
+    ...a.children.map((c, i) => [`child${i}`, c]),
+  ];
+  const oldKeyOf = new Map();
+  for (const [key, p] of people(before)) if (!oldKeyOf.has(who(p))) oldKeyOf.set(who(p), key);
+  const mapping = {};
+  for (const [key, p] of people(after)) {
+    // The applicant and spouse keep their slot even if a detail was corrected; children move by identity.
+    const old = key.startsWith('child') ? oldKeyOf.get(who(p)) : (oldKeyOf.get(who(p)) ?? (people(before).some(([k]) => k === key) ? key : undefined));
+    if (old) mapping[key] = old;
+  }
+  return mapping;
 }
 
 // The people on a case who each need a photo: "applicant", "spouse", "child0", "child1", ...

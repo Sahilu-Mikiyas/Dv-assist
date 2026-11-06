@@ -448,11 +448,21 @@ function staticPath(pathname) {
 
 async function serveStatic(res, pathname) {
   const file = normalize(join(PUBLIC_DIR, staticPath(pathname)));
-  if (!file.startsWith(PUBLIC_DIR + '/')) return send(res, 404, { error: 'Not found' });
+  if (!file.startsWith(PUBLIC_DIR + '/')) return notFoundPage(res);
   try {
     const data = await readFile(file);
     res.writeHead(200, { 'Content-Type': MIME[extname(file)] ?? 'application/octet-stream', 'Cache-Control': 'no-cache' });
     res.end(data);
+  } catch {
+    notFoundPage(res);
+  }
+}
+
+// People who mistype a link get a page with a way back, not raw JSON.
+async function notFoundPage(res) {
+  try {
+    res.writeHead(404, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache' });
+    res.end(await readFile(join(PUBLIC_DIR, '404.html')));
   } catch {
     send(res, 404, { error: 'Not found' });
   }

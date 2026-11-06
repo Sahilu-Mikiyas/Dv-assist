@@ -439,6 +439,18 @@ export function caseRepository(db, crypt) {
       return (await run('SELECT kind FROM documents WHERE case_id = ?', caseId)).rows.map((r) => r.kind);
     },
 
+    // Re-files photos after the family changed: mapping is { newKey: oldKey }; photos not mapped are deleted.
+    // Copies the encrypted data as is, in one batch.
+    async rearrangePhotos(caseId, mapping) {
+      const { rows } = await run('SELECT person_key, data FROM photos WHERE case_id = ?', caseId);
+      const byKey = new Map(rows.map((r) => [r.person_key, r.data]));
+      const statements = [{ sql: 'DELETE FROM photos WHERE case_id = ?', args: [caseId] }];
+      for (const [newKey, oldKey] of Object.entries(mapping)) {
+        if (byKey.has(oldKey)) statements.push({ sql: 'INSERT INTO photos (case_id, person_key, data) VALUES (?, ?, ?)', args: [caseId, newKey, byKey.get(oldKey)] });
+      }
+      await db.batch(statements, 'write');
+    },
+
     async photoKeys(caseId) {
       return (await run('SELECT person_key FROM photos WHERE case_id = ?', caseId)).rows.map((r) => r.person_key);
     },

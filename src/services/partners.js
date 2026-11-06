@@ -88,6 +88,10 @@ export function partnerService({
     // Public: anyone can apply; an admin approves.
     async apply(input, ctx) {
       const details = validatePartnerApplication(input);
+      // One partner account per phone number (repeat applications, or a second account for the same person).
+      if ((await repo.list()).some((p) => p.status !== PARTNER_STATUS.SUSPENDED && p.phone === details.phone)) {
+        throw new ValidationError(['A partner with this phone number already exists or has applied. Call us if you need help.']);
+      }
       const id = randomUUID();
       await repo.insert({ id, details, status: PARTNER_STATUS.PENDING, refCode: await uniqueRefCode(details.organisation) });
       await record('partner_applied', ctx, id);

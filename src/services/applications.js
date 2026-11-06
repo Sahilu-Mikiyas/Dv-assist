@@ -11,6 +11,7 @@ import {
   assertCanApprove,
   assertCanSend,
   photoKeys,
+  photoMapping,
   validateApplicant,
 } from '../domain/case.js';
 import { validateDocument, validatePhoto } from '../domain/photo.js';
@@ -85,6 +86,7 @@ export function applicationService({ repo, audit, partners = null, notifications
       confirmationNumber: c.status === STATUS.SUBMITTED ? c.confirmationNumber : null,
       payment: await paymentView(c.id),
       createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
     };
   }
 
@@ -126,12 +128,18 @@ export function applicationService({ repo, audit, partners = null, notifications
     get: async (id) => view(await mustGet(id)),
 
     async update(id, input, ctx) {
-      assertApplicantCanEdit(await mustGet(id));
+      const existing = await mustGet(id);
+      assertApplicantCanEdit(existing);
+      // Saving from a tab opened before another change would silently undo it.
+      if (input?.expectedUpdatedAt && input.expectedUpdatedAt !== existing.updatedAt) {
+        throw new ValidationError(['Your entry was changed in another tab or device. Reload the page, then make your change again.']);
+      }
       const pkg = validatePackage(input?.package);
       const applicant = validateApplicant(input?.applicant);
       return onePerPassport(applicant, async () => {
         await assertNoPassportDuplicate(id, applicant);
         await repo.updateApplicant(id, applicant);
+        await repo.rearrangePhotos(id, photoMapping(existing.applicant, applicant));
         await repo.setPackage(id, pkg);
         await record('application_updated', id, ctx);
         return view(await mustGet(id));
@@ -188,6 +196,9 @@ export function applicationService({ repo, audit, partners = null, notifications
     // Baraka, given online by the applicant after both staff checks.
     async approve(id, { confirm } = {}, ctx) {
       const existing = await mustGet(id);
+      if (existing.status !== STATUS.VERIFIED) {
+        throw new ValidationError(['Your entry is not waiting for your approval right now (it may already be approved). Reload the page.']);
+      }
       assertCanApprove(existing, 'online');
       if (confirm !== true) throw new ValidationError(['Confirm that every detail and photo is correct']);
       const baraka = { by: null, name: 'Applicant', at: new Date().toISOString(), method: 'online' };

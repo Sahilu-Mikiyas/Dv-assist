@@ -134,9 +134,9 @@
 <template id="person-fields">
   <div class="stack">
     <div class="grid">
-      <label class="field">Last name<input name="lastName" required></label>
-      <label class="field">First name<input name="firstName"></label>
-      <label class="field">Middle name<input name="middleName"></label>
+      <label class="field">Last name<input name="lastName" maxlength="60" required></label>
+      <label class="field">First name<input name="firstName" maxlength="60"></label>
+      <label class="field">Middle name<input name="middleName" maxlength="60"></label>
     </div>
     <label class="check"><input type="checkbox" name="noFirstName"> No first name</label>
     <div class="grid">
@@ -144,8 +144,8 @@
         <select name="gender" required><option value="">—</option><option value="male">Male</option><option value="female">Female</option></select>
       </label>
       <label class="field">Birth date<input type="date" name="birthDate" required></label>
-      <label class="field">City of birth<input name="birthCity" required></label>
-      <label class="field">Country of birth<input name="birthCountry" required></label>
+      <label class="field">City of birth<input name="birthCity" maxlength="60" required></label>
+      <label class="field">Country of birth<input name="birthCountry" maxlength="60" required></label>
     </div>
   </div>
 </template>

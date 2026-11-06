@@ -13,7 +13,7 @@ export async function api(method, path, body) {
     throw new Error('Sign in first');
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data.details ?? [data.error ?? 'Something went wrong. Try again.']).join('\n'));
+  if (!res.ok) throw new Error((data.details?.length ? data.details : [data.error ?? 'Something went wrong. Try again.']).join('\n'));
   return data;
 }
 

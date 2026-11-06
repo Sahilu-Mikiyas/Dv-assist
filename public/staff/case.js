@@ -373,7 +373,11 @@ async function loadActivity() {
     ` · ${e.staffName ?? 'system'} · ${timeAgo(e.at)}${e.detail ? ` · ${e.detail}` : ''}`)));
 }
 
+// The version of the case the form shows: saving refuses if someone else changed it meanwhile.
+let loadedUpdatedAt = null;
+
 function render(c) {
+  loadedUpdatedAt = c.updatedAt;
   caseId = c.id;
   const draft = c.status === 'draft';
   document.title = `${c.code} — Ethio DV Assist staff`;
@@ -431,7 +435,8 @@ function renderPayment(c) {
       : null;
     refund?.addEventListener('click', () => {
       const reason = prompt(`Refund ${birr(paid.amountEtb)} to the applicant? Say why (kept in the activity log).`);
-      if (!reason) return;
+      if (reason === null) return; // cancelled
+      if (!reason.trim()) return showError(new Error('No refund recorded: a reason is needed.'));
       run(refund, async () => render(await api('POST', `/api/cases/${caseId}/payment/refund`, { reason })));
     });
     $('#payment-recorded').replaceChildren(...[
@@ -459,7 +464,8 @@ $('#payment-form').addEventListener('submit', (event) => {
 
 $('#erase').addEventListener('click', () => {
   const typed = prompt('This erases the applicant\'s details, photos and confirmation number for good. Type ERASE to confirm.');
-  if (typed !== 'ERASE') return;
+  if (typed === null) return; // cancelled
+  if (typed.trim().toUpperCase() !== 'ERASE') return showError(new Error('Nothing was erased: type ERASE to confirm.'));
   run($('#erase'), async () => {
     await api('POST', `/api/cases/${caseId}/erase`);
     render(await api('GET', `/api/cases/${caseId}`));
@@ -478,7 +484,7 @@ form.addEventListener('submit', (e) => {
   e.preventDefault();
   run($('#save'), async () => {
     const saved = caseId
-      ? await api('PUT', `/api/cases/${caseId}`, readForm())
+      ? await api('PUT', `/api/cases/${caseId}`, { ...readForm(), expectedUpdatedAt: loadedUpdatedAt })
       : await api('POST', '/api/cases', readForm());
     if (!caseId) history.replaceState(null, '', `/staff/case.html?id=${saved.id}`);
     render(saved);

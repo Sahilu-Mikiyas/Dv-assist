@@ -49,6 +49,12 @@ if (!PACKAGES[chosenPackage]) chosenPackage = 'managed';
 // Referral partner links: ?ref=<partner code>, ?invite=<introduction reference>, and ?together=1 when a
 // partner fills the entry in with the applicant on the partner's own phone.
 const referral = { ref: params.get('ref'), invite: params.get('invite'), together: params.get('together') === '1' };
+// A resume code shown once survives a reload of the same tab until the applicant confirms they saved it.
+const pendingCode = {
+  get: () => { try { return sessionStorage.getItem('pending-code'); } catch { return null; } },
+  set: (code) => { try { if (code) sessionStorage.setItem('pending-code', code); else sessionStorage.removeItem('pending-code'); } catch { /* private mode */ } },
+};
+
 // Remembers, for this browser tab only, that a together-entry is in progress, so a reload keeps it open.
 const tabFlag = {
   get: () => { try { return sessionStorage.getItem('together-started') === '1'; } catch { return false; } },
@@ -76,13 +82,20 @@ async function api(method, path, body, contentType = 'application/json') {
 function friendlyError(data) {
   const details = (data.details ?? []).map((d) => d
     .replace(/^applicant\.passportExpiry has passed.*$/, 'Your passport has expired: renew it before entering')
+    .replace(/(\w+) must be written in English letters as in the passport/, (_, f) => `${FIELD_NAMES[f] ?? f} must be in English letters, exactly as in the passport`)
+    .replace(/birthDate is not possible/, 'birth date is not possible')
+    .replace(/birthDate: only children under 21 are listed/, 'only children under 21 are listed on a DV entry')
     .replace(/^applicant\./, 'You: ')
     .replace(/^spouse\./, 'Spouse: ')
     .replace(/^children\[(\d+)\]\./, (_, i) => `Child ${Number(i) + 1}: `)
     .replace(/(\w+) (is required|is invalid|must be YYYY-MM-DD)/, (_, f, rule) => {
       const name = FIELD_NAMES[f] ?? f;
       if (rule === 'must be YYYY-MM-DD') return `${name} must be a full date`;
-      if (rule === 'is invalid') return f === 'email' ? 'email address looks wrong' : `choose your ${name}`;
+      if (rule === 'is invalid') {
+        if (f === 'email') return 'email address looks wrong';
+        if (f === 'passportNumber') return 'passport number looks wrong: copy the letters and digits from your passport';
+        return `choose your ${name}`;
+      }
       return `${name} is required`;
     })
     .replace(/Photo missing for applicant/, 'Add your own photo')
@@ -123,7 +136,28 @@ async function run(button, action) {
 
 const STEP_ORDER = ['details', 'photos', 'review', 'checking', 'submitted'];
 
+// Each step is a browser-history entry: Back and Forward move between steps instead of leaving the page.
+let restoring = false;
+window.addEventListener('popstate', (event) => {
+  const view = event.state?.view;
+  if (!view) return;
+  restoring = true;
+  try {
+    if (view === 'photos' && app) renderPhotos();
+    if (view === 'review' && app) renderSummary($('#summary'), true);
+    if (view === 'status' && app) return renderStatus();
+    // Steps that need a saved entry fall back to the package choice when there is none yet.
+    show(app || ['package', 'details', 'resume'].includes(view) ? view : 'package', event.state.step);
+  } finally {
+    restoring = false;
+  }
+});
+
 function show(view, step = view) {
+  if (!restoring) {
+    const state = { view, step };
+    if (history.state?.view) history.pushState(state, ''); else history.replaceState(state, '');
+  }
   for (const section of document.querySelectorAll('.view')) section.hidden = section.id !== `view-${view}`;
   $('#loading').hidden = true;
   $('#steps').hidden = !STEP_ORDER.includes(step);
@@ -269,7 +303,7 @@ function readDetails() {
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   run(form.querySelector('[type=submit]'), async () => {
-    const body = { package: app?.package ?? chosenPackage, applicant: readDetails() };
+    const body = { package: app?.package ?? chosenPackage, applicant: readDetails(), expectedUpdatedAt: app?.updatedAt };
     if (app) {
       app = await api('PUT', '/api/apply', body);
       renderPhotos();
@@ -281,6 +315,7 @@ form.addEventListener('submit', (event) => {
       app = started.application;
       // Filled in together: the code is sent to the applicant, never shown on the partner's phone.
       $('#resume-code').textContent = started.resumeCode ?? 'Sent to your phone or email';
+      pendingCode.set(started.resumeCode);
       $('#copy-code').hidden = !started.resumeCode;
       $('#code-together').hidden = !started.together;
       if (started.together) {
@@ -294,7 +329,11 @@ form.addEventListener('submit', (event) => {
   });
 });
 
-$('#details-back').addEventListener('click', () => (app ? show('review') : show('package')));
+$('#details-back').addEventListener('click', () => {
+  if (!app) return show('package');
+  renderPhotos();
+  return show('photos');
+});
 
 // ---------- resume code ----------
 
@@ -308,6 +347,7 @@ $('#copy-code').addEventListener('click', async () => {
 });
 $('#code-saved').addEventListener('change', (e) => { $('#code-next').disabled = !e.target.checked; });
 $('#code-next').addEventListener('click', () => {
+  pendingCode.set(null);
   renderPhotos();
   show('photos');
 });
@@ -524,6 +564,8 @@ $('#leave').addEventListener('click', async () => {
 
 async function setupReferral() {
   if (!referral.ref && !referral.invite) return;
+  // "Filling in together" only applies on a partner's own phone, signed in. Anyone else just uses the link.
+  if (referral.together && !(await fetch('/api/partner').then((r) => r.ok, () => false))) referral.together = false;
   const res = await fetch(`/api/apply/referrer?${new URLSearchParams(Object.entries(referral).filter(([k, v]) => v && k !== 'together'))}`);
   const found = res.ok ? await res.json() : {};
   if (!found.organisation) return;
@@ -549,6 +591,10 @@ $('#finish-together').addEventListener('click', async () => {
 function route() {
   if (!app) return location.hash === '#resume' ? show('resume') : show('package');
   if (!app.editable) return renderStatus();
+  if (pendingCode.get()) {
+    $('#resume-code').textContent = pendingCode.get();
+    return show('code', 'details');
+  }
   fillDetails(app.applicant);
   if (app.photos.some((p) => !p.uploaded) || !app.documents?.find((d) => d.kind === 'passport')?.uploaded) {
     renderPhotos();

@@ -19,7 +19,8 @@ export async function api(method, path, body, contentType = 'application/json') 
     location.href = '/staff/login.html?setup=1';
     throw new Error(data.error);
   }
-  if (!res.ok) throw new Error([data.error, ...(data.details ?? [])].filter(Boolean).join('\n'));
+  // A validation error lists what to fix; its generic heading adds nothing.
+  if (!res.ok) throw new Error((data.details?.length ? data.details : [data.error]).filter(Boolean).join('\n'));
   return data;
 }
 

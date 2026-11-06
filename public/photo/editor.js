@@ -54,11 +54,18 @@ export function renderChecks(list, result) {
 
 // Opens the editor for `file`. Resolves with { blob, result } when the person uses the photo, or null if
 // they cancel.
-export async function openPhotoEditor(file, { title = 'Position your photo' } = {}) {
-  let img = await loadImage(file);
-  if (Math.min(img.naturalWidth, img.naturalHeight) < 300) {
-    throw new Error(`Photo is too small (${img.naturalWidth}×${img.naturalHeight}). Use a photo at least 600 pixels on each side.`);
+// Smaller than this cannot make a usable 600 × 600 photo, even cropped close.
+const MIN_SOURCE_SIDE = 300;
+async function loadUsable(file) {
+  const img = await loadImage(file);
+  if (Math.min(img.naturalWidth, img.naturalHeight) < MIN_SOURCE_SIDE) {
+    throw new Error(`Photo is too small (${img.naturalWidth}×${img.naturalHeight}). Use a photo at least ${MIN_SOURCE_SIDE} pixels on each side (600 or more is best).`);
   }
+  return img;
+}
+
+export async function openPhotoEditor(file, { title = 'Position your photo' } = {}) {
+  let img = await loadUsable(file);
 
   const canvas = el('canvas', { width: OUTPUT_SIZE, height: OUTPUT_SIZE, className: 'pe-photo' });
   const overlay = el('canvas', { width: OUTPUT_SIZE, height: OUTPUT_SIZE, className: 'pe-overlay' });
@@ -207,9 +214,11 @@ export async function openPhotoEditor(file, { title = 'Position your photo' } = 
   for (const c of confirms) c.querySelector('input').addEventListener('change', updateUse);
 
   swapInput.addEventListener('change', async () => {
-    if (!swapInput.files[0]) return;
+    const picked = swapInput.files[0];
+    swapInput.value = ''; // choosing the same file again still works
+    if (!picked) return;
     try {
-      img = await loadImage(swapInput.files[0]);
+      img = await loadUsable(picked);
       crop = autoCrop(img);
       syncZoom();
       draw();
