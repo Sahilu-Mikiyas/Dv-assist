@@ -81,3 +81,11 @@ test('applicants see whether their payment arrived', async () => {
   await env.cases.refundPayment(caseId, 'Changed mind', ctxFor(admin));
   assert.equal((await env.applications.get(caseId)).payment.status, 'refunded');
 });
+
+test('five simultaneous starts with one passport create only one entry', async () => {
+  const env = await setupCases();
+  const person = applicantInput({ passportNumber: 'EP9999999' });
+  const results = await Promise.allSettled(Array.from({ length: 5 }, () => env.applications.start({ package: 'self', applicant: person }, ctx)));
+  assert.deepEqual(results.map((r) => r.status).sort(), ['fulfilled', 'rejected', 'rejected', 'rejected', 'rejected']);
+  assert.equal(Number((await env.db.execute('SELECT COUNT(*) AS n FROM cases')).rows[0].n), 1);
+});

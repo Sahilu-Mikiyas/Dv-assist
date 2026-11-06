@@ -43,6 +43,22 @@ export function applicationService({ repo, audit, partners = null, notifications
     }
   }
 
+  // Starts and edits for one passport run one at a time, so two requests at the same moment cannot both pass
+  // the duplicate check. (Assumes one server process, as on Render today.)
+  const passportLocks = new Map();
+  async function onePerPassport(applicant, work) {
+    const key = applicant.passportNumber;
+    const previous = passportLocks.get(key) ?? Promise.resolve();
+    const result = previous.then(work);
+    const settled = result.catch(() => {});
+    passportLocks.set(key, settled);
+    try {
+      return await result;
+    } finally {
+      if (passportLocks.get(key) === settled) passportLocks.delete(key);
+    }
+  }
+
   const record = (action, caseId, ctx = {}, detail = null) =>
     audit.record({ action, caseId, ip: ctx.ip, detail: detail ?? 'applicant' });
 
@@ -78,21 +94,23 @@ export function applicationService({ repo, audit, partners = null, notifications
     async start(input, ctx) {
       const pkg = validatePackage(input?.package);
       const applicant = validateApplicant(input?.applicant);
-      await assertNoPassportDuplicate(null, applicant);
-      const id = randomUUID();
-      const resumeCode = newResumeCode();
-      await repo.insert({ id, applicant, status: STATUS.DRAFT, source: 'website', pkg, accessHash: hashCode(resumeCode) });
-      const referral = partners && (await partners.resolve({ ref: input?.ref, invite: input?.invite }));
-      const together = Boolean(referral && input?.together === true && ctx?.partnerId === referral.partner.id);
-      if (referral) await partners.linkCase(id, referral, { together });
-      await record('application_started', id, ctx, referral ? `${pkg} via ${referral.partner.refCode}${together ? ' (together)' : ''}` : pkg);
-      const created = await mustGet(id);
-      // The applicant's own copy of their code, so a lost note is not a lost entry.
-      await notifications.notify('resume_code', {
-        caseId: id, phone: applicant.phone, email: applicant.email,
-        data: { code: caseCode(created.caseNumber), resumeCode },
+      return onePerPassport(applicant, async () => {
+        await assertNoPassportDuplicate(null, applicant);
+        const id = randomUUID();
+        const resumeCode = newResumeCode();
+        await repo.insert({ id, applicant, status: STATUS.DRAFT, source: 'website', pkg, accessHash: hashCode(resumeCode) });
+        const referral = partners && (await partners.resolve({ ref: input?.ref, invite: input?.invite }));
+        const together = Boolean(referral && input?.together === true && ctx?.partnerId === referral.partner.id);
+        if (referral) await partners.linkCase(id, referral, { together });
+        await record('application_started', id, ctx, referral ? `${pkg} via ${referral.partner.refCode}${together ? ' (together)' : ''}` : pkg);
+        const created = await mustGet(id);
+        // The applicant's own copy of their code, so a lost note is not a lost entry.
+        await notifications.notify('resume_code', {
+          caseId: id, phone: applicant.phone, email: applicant.email,
+          data: { code: caseCode(created.caseNumber), resumeCode },
+        });
+        return { caseId: id, resumeCode, together, application: await view(created) };
       });
-      return { caseId: id, resumeCode, together, application: await view(created) };
     },
 
     // Returns the case id for a valid code, else null.
@@ -108,11 +126,13 @@ export function applicationService({ repo, audit, partners = null, notifications
       assertApplicantCanEdit(await mustGet(id));
       const pkg = validatePackage(input?.package);
       const applicant = validateApplicant(input?.applicant);
-      await assertNoPassportDuplicate(id, applicant);
-      await repo.updateApplicant(id, applicant);
-      await repo.setPackage(id, pkg);
-      await record('application_updated', id, ctx);
-      return view(await mustGet(id));
+      return onePerPassport(applicant, async () => {
+        await assertNoPassportDuplicate(id, applicant);
+        await repo.updateApplicant(id, applicant);
+        await repo.setPackage(id, pkg);
+        await record('application_updated', id, ctx);
+        return view(await mustGet(id));
+      });
     },
 
     async savePhoto(id, personKey, data, ctx) {
