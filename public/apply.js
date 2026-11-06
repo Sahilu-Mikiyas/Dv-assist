@@ -279,8 +279,15 @@ form.addEventListener('submit', (event) => {
         ...body, ref: referral.ref ?? undefined, invite: referral.invite ?? undefined, together: referral.together,
       });
       app = started.application;
-      $('#resume-code').textContent = started.resumeCode;
+      // Filled in together: the code is sent to the applicant, never shown on the partner's phone.
+      $('#resume-code').textContent = started.resumeCode ?? 'Sent to your phone or email';
+      $('#copy-code').hidden = !started.resumeCode;
       $('#code-together').hidden = !started.together;
+      if (started.together) {
+        $('#code-saved').checked = true;
+        $('#code-saved').closest('label').hidden = true;
+        $('#code-next').disabled = false;
+      }
       tabFlag.set(started.together);
       show('code', 'details');
     }

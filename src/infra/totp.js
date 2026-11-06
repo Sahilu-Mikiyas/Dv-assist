@@ -50,13 +50,19 @@ export function totpCode(secret, timeMs = Date.now()) {
   return String(number).padStart(6, '0');
 }
 
-// Accepts the current code and one step either side, to allow for clock drift.
-export function verifyTotp(secret, code, timeMs = Date.now()) {
+// Accepts the current code and one step either side, to allow for clock drift. Returns the matching time-step
+// (so callers can refuse a code that was already used), or null.
+export function matchTotp(secret, code, timeMs = Date.now()) {
   const given = String(code ?? '').replace(/\s/g, '');
-  if (!/^\d{6}$/.test(given)) return false;
-  return [-1, 0, 1].some((drift) =>
-    timingSafeEqual(Buffer.from(totpCode(secret, timeMs + drift * STEP_SECONDS * 1000)), Buffer.from(given)));
+  if (!/^\d{6}$/.test(given)) return null;
+  for (const drift of [-1, 0, 1]) {
+    const at = timeMs + drift * STEP_SECONDS * 1000;
+    if (timingSafeEqual(Buffer.from(totpCode(secret, at)), Buffer.from(given))) return Math.floor(at / 1000 / STEP_SECONDS);
+  }
+  return null;
 }
+
+export const verifyTotp = (secret, code, timeMs = Date.now()) => matchTotp(secret, code, timeMs) !== null;
 
 export const otpauthUrl = (secret, account) =>
   `otpauth://totp/${encodeURIComponent(`Ethio DV Assist:${account}`)}?secret=${secret}&issuer=${encodeURIComponent('Ethio DV Assist')}`;

@@ -20,8 +20,8 @@ async function startServer({ secureCookies = true, perIp = 5 } = {}) {
   const server = createApp({
     cases: env.cases, staff: env.staff, applications: env.applications, partners: env.partners, notifications: env.notifications, retention: env.retention, payouts: env.payouts, economics: env.economics,
     authn: auth(secrets), applicantAuthn: applicantAuth(secrets), partnerAuthn: partnerAuth(secrets),
-    limiter: loginLimiter({ perIp }), startLimiter: loginLimiter({ perIp: 3 }), resumeLimiter: loginLimiter({ perIp }),
-    partnerLimiter: loginLimiter({ perIp }),
+    limiter: loginLimiter({ perIp }), accountLimiter: loginLimiter({ perIp: 50 }), startLimiter: loginLimiter({ perIp: 3 }),
+    resumeLimiter: loginLimiter({ perIp }), partnerLimiter: loginLimiter({ perIp }), partnerApplyLimiter: loginLimiter({ perIp: 20 }),
     hsts: true, webhookSecret: WEBHOOK_SECRET,
   });
   await new Promise((resolve) => server.listen(0, resolve));
@@ -34,7 +34,15 @@ const login = (url, body, headers = {}) => fetch(`${url}/api/login`, {
 });
 
 // Signs a member in and returns a fetch wrapper carrying their session cookie.
+// Each authenticator code works once, so a member signed in on a server keeps that session for later tests.
+const sessions = new Map();
 async function signedIn(url, member) {
+  const key = `${url}|${member.id}`;
+  if (!sessions.has(key)) sessions.set(key, await signIn(url, member));
+  return sessions.get(key);
+}
+
+async function signIn(url, member) {
   const res = await login(url, { email: member.email, password: PASSWORD, code: totpCode(member.secret) });
   assert.equal(res.status, 200);
   const cookie = res.headers.get('set-cookie').split(';')[0];
@@ -175,12 +183,13 @@ test('partners sign in with a code, introduce people, and their short links redi
   // With no SMS or email service, messages wait on the staff Messages page; partners cannot see it.
   await env.notifications.deliverDue();
   assert.equal((await fetch(`${url}/api/messages`, { headers: { cookie } })).status, 401);
-  const messages = await (await meron('GET', '/api/messages')).json();
+  assert.equal((await meron('GET', '/api/messages')).status, 403); // admins only: may hold resume codes
+  const messages = await (await admin('GET', '/api/messages')).json();
   assert.equal(messages.sms, null);
   assert.deepEqual(messages.toSend.map((m) => m.template).sort(), ['partner_approved', 'resume_code']);
   const [first] = messages.toSend;
-  assert.equal((await meron('POST', `/api/messages/${first.id}/sent`)).status, 200);
-  assert.equal((await (await meron('GET', '/api/messages')).json()).toSend.length, 1);
+  assert.equal((await admin('POST', `/api/messages/${first.id}/sent`)).status, 200);
+  assert.equal((await (await admin('GET', '/api/messages')).json()).toSend.length, 1);
 
   // Statements: a partner reads only their own; the all-partners report is for admins.
   const statement = await (await fetch(`${url}/api/partner/statement`, { headers: { cookie } })).json();
@@ -313,4 +322,61 @@ test('accepts only correctly signed Bitnob webhooks', async () => {
   });
   assert.equal((await post('bad')).status, 401);
   assert.equal((await post(sig)).status, 200);
+});
+
+test('security: sessions end on logout and password change; a stale setup cookie cannot take over an authenticator', async () => {
+  const { url, members: m } = await startServer();
+  const json = { 'content-type': 'application/json' };
+  const admin = await signedIn(url, m.admin);
+
+  // Logout ends that session everywhere (the old cookie stops working).
+  const fresh = await signIn(url, { ...m.meron, secret: m.meron.secret });
+  assert.equal((await fresh('GET', '/api/me')).status, 200);
+  assert.equal((await fresh('POST', '/api/logout')).status, 200);
+  assert.equal((await fresh('GET', '/api/me')).status, 401);
+
+  // A new member signs in with the temporary password (setup cookie), then sets up their authenticator.
+  const created = await (await admin('POST', '/api/staff', { email: 'new@example.com', name: 'New', role: 'staff', password: 'temporary-password-1' })).json();
+  const setup = await fetch(`${url}/api/login`, { method: 'POST', headers: json, body: JSON.stringify({ email: 'new@example.com', password: 'temporary-password-1' }) });
+  const setupCookie = setup.headers.get('set-cookie').split(';')[0];
+  const begun = await (await fetch(`${url}/api/authenticator/begin`, { method: 'POST', headers: { cookie: setupCookie } })).json();
+  const done = await fetch(`${url}/api/authenticator/confirm`, { method: 'POST', headers: { cookie: setupCookie, ...json }, body: JSON.stringify({ secret: begun.secret, code: totpCode(begun.secret) }) });
+  assert.equal(done.status, 200);
+  // The old setup cookie is dead now: it cannot start a new authenticator.
+  assert.equal((await fetch(`${url}/api/authenticator/begin`, { method: 'POST', headers: { cookie: setupCookie } })).status, 401);
+  // And the full cookie cannot replace it either.
+  const full = done.headers.get('set-cookie').split(';')[0];
+  assert.equal((await fetch(`${url}/api/authenticator/begin`, { method: 'POST', headers: { cookie: full } })).status, 403);
+
+  // A password change by an admin signs the member out.
+  assert.equal((await admin('PATCH', `/api/staff/${created.id}`, { password: 'another-password-22' })).status, 200);
+  assert.equal((await fetch(`${url}/api/me`, { headers: { cookie: full } })).status, 401);
+});
+
+test('security: bad bodies get clean errors; big bodies get 413; partner code resets end partner sessions', async () => {
+  const { url, members: m } = await startServer();
+  const json = { 'content-type': 'application/json' };
+  for (const path of ['/api/apply/resume', '/api/partner/login', '/api/login']) {
+    assert.equal((await fetch(`${url}${path}`, { method: 'POST', headers: json, body: 'null' })).status, 400, path);
+  }
+  assert.equal((await fetch(`${url}/api/apply/resume`, { method: 'POST', headers: json, body: JSON.stringify({ code: { $gt: '' } }) })).status, 400);
+  const big = await fetch(`${url}/api/apply/start`, { method: 'POST', headers: json, body: JSON.stringify({ x: 'a'.repeat(200 * 1024) }) });
+  assert.equal(big.status, 413);
+
+  const admin = await signedIn(url, m.admin);
+  await fetch(`${url}/api/partners/apply`, { method: 'POST', headers: json, body: JSON.stringify({
+    name: 'T', organisation: 'Cafe', type: 'shop', phone: '0911234567', city: 'Adama', payoutPhone: '0911234567', agree: true,
+  }) });
+  const [partner] = await (await admin('GET', '/api/partners')).json();
+  const { code } = await (await admin('POST', `/api/partners/${partner.id}/code`)).json();
+  const login = await fetch(`${url}/api/partner/login`, { method: 'POST', headers: json, body: JSON.stringify({ code }) });
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  assert.equal((await fetch(`${url}/api/partner`, { headers: { cookie } })).status, 200);
+  await admin('POST', `/api/partners/${partner.id}/code`); // new code: old devices are signed out
+  assert.equal((await fetch(`${url}/api/partner`, { headers: { cookie } })).status, 401);
+
+  // Staff cannot assign a case to someone who is not on the team.
+  const staffApi = await signedIn(url, m.meron);
+  const c = await (await staffApi('POST', '/api/cases', applicantInput())).json();
+  assert.equal((await staffApi('POST', `/api/cases/${c.id}/assign`, { staffId: '<script>' })).status, 422);
 });

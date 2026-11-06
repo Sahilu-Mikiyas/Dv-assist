@@ -23,10 +23,13 @@ export function jpegDimensions(buf) {
   return null;
 }
 
+// A whole JPEG ends with the end-of-image marker; a header glued onto other content does not.
+const isCompleteJpeg = (buf) => buf.length > 4 && buf[buf.length - 2] === 0xff && buf[buf.length - 1] === 0xd9;
+
 export function validatePhoto(buf) {
   if (buf.length > MAX_PHOTO_BYTES) throw new ValidationError(['Photo must be 240 KB or smaller']);
   const dims = jpegDimensions(buf);
-  if (!dims) throw new ValidationError(['Photo must be a JPEG file']);
+  if (!dims || !isCompleteJpeg(buf)) throw new ValidationError(['Photo must be a JPEG file']);
   if (dims.width !== PHOTO_SIZE_PX || dims.height !== PHOTO_SIZE_PX) {
     throw new ValidationError([`Photo must be 600x600 pixels (got ${dims.width}x${dims.height})`]);
   }
@@ -39,7 +42,7 @@ const MIN_DOCUMENT_SIDE_PX = 800;
 export function validateDocument(buf) {
   if (buf.length > MAX_DOCUMENT_BYTES) throw new ValidationError(['Passport scan must be 1.5 MB or smaller']);
   const dims = jpegDimensions(buf);
-  if (!dims) throw new ValidationError(['Passport scan must be a JPEG image']);
+  if (!dims || !isCompleteJpeg(buf)) throw new ValidationError(['Passport scan must be a JPEG image']);
   if (Math.max(dims.width, dims.height) < MIN_DOCUMENT_SIDE_PX) {
     throw new ValidationError([`Passport scan is too small to read (${dims.width}x${dims.height}). Take it closer, in good light.`]);
   }

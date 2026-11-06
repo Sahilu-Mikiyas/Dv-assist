@@ -116,7 +116,8 @@ export function validateApplicant(input) {
   if (!applicant.eligibilityCountry) errors.push('applicant.eligibilityCountry is required');
   if (!applicant.mailingAddress) errors.push('applicant.mailingAddress is required');
   if (!applicant.residenceCountry) errors.push('applicant.residenceCountry is required');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(applicant.email)) errors.push('applicant.email is invalid');
+  // A plain address only: no spaces or URL characters (?, &, %, /) that could smuggle extra fields into links.
+  if (!/^[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/.test(applicant.email)) errors.push('applicant.email is invalid');
   if (!EDUCATION_LEVELS.includes(applicant.education)) errors.push('applicant.education is invalid');
   if (!MARITAL_STATUSES.includes(applicant.maritalStatus)) errors.push('applicant.maritalStatus is invalid');
 

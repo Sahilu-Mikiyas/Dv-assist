@@ -29,9 +29,10 @@ const QUIET = { notify: async () => {}, smsEnabled: false };
 export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = null, notifications = QUIET }) {
   const issuing = new Set(); // case ids with a card request in flight
 
+  // A website entry belongs to its applicant until they send it for checking: staff cannot open it before.
   async function mustGet(id) {
     const found = await repo.get(id);
-    if (!found) throw new NotFoundError(`Case ${id} not found`);
+    if (!found || (found.source === 'website' && !found.sentAt && !found.erasedAt)) throw new NotFoundError(`Case ${id} not found`);
     return found;
   }
 

@@ -72,10 +72,14 @@ const server = createApp({
   authn: auth(config),
   applicantAuthn: applicantAuth(config),
   partnerAuthn: partnerAuth(config),
-  limiter: loginLimiter(),
-  startLimiter: loginLimiter({ perIp: 10, global: 500, windowMs: 60 * 60 * 1000 }),
-  resumeLimiter: loginLimiter({ perIp: 10, global: 200 }),
-  partnerLimiter: loginLimiter({ perIp: 10, global: 200 }),
+  // Per-connection and per-account limits only: there is no global cap, so nobody can lock everyone out.
+  // Resume and partner codes are 12 random characters (2^60), so per-connection limits are plenty.
+  limiter: loginLimiter({ perIp: 10, global: Infinity }),
+  accountLimiter: loginLimiter({ perIp: 5, global: Infinity }),
+  startLimiter: loginLimiter({ perIp: 30, global: Infinity, windowMs: 60 * 60 * 1000 }),
+  resumeLimiter: loginLimiter({ perIp: 10, global: Infinity }),
+  partnerLimiter: loginLimiter({ perIp: 10, global: Infinity }),
+  partnerApplyLimiter: loginLimiter({ perIp: 5, global: Infinity, windowMs: 60 * 60 * 1000 }),
   trustProxy: config.trustProxy,
   hsts: config.secureCookies,
   webhookSecret: config.bitnob.webhookSecret,

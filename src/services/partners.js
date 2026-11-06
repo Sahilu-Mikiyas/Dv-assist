@@ -101,6 +101,8 @@ export function partnerService({
       return partner?.status === PARTNER_STATUS.ACTIVE ? partner.id : null;
     },
 
+    signOut: (partner) => repo.bumpSession(partner.id),
+
     async activeById(id) {
       const partner = await repo.get(id);
       return partner?.status === PARTNER_STATUS.ACTIVE ? partner : null;
@@ -198,6 +200,11 @@ export function partnerService({
 
     async introduce(partner, input, ctx) {
       const details = validateIntroduction(input);
+      // Each invitation may become a paid SMS: at most 30 a day per partner, and one a day per phone number.
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const recent = (await repo.introductionsFor(partner.id)).filter((i) => i.createdAt > dayAgo);
+      if (recent.length >= 30) throw new ValidationError(['You have sent 30 invitations today. Try again tomorrow.']);
+      if (recent.some((i) => i.phone === details.phone)) throw new ValidationError(['You already invited this number today.']);
       const token = randomChars(8);
       await repo.insertIntroduction({ id: randomUUID(), partnerId: partner.id, token, details });
       await record('partner_introduced', ctx, `${partner.refCode} ${token}`);
@@ -256,6 +263,7 @@ export function partnerService({
       if (partner.status === PARTNER_STATUS.SUSPENDED) throw new ValidationError(['Reactivate this partner first']);
       const code = newAccessCode();
       await repo.setAccessHash(id, hashCode(code));
+      await repo.bumpSession(id); // a new code signs out any device using the old one
       if (partner.status === PARTNER_STATUS.PENDING) {
         await repo.setStatus(id, PARTNER_STATUS.ACTIVE);
         await notifications.notify('partner_approved', { partnerId: id, phone: partner.phone, data: { organisation: partner.organisation } });
@@ -270,6 +278,7 @@ export function partnerService({
       if (![PARTNER_STATUS.ACTIVE, PARTNER_STATUS.SUSPENDED].includes(status)) throw new ValidationError(['Status is invalid']);
       if (status === PARTNER_STATUS.ACTIVE && !partner.hasAccessCode) throw new ValidationError(['Approve the partner to give them a code']);
       await repo.setStatus(id, status);
+      await repo.bumpSession(id);
       await record(`partner_${status === PARTNER_STATUS.ACTIVE ? 'reactivated' : 'suspended'}`, ctx, partner.refCode);
       return repo.get(id);
     },

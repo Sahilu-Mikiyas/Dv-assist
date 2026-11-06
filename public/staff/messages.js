@@ -32,7 +32,7 @@ function messageCard(m) {
   if (m.to.email) {
     links.push(el('a', {
       className: 'btn small',
-      href: `mailto:${m.to.email}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.text)}`,
+      href: `mailto:${encodeURIComponent(m.to.email)}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.text)}`,
       textContent: `Email ${m.to.email}`,
     }));
   }

@@ -98,7 +98,8 @@ test('a paid but unsent website entry is not erased by the unsent rule; a used i
   const env = await setupCases({ retentionPolicy: { unsentDays: 1 } });
   const { admin, meron } = await seedStaff(env);
   const { caseId } = await env.applications.start({ package: 'vip', applicant: applicantInput() }, ctx);
-  await env.cases.recordPayment(caseId, { amountEtb: 3000, method: 'cash' }, ctxFor(meron));
+  // Staff cannot open an unsent entry; a payment can still arrive for one (e.g. online, once connected).
+  await env.caseRepo.recordPayment(caseId, { amountEtb: 3000, method: 'telebirr', reference: 'TX1', recordedBy: 'Telebirr' });
   env.advanceClock(3 * 24 * 60 * 60 * 1000);
   assert.equal((await env.retention.run()).unsent, 0);
 

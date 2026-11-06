@@ -75,6 +75,9 @@ test('applicants see whether their payment arrived', async () => {
   const env = await setupCases();
   const { admin, meron } = await seedStaff(env);
   const { caseId } = await env.applications.start({ package: 'managed', applicant: applicantInput() }, ctx);
+  await env.applications.savePhoto(caseId, 'applicant', fakeJpeg(), ctx);
+  await env.applications.saveDocument(caseId, 'passport', fakePassport(), ctx);
+  await env.applications.send(caseId, ctx);
   assert.deepEqual((await env.applications.get(caseId)).payment, { status: 'none' });
   await env.cases.recordPayment(caseId, { amountEtb: 1500, method: 'cash' }, ctxFor(meron));
   assert.deepEqual((await env.applications.get(caseId)).payment, { status: 'paid', amountEtb: 1500 });

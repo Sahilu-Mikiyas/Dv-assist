@@ -224,9 +224,10 @@ test/         node:test suites (Bitnob is faked)
 | Card data | Card number and CVV are never stored. They're fetched from Bitnob on demand, only while a case awaits submission, and every reveal is audited. |
 | Four eyes | The second check must be done by a different staff member from the first. |
 | Bitnob webhooks | Accepted only with a valid HMAC-SHA512 signature, and logged without card numbers. |
-| Login | Personal accounts: password (scrypt hash) plus a 6-digit authenticator code (RFC 6238). Failed logins are limited per IP (5 per 15 min) and overall (50 per 15 min). Deactivated staff are signed out at once. |
+| Login | Personal accounts: password (scrypt hash) plus a 6-digit authenticator code (RFC 6238). Failed logins are limited per IP and per account (no global cap, so nobody can lock the team out). Unknown emails take as long as wrong passwords. Deactivated staff are signed out at once. |
 | Partners | Sign-in with an admin-issued 12-character code (hash stored, rate-limited), on a separate signed cookie. Contact details and introductions are encrypted at rest. Partners see referrals' names and stages only. Introductions require the partner to confirm the person agreed. |
 | Applicants | No accounts: a random 12-character resume code (60 bits). Only its SHA-256 hash is stored. Wrong codes and new entries are rate-limited per IP. Applicants see only their own entry, never staff names or card data. Their cookie is signed separately and cannot be used as a staff session. |
+| Session revocation | Staff and partner cookies carry a session version: logout, password change, authenticator reset, deactivation, partner code reset and suspension sign that person out everywhere at once. A password-only "setup" session ends as soon as the authenticator exists, and an authenticator can only be replaced by an admin reset. Each authenticator code works once. |
 | Session | HMAC-signed cookie, `__Host-` prefixed, HttpOnly, Secure, SameSite=Strict, 8-hour expiry. Rotating `SESSION_SECRET` logs everyone out. |
 | Cross-site attacks | Strict Content-Security-Policy with no inline scripts, `frame-ancestors 'none'`, Origin check on writes, and JSON/JPEG-only request bodies. |
 | Transport | HSTS. HTTPS is provided by the host. |

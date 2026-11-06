@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import { ValidationError } from '../domain/case.js';
 import { hashPassword, verifyPassword } from '../infra/crypto.js';
-import { newTotpSecret, otpauthUrl, verifyTotp } from '../infra/totp.js';
+import { matchTotp, newTotpSecret, otpauthUrl, verifyTotp } from '../infra/totp.js';
 
 export const ROLES = ['admin', 'staff'];
 
@@ -22,6 +22,9 @@ function validateNew({ email, name, role, password }) {
   if (errors.length) throw new ValidationError(errors);
 }
 
+// Checked against when the email is unknown, so a wrong email takes as long as a wrong password.
+const DUMMY_HASH = hashPassword('not-a-real-password-just-for-timing');
+
 export function staffService({ repo, audit }) {
   const record = (action, ctx, detail = null) =>
     audit.record({ action, ip: ctx?.ip, staffId: ctx?.staff?.id, detail });
@@ -30,7 +33,17 @@ export function staffService({ repo, audit }) {
     if (ctx?.staff?.role !== 'admin') throw new ForbiddenError('Admins only');
   };
 
+  // An authenticator can only be set up once; replacing it needs an admin reset (which signs the person out).
+  const assertNoAuthenticator = (ctx) => {
+    if (ctx.staff.totpSecret) throw new ForbiddenError('Your authenticator is already set up. Ask an admin to reset it.');
+  };
+
   return {
+    async signOut(ctx) {
+      await repo.bumpSession(ctx.staff.id);
+      await record('logout', ctx);
+    },
+
     // Creates the first admin from configuration when no staff exist yet.
     async bootstrap({ email, passwordHash }) {
       if (!email || !passwordHash || (await repo.count()) > 0) return false;
@@ -46,8 +59,10 @@ export function staffService({ repo, audit }) {
     // Returns { staff, needsAuthenticator }. Staff without an authenticator yet must set one up next.
     async signIn({ email, password, code }, ctx) {
       const staff = await repo.byEmail(String(email ?? '').trim().toLowerCase());
-      const passwordOk = staff ? await verifyPassword(password, staff.passwordHash) : false;
-      const codeOk = !staff?.totpSecret || verifyTotp(staff.totpSecret, code);
+      const passwordOk = await verifyPassword(String(password ?? ''), staff ? staff.passwordHash : await DUMMY_HASH) && Boolean(staff);
+      const step = staff?.totpSecret ? matchTotp(staff.totpSecret, code) : null;
+      // Each code works once: a code seen on someone's screen cannot be replayed.
+      const codeOk = !staff?.totpSecret || (step !== null && passwordOk && (await repo.useTotpStep(staff.id, step)));
       if (!staff || !staff.active || !passwordOk || !codeOk) {
         await audit.record({ action: 'login_failed', ip: ctx?.ip, staffId: staff?.id ?? null });
         throw new AuthError('Email, password or code is wrong');
@@ -58,16 +73,20 @@ export function staffService({ repo, audit }) {
 
     // The secret stays with the client until a code proves the app was set up correctly.
     beginAuthenticator(ctx) {
+      assertNoAuthenticator(ctx);
       const secret = newTotpSecret();
       return { secret, url: otpauthUrl(secret, ctx.staff.email) };
     },
 
-    async confirmAuthenticator({ secret, code }, ctx) {
+    async confirmAuthenticator({ secret, code } = {}, ctx) {
+      assertNoAuthenticator(ctx);
       if (!/^[A-Z2-7]{32}$/.test(secret ?? '') || !verifyTotp(secret, code)) {
         throw new ValidationError(['That code does not match. Check the time on your phone and try again.']);
       }
       await repo.setTotp(ctx.staff.id, secret);
+      await repo.useTotpStep(ctx.staff.id, matchTotp(secret, code));
       await record('authenticator_set', ctx);
+      return repo.byId(ctx.staff.id);
     },
 
     me: (ctx) => publicStaff(ctx.staff),
@@ -108,6 +127,8 @@ export function staffService({ repo, audit }) {
         role, active, passwordHash: password === undefined ? undefined : await hashPassword(password),
       });
       if (resetAuthenticator) await repo.setTotp(id, null);
+      // A new password, authenticator reset or deactivation signs them out everywhere.
+      if (password !== undefined || resetAuthenticator || active === false) await repo.bumpSession(id);
       await record('staff_updated', ctx, target.email);
       return publicStaff(await repo.byId(id));
     },

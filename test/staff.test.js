@@ -29,11 +29,18 @@ test('signs in with password, then requires authenticator setup, then the code',
   await env.staff.confirmAuthenticator({ secret, code: totpCode(secret) }, ctx);
 
   await assert.rejects(env.staff.signIn({ email: 'owner@example.com', password: PASSWORD }), AuthError);
-  const second = await env.staff.signIn({ email: 'owner@example.com', password: PASSWORD, code: totpCode(secret) });
+  // The code used to set up the authenticator cannot be used again: the next one (30 s later) works.
+  await assert.rejects(env.staff.signIn({ email: 'owner@example.com', password: PASSWORD, code: totpCode(secret) }), AuthError);
+  const second = await env.staff.signIn({ email: 'owner@example.com', password: PASSWORD, code: totpCode(secret, Date.now() + 30_000) });
+  // And that code cannot be replayed either.
+  await assert.rejects(env.staff.signIn({ email: 'owner@example.com', password: PASSWORD, code: totpCode(secret, Date.now() + 30_000) }), AuthError);
   assert.equal(second.needsAuthenticator, false);
 
   const { rows } = await env.db.execute('SELECT action FROM audit_events ORDER BY id');
-  assert.deepEqual(rows.map((r) => r.action), ['login_failed', 'login', 'authenticator_set', 'login_failed', 'login']);
+  assert.deepEqual(rows.map((r) => r.action), ['login_failed', 'login', 'authenticator_set', 'login_failed', 'login_failed', 'login', 'login_failed']);
+  // Once set up, the authenticator cannot be replaced through the setup routes.
+  const owner = await env.staffRepo.byEmail('owner@example.com');
+  assert.throws(() => env.staff.beginAuthenticator(ctxFor(owner)), /already set up/);
 });
 
 test('admins manage staff; others cannot', async () => {

@@ -114,11 +114,14 @@ export function applicationService({ repo, audit, partners = null, notifications
     },
 
     // Returns the case id for a valid code, else null.
-    async resume(code) {
+    async resume(code, ctx = {}) {
       if (normalizeCode(code).length !== CODE_LENGTH) return null;
       const found = await repo.findByAccessHash(hashCode(code));
-      return found?.source === 'website' ? found.id : null;
+      if (found?.source !== 'website' || found.erasedAt) return null;
+      await record('application_resumed', found.id, ctx); // who opened the entry with its code, and from where
+      return found.id;
     },
+
 
     get: async (id) => view(await mustGet(id)),
 

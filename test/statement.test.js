@@ -14,7 +14,7 @@ async function newPartner(env, admin, organisation, phone) {
 async function through(env, admin, meron, caseId, until) {
   await env.applications.savePhoto(caseId, 'applicant', fakeJpeg(), ctx);
   await env.applications.saveDocument(caseId, 'passport', fakePassport(), ctx);
-  for (const key of (await env.cases.get(caseId)).photos.map((p) => p.key)) await env.applications.savePhoto(caseId, key, fakeJpeg(), ctx);
+  for (const key of (await env.applications.get(caseId)).photos.map((p) => p.key)) await env.applications.savePhoto(caseId, key, fakeJpeg(), ctx);
   await env.applications.send(caseId, ctx);
   if (until === 'checking') return;
   await env.cases.check(caseId, ctxFor(meron));

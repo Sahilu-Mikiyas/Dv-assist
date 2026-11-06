@@ -35,7 +35,7 @@ test('a website entry goes from applicant to staff checks to online approval', a
   await applications.saveDocument(caseId, 'passport', fakePassport(), ctx);
   await assert.rejects(applications.send(caseId, ctx), /Photo missing for child0/);
   await applications.savePhoto(caseId, 'child0', fakeJpeg(), ctx);
-  await assert.rejects(cases.check(caseId, ctxFor(meron)), /has not sent/);
+  await assert.rejects(cases.check(caseId, ctxFor(meron)), /not found/); // staff cannot see it until it is sent
 
   const sent = await applications.send(caseId, ctx);
   assert.equal(sent.editable, false);

@@ -48,7 +48,8 @@ export function fakeJpeg(width = 600, height = 600, padTo = 0) {
   sof.writeUInt16BE(height, 5);
   sof.writeUInt16BE(width, 7);
   const buf = Buffer.concat([Buffer.from([0xff, 0xd8]), sof, Buffer.alloc(20)]);
-  return padTo > buf.length ? Buffer.concat([buf, Buffer.alloc(padTo - buf.length)]) : buf;
+  const body = padTo > buf.length + 2 ? Buffer.concat([buf, Buffer.alloc(padTo - buf.length - 2)]) : buf;
+  return Buffer.concat([body, Buffer.from([0xff, 0xd9])]); // end-of-image marker
 }
 
 // A passport scan: a landscape JPEG large enough to read.

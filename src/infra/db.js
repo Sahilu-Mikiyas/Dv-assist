@@ -155,6 +155,11 @@ const MIGRATIONS = [
   'CREATE INDEX cases_person_fp ON cases (person_fp)',
   // At most one payout waiting to be paid per partner, enforced by the database (two clicks cannot both pay).
   "CREATE UNIQUE INDEX payouts_one_pending ON payouts (partner_id) WHERE status = 'pending'",
+  // Session versions: bumping one signs that person out everywhere (logout, password or code changes).
+  'ALTER TABLE staff ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
+  'ALTER TABLE partners ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
+  // The last authenticator time-step used, so a code cannot be used twice.
+  'ALTER TABLE staff ADD COLUMN totp_last_step INTEGER',
   // Reminder messages already sent, so each goes out once.
   `CREATE TABLE reminders (
      case_id TEXT NOT NULL,
@@ -449,6 +454,7 @@ export function partnerRepository(db, crypt) {
       ...crypt.decryptJson(row.details),
       status: row.status,
       kind: row.kind ?? 'tech_center',
+      sessionVersion: Number(row.session_version ?? 0),
       deal: row.deal ? JSON.parse(row.deal) : null,
       refCode: row.ref_code,
       hasAccessCode: Boolean(row.access_hash),
@@ -500,6 +506,9 @@ export function partnerRepository(db, crypt) {
     async setStatus(id, status) {
       await run('UPDATE partners SET status = ?, approved_at = COALESCE(approved_at, ?) WHERE id = ?',
         status, status === 'active' ? new Date().toISOString() : null, id);
+    },
+    async bumpSession(id) {
+      await run('UPDATE partners SET session_version = session_version + 1 WHERE id = ?', id);
     },
     async setDeal(id, { kind, deal }) {
       await run('UPDATE partners SET kind = ?, deal = ? WHERE id = ?', kind, deal ? JSON.stringify(deal) : null, id);
@@ -644,6 +653,7 @@ export function staffRepository(db, crypt) {
       passwordHash: row.password_hash,
       totpSecret: row.totp_secret ? crypt.decrypt(row.totp_secret).toString('utf8') : null,
       active: Boolean(row.active),
+      sessionVersion: Number(row.session_version ?? 0),
       createdAt: row.created_at,
     };
 
@@ -668,6 +678,14 @@ export function staffRepository(db, crypt) {
       const current = await this.byId(id);
       await run('UPDATE staff SET role = ?, active = ?, password_hash = ? WHERE id = ?',
         role ?? current.role, (active ?? current.active) ? 1 : 0, passwordHash ?? current.passwordHash, id);
+    },
+    async bumpSession(id) {
+      await run('UPDATE staff SET session_version = session_version + 1 WHERE id = ?', id);
+    },
+    // Records a used authenticator time-step; false if it (or a later one) was already used: a replay.
+    async useTotpStep(id, step) {
+      const r = await run('UPDATE staff SET totp_last_step = ? WHERE id = ? AND (totp_last_step IS NULL OR totp_last_step < ?)', step, id, step);
+      return r.rowsAffected === 1;
     },
     async setTotp(id, secret) {
       await run('UPDATE staff SET totp_secret = ? WHERE id = ?', secret ? crypt.encrypt(Buffer.from(secret)) : null, id);

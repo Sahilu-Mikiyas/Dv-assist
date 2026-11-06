@@ -40,6 +40,25 @@ const SECURITY_HEADERS = {
   'Cross-Origin-Resource-Policy': 'same-origin',
 };
 
+// A string field from a JSON body; anything else (objects, numbers) is refused cleanly instead of crashing.
+function stringField(body, name) {
+  const value = body[name];
+  if (value === undefined || value === null || value === '') return '';
+  if (typeof value !== 'string') throw new HttpError(400, `${name} must be text`);
+  return value;
+}
+
+function adminOnly(ctx) {
+  if (ctx.staff.role !== 'admin') throw new ForbiddenError('Admins only');
+  return false;
+}
+
+const subjectOf = (id, version) => `${id}~${version}`;
+function parseSubject(subject) {
+  const [id, version] = String(subject).split('~');
+  return { id, version: Number(version) };
+}
+
 class HttpError extends Error {
   constructor(status, message) {
     super(message);
@@ -54,8 +73,10 @@ function readBody(req, limit) {
     req.on('data', (chunk) => {
       size += chunk.length;
       if (size > limit) {
+        // Stop reading but let the 413 response go out; the connection closes after it.
+        req.removeAllListeners('data');
+        req.resume();
         reject(new HttpError(413, 'Request body too large'));
-        req.destroy();
       } else chunks.push(chunk);
     });
     req.on('end', () => resolve(Buffer.concat(chunks)));
@@ -68,11 +89,15 @@ async function readJson(req) {
     throw new HttpError(415, 'Expected application/json');
   }
   const raw = await readBody(req, MAX_JSON_BYTES);
+  let value;
   try {
-    return raw.length ? JSON.parse(raw) : {};
+    value = raw.length ? JSON.parse(raw) : {};
   } catch {
     throw new HttpError(400, 'Invalid JSON');
   }
+  // Every endpoint expects an object; null, arrays and plain values are refused before any handler sees them.
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new HttpError(400, 'Expected a JSON object');
+  return value;
 }
 
 async function readJpeg(req, limit = MAX_PHOTO_BYTES) {
@@ -126,19 +151,38 @@ function verifyWebhook(raw, signature, secret) {
 // signed in, authenticator not yet set up) or null (staff fully signed in).
 function routes({
   cases, staff, applications, partners, payouts, economics, notifications, retention, authn, applicantAuthn, partnerAuthn,
-  limiter, startLimiter, resumeLimiter, partnerLimiter, webhookSecret,
+  limiter, accountLimiter, startLimiter, resumeLimiter, partnerLimiter, partnerApplyLimiter, webhookSecret,
 }) {
-  const sessionFor = (result) => authn.sessionCookie(result.staff.id, { stage: result.needsAuthenticator ? 'setup' : 'ok' });
+  // Staff and partner cookies carry the person's session version: bumping it (logout, password or code change)
+  // makes every older cookie invalid at once.
+  // The partner signed in on this device (for "fill in together"), if their session is still valid.
+  const signedInPartnerId = async (req) => {
+    const session = partnerAuthn.readSession(req);
+    if (!session) return null;
+    const { id, version } = parseSubject(session.subject);
+    const partner = await partners.activeById(id);
+    return partner && partner.sessionVersion === version ? partner.id : null;
+  };
+  const staffCookie = (member, stage = 'ok') => authn.sessionCookie(subjectOf(member.id, member.sessionVersion), { stage });
 
   return [
     ['POST', /^\/api\/login$/, 'public', async (req, _, ctx) => {
-      if (limiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many failed attempts. Try again later.');
+      const input = await readJson(req);
+      const account = String(input.email ?? '').trim().toLowerCase();
+      // Limited per connection and per account: guessing one person's password from many addresses is stopped,
+      // and nobody can lock the whole team out.
+      if (limiter.isBlocked(ctx.ip) || accountLimiter.isBlocked(account)) throw new HttpError(429, 'Too many failed attempts. Try again later.');
       try {
-        const result = await staff.signIn(await readJson(req), ctx);
+        const result = await staff.signIn(input, ctx);
         limiter.recordSuccess(ctx.ip);
-        return { body: result, headers: { 'Set-Cookie': sessionFor(result) } };
+        accountLimiter.recordSuccess(account);
+        const member = await staff.activeById(result.staff.id);
+        return { body: result, headers: { 'Set-Cookie': staffCookie(member, result.needsAuthenticator ? 'setup' : 'ok') } };
       } catch (err) {
-        if (err instanceof AuthError) limiter.recordFailure(ctx.ip);
+        if (err instanceof AuthError) {
+          limiter.recordFailure(ctx.ip);
+          accountLimiter.recordFailure(account);
+        }
         throw err;
       }
     }],
@@ -157,12 +201,15 @@ function routes({
       await cases.handleBitnobEvent(event, ctx);
       return { received: true };
     }],
-    ['POST', /^\/api\/logout$/, 'setup', async () => ({ body: { ok: true }, headers: { 'Set-Cookie': authn.clearCookie() } })],
+    ['POST', /^\/api\/logout$/, 'setup', async (_, __, ctx) => {
+      await staff.signOut(ctx);
+      return { body: { ok: true }, headers: { 'Set-Cookie': authn.clearCookie() } };
+    }],
     ['GET', /^\/api\/me$/, 'setup', async (_, __, ctx) => ({ ...staff.me(ctx), stage: ctx.stage })],
     ['POST', /^\/api\/authenticator\/begin$/, 'setup', async (_, __, ctx) => staff.beginAuthenticator(ctx)],
     ['POST', /^\/api\/authenticator\/confirm$/, 'setup', async (req, _, ctx) => {
-      await staff.confirmAuthenticator(await readJson(req), ctx);
-      return { body: { ok: true }, headers: { 'Set-Cookie': authn.sessionCookie(ctx.staff.id) } };
+      const member = await staff.confirmAuthenticator(await readJson(req), ctx);
+      return { body: { ok: true }, headers: { 'Set-Cookie': staffCookie(member) } };
     }],
 
     // Website applicants.
@@ -170,18 +217,20 @@ function routes({
       packages: PACKAGES, educationLevels: EDUCATION_LEVELS, maritalStatuses: MARITAL_STATUSES,
     })],
     ['POST', /^\/api\/apply\/start$/, 'public', async (req, _, ctx) => {
-      if (startLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many new entries from this connection. Try again later.');
+      // A partner filling the entry in with the applicant is signed in on this device. Partners are not limited
+      // per connection (a shop may file many entries); everyone else is.
+      const partnerId = await signedInPartnerId(req);
+      if (!partnerId && startLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many new entries from this connection. Try again later.');
       const input = await readJson(req);
-      // A partner filling the entry in with the applicant is signed in on this device.
-      const partnerSession = partnerAuthn.readSession(req);
-      const { caseId, resumeCode, together, application } = await applications.start(input, { ...ctx, partnerId: partnerSession?.subject });
-      startLimiter.recordFailure(ctx.ip); // counts every entry started, not only failures
+      const { caseId, resumeCode, together, application } = await applications.start(input, { ...ctx, partnerId });
+      if (!partnerId) startLimiter.recordFailure(ctx.ip); // counts every entry started, not only failures
       const cookie = applicantAuthn.sessionCookie(caseId, together ? { maxAgeMs: TOGETHER_SESSION_MS } : {});
-      return { status: 201, body: { resumeCode, together, application }, headers: { 'Set-Cookie': cookie } };
+      // Filled in together: the code goes to the applicant's own phone or email, never onto the partner's device.
+      return { status: 201, body: { resumeCode: together ? null : resumeCode, together, application }, headers: { 'Set-Cookie': cookie } };
     }],
     ['POST', /^\/api\/apply\/resume$/, 'public', async (req, _, ctx) => {
       if (resumeLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many wrong codes. Try again later.');
-      const caseId = await applications.resume((await readJson(req)).code);
+      const caseId = await applications.resume(stringField(await readJson(req), 'code'), ctx);
       if (!caseId) {
         resumeLimiter.recordFailure(ctx.ip);
         throw new HttpError(401, 'That code was not found. Check it and try again.');
@@ -212,22 +261,28 @@ function routes({
     // Referral partners.
     ['GET', /^\/api\/partners\/options$/, 'public', async () => ({ types: PARTNER_TYPES, packages: PACKAGES })],
     ['POST', /^\/api\/partners\/apply$/, 'public', async (req, _, ctx) => {
-      if (startLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many applications from this connection. Try again later.');
+      if (partnerApplyLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many applications from this connection. Try again later.');
       const result = await partners.apply(await readJson(req), ctx);
-      startLimiter.recordFailure(ctx.ip);
+      partnerApplyLimiter.recordFailure(ctx.ip);
       return { status: 201, body: result };
     }],
     ['POST', /^\/api\/partner\/login$/, 'public', async (req, _, ctx) => {
       if (partnerLimiter.isBlocked(ctx.ip)) throw new HttpError(429, 'Too many wrong codes. Try again later.');
-      const partnerId = await partners.signIn((await readJson(req)).code);
+      const partnerId = await partners.signIn(stringField(await readJson(req), 'code'));
       if (!partnerId) {
         partnerLimiter.recordFailure(ctx.ip);
         throw new HttpError(401, 'That code was not found, or this partner account is not active.');
       }
       partnerLimiter.recordSuccess(ctx.ip);
-      return { body: { ok: true }, headers: { 'Set-Cookie': partnerAuthn.sessionCookie(partnerId) } };
+      const partner = await partners.activeById(partnerId);
+      return { body: { ok: true }, headers: { 'Set-Cookie': partnerAuthn.sessionCookie(subjectOf(partner.id, partner.sessionVersion)) } };
     }],
-    ['POST', /^\/api\/partner\/logout$/, 'public', async () => ({ body: { ok: true }, headers: { 'Set-Cookie': partnerAuthn.clearCookie() } })],
+    ['POST', /^\/api\/partner\/logout$/, 'public', async (req) => {
+      const session = partnerAuthn.readSession(req);
+      const partner = session && (await partners.activeById(parseSubject(session.subject).id));
+      if (partner && partner.sessionVersion === parseSubject(session.subject).version) await partners.signOut(partner);
+      return { body: { ok: true }, headers: { 'Set-Cookie': partnerAuthn.clearCookie() } };
+    }],
     ['GET', /^\/api\/partner$/, 'partner', async (_, __, ctx) => partners.dashboard(ctx.partner)],
     ['GET', /^\/api\/partner\/revenue-share$/, 'partner', async (_, __, ctx) => {
       const account = await partners.revenueShare(ctx.partner);
@@ -292,10 +347,12 @@ function routes({
     }],
 
     // Messages to applicants and partners that need a person to send them.
-    ['GET', /^\/api\/messages$/, null, async () => ({
+    // Admins only: waiting messages can hold resume codes.
+    ['GET', /^\/api\/messages$/, null, async (_, __, ctx) => adminOnly(ctx) || ({
       ...(await notifications.overview()), toSend: await notifications.toSend(), recent: await notifications.recent(),
     })],
     ['POST', /^\/api\/messages\/(\d+)\/sent$/, null, async (_, [id], ctx) => {
+      adminOnly(ctx);
       await notifications.markSent(Number(id), ctx);
       return { ok: true };
     }],
@@ -339,7 +396,12 @@ function routes({
       await cases.saveDocument(id, kind, await readJpeg(req, MAX_DOCUMENT_BYTES), ctx);
       return { ok: true };
     }],
-    ['POST', /^\/api\/cases\/([\w-]+)\/assign$/, null, async (req, [id], ctx) => cases.assign(id, (await readJson(req)).staffId, ctx)],
+    ['POST', /^\/api\/cases\/([\w-]+)\/assign$/, null, async (req, [id], ctx) => {
+      const staffId = stringField(await readJson(req), 'staffId');
+      // Only an active team member (or nobody) can be assigned.
+      if (staffId && !(await staff.activeById(staffId))) throw new HttpError(422, 'No such active staff member');
+      return cases.assign(id, staffId, ctx);
+    }],
     ['POST', /^\/api\/cases\/([\w-]+)\/check$/, null, async (_, [id], ctx) => cases.check(id, ctx)],
     ['POST', /^\/api\/cases\/([\w-]+)\/verify$/, null, async (_, [id], ctx) => cases.verify(id, ctx)],
     ['POST', /^\/api\/cases\/([\w-]+)\/approve$/, null, async (req, [id], ctx) => cases.approve(id, (await readJson(req)).method, ctx)],
@@ -431,8 +493,10 @@ function assertSameOrigin(req) {
 export function createApp(deps) {
   const { staff, authn, applicantAuthn, partnerAuthn, partners, trustProxy = false, hsts = false } = deps;
   const table = routes({ webhookSecret: null, ...deps });
+  // Behind a proxy (Render, Railway) the client address is the entry the proxy itself appended: the last one.
+  // Earlier entries come from the client and can be forged.
   const clientIp = (req) =>
-    (trustProxy && req.headers['x-forwarded-for']?.split(',')[0].trim()) || req.socket.remoteAddress;
+    (trustProxy && req.headers['x-forwarded-for']?.split(',').at(-1).trim()) || req.socket.remoteAddress;
 
   return createServer(async (req, res) => {
     const started = performance.now();
@@ -469,13 +533,17 @@ export function createApp(deps) {
         ctx.caseId = session.subject;
       } else if (stage === 'partner') {
         const session = partnerAuthn.readSession(req);
-        const partner = session && (await partners.activeById(session.subject));
-        if (!partner) throw new HttpError(401, 'Sign in with your partner code');
+        const subject = session && parseSubject(session.subject);
+        const partner = subject && (await partners.activeById(subject.id));
+        if (!partner || partner.sessionVersion !== subject.version) throw new HttpError(401, 'Sign in with your partner code');
         ctx.partner = partner;
       } else if (stage !== 'public') {
         const session = authn.readSession(req);
-        const member = session && (await staff.activeById(session.subject));
-        if (!member) throw new HttpError(401, 'Login required');
+        const subject = session && parseSubject(session.subject);
+        const member = subject && (await staff.activeById(subject.id));
+        if (!member || member.sessionVersion !== subject.version) throw new HttpError(401, 'Login required');
+        // A password-only "setup" session ends once the authenticator exists: it can never replace it.
+        if (session.stage === 'setup' && member.totpSecret) throw new HttpError(401, 'Login required');
         if (session.stage === 'setup' && stage !== 'setup') throw new HttpError(403, 'Set up your authenticator first');
         Object.assign(ctx, { staff: member, stage: session.stage });
       }
