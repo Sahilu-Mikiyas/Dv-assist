@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Costs — Ethio DV Assist staff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=Noto+Sans+Ethiopic:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar" aria-label="Staff navigation">
+    <a class="brand" href="/staff/"><svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg><b>Staff</b></a>
+    <a class="nav-link" href="/staff/">Case queue</a>
+    <a class="nav-link" href="/staff/?mine=1" id="mine-link">My cases</a>
+    <a class="nav-link" href="/staff/case.html">New case</a>
+    <a class="nav-link" href="/staff/messages.html">Messages</a>
+    <a class="nav-link" href="/staff/team.html" data-admin hidden>Team</a>
+    <a class="nav-link" href="/staff/partners.html" data-admin hidden>Partners</a>
+    <a class="nav-link" href="/staff/payouts.html" data-admin hidden>Payouts</a>
+    <a class="nav-link" href="/staff/costs.html" aria-current="page" data-admin hidden>Costs</a>
+    <a class="nav-link" href="/staff/data.html" data-admin hidden>Data</a>
+    <a class="nav-link" href="/staff/audit.html" data-admin hidden>Audit log</a>
+    <div class="me"><span class="avatar" id="me-avatar">·</span><span><span id="me-name">…</span><br><span class="muted" id="me-role"></span></span><button class="btn small ghost" id="logout" type="button">Log out</button></div>
+  </nav>
+
+  <main class="content">
+    <div class="page-head">
+      <div>
+        <h1>Costs per applicant</h1>
+        <p class="muted flat">Net profit for revenue-share partners is what each applicant paid, less these costs. Update them as actual costs come in; every change is logged.</p>
+      </div>
+    </div>
+    <p id="error" hidden></p>
+    <div class="split">
+      <form class="card main stack" id="costs">
+        <p class="muted flat small" id="saved-note"></p>
+        <div class="grid">
+          <label class="field">Payment cost (ETB)<input name="paymentCostEtb" type="number" min="0" step="1" required><span class="muted small">Official $1 fee and card costs</span></label>
+          <label class="field">Collection fee (%)<input name="collectionFeePct" type="number" min="0" max="50" step="0.1" required><span class="muted small">Of what the applicant paid</span></label>
+          <label class="field">Tech-centre commission (ETB)<input name="techCenterCommissionEtb" type="number" min="0" step="1" required><span class="muted small">Per applicant a tech centre referred. Also what tech centres are paid.</span></label>
+          <label class="field">Marketing (ETB)<input name="marketingEtb" type="number" min="0" step="1" required><span class="muted small">Per applicant not brought by a revenue-share partner</span></label>
+          <label class="field">Support (ETB)<input name="supportEtb" type="number" min="0" step="1" required><span class="muted small">Per applicant</span></label>
+          <label class="field">Development (ETB)<input name="developmentEtb" type="number" min="0" step="1" required><span class="muted small">Platform build spread over the planned season</span></label>
+        </div>
+        <div class="row"><button class="btn primary" type="submit">Save costs</button></div>
+      </form>
+      <section class="card side stack">
+        <h2 class="card-title">Net profit per 1,500 ETB applicant</h2>
+        <table class="ledger-mini">
+          <tbody>
+            <tr><th scope="row">Direct (revenue-share partner)</th><td id="net-direct"></td></tr>
+            <tr><th scope="row">Through us, via a tech centre</th><td id="net-tech"></td></tr>
+            <tr><th scope="row">Through us, our own channels</th><td id="net-own"></td></tr>
+          </tbody>
+        </table>
+        <p class="muted flat small">Updates as you type. The offer's Model A planned 524 ETB direct and 184 ETB through us.</p>
+      </section>
+    </div>
+  </main>
+</div>
+<script type="module" src="/staff/costs.js"></script>
+</body>
+</html>

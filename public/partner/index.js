@@ -15,6 +15,16 @@ const HOW = { introduced: 'Introduced', link: 'Used your link', together: 'Fille
 const birr = (n) => `${n.toLocaleString('en-US')} ETB`;
 const PAYOUT = { paid: 'Paid', waiting: 'Being paid', due: 'Due' };
 
+// Revenue-share partners earn a share of net profit, not a per-entry commission.
+async function showRevenueShare(me) {
+  const a = await (await fetch('/api/partner/revenue-share')).json();
+  $('#earned').textContent = birr(a.totalShare);
+  $('#paid-split').textContent = `${birr(a.paidEtb)} paid · ${birr(Math.max(0, a.balanceEtb + a.waitingEtb))} owed`;
+  $('#revenue-share-link').hidden = false;
+  me.earned = null; // keep the per-entry figures below from overwriting this
+  me.revenueShare = true;
+}
+
 function earningCell(r) {
   if (r.stage !== 'submitted') return [r.stage === 'invited' ? '—' : 'When submitted'];
   return [r.earning != null ? birr(r.earning) : 'To be confirmed', el('br'), el('small', { textContent: PAYOUT[r.payout] })];
@@ -29,8 +39,9 @@ try {
   $('#n-introduced').textContent = me.counts.introduced;
   $('#n-progress').textContent = me.counts.inProgress;
   $('#n-submitted').textContent = me.counts.submitted;
-  $('#earned').textContent = me.earned == null ? 'To be confirmed' : birr(me.earned);
-  if (me.earned != null) $('#paid-split').textContent = `${birr(me.paidEtb)} paid · ${birr(me.owedEtb)} owed`;
+  if (me.kind === 'revenue_share') await showRevenueShare(me);
+  else $('#earned').textContent = me.earned == null ? 'To be confirmed' : birr(me.earned);
+  if (me.earned != null && !me.revenueShare) $('#paid-split').textContent = `${birr(me.paidEtb)} paid · ${birr(me.owedEtb)} owed`;
   $('#earned').classList.toggle('words', me.earned == null);
 
   const link = `${location.origin}/r/${me.refCode}`;
@@ -47,7 +58,9 @@ try {
       $('#copy-link').textContent = 'Select and copy it';
     }
   });
-  $('#payout').textContent = me.commissionEtb == null
+  $('#payout').textContent = me.revenueShare
+    ? `Your share of net profit is paid to your Telebirr ending ··${me.payoutPhoneEnding}. See "Revenue share" for the full account.`
+    : me.commissionEtb == null
     ? `Commission per submitted entry is being finalised. Payouts go to your Telebirr number ending ··${me.payoutPhoneEnding}.`
     : `${birr(me.commissionEtb)} for each submitted entry, paid to your Telebirr number ending ··${me.payoutPhoneEnding}.`;
 
@@ -59,7 +72,7 @@ try {
       el('small', { textContent: `${HOW[r.how]} · ${r.people} ${r.people === 1 ? 'person' : 'people'}` })),
     el('td', { textContent: PACKAGE_NAMES[r.package] ?? '—' }),
     el('td', {}, el('span', { className: `pill ${r.stage}`, textContent: STAGES[r.stage] })),
-    el('td', {}, ...earningCell(r)))));
+    el('td', {}, ...(me.revenueShare ? [r.stage === 'submitted' ? 'In your revenue share' : '—'] : earningCell(r))))));
   $('#empty').hidden = me.referrals.length > 0;
 } catch (err) {
   showError(err);

@@ -250,3 +250,7 @@ input[type=radio], input[type=checkbox] { accent-color: var(--navy-2); width: 18
 .referrals td.mono { white-space: nowrap; }
 .doc-card img { width: 140px; height: 100px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
 .doc-empty { font-size: 34px; }
+.ledger.streams th[scope=col] { text-align: right; font-size: 13px; color: var(--muted); font-weight: 500; padding: 0 0 8px; }
+.ledger.streams th[scope=col]:first-child { text-align: left; }
+.ledger.streams td { padding-left: 16px; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; }

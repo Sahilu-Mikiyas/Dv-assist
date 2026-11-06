@@ -126,7 +126,7 @@ export function partnerService({
     async statement(partner) {
       const st = await statementOf(partner.id);
       return {
-        organisation: partner.organisation, refCode: partner.refCode, payoutPhoneEnding: partner.payoutPhone.slice(-2),
+        organisation: partner.organisation, refCode: partner.refCode, payoutPhoneEnding: partner.payoutPhone.slice(-2), kind: partner.kind,
         ...st, rows: st.rows.map(({ caseId, ...row }) => row),
       };
     },

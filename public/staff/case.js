@@ -403,15 +403,27 @@ function renderPayment(c) {
   $('#payment-form').hidden = Boolean(paid) || Boolean(c.erasedAt);
   $('#payment-recorded').hidden = !paid;
   if (paid) {
-    const remove = me?.role === 'admin'
+    const remove = me?.role === 'admin' && !paid.refundedAt
       ? el('button', { type: 'button', className: 'btn small danger', textContent: 'Remove (wrong entry)' })
       : null;
     remove?.addEventListener('click', () => {
       if (!confirm('Remove this payment record? Record the right one afterwards.')) return;
       run(remove, async () => render(await api('DELETE', `/api/cases/${caseId}/payment`)));
     });
+    const refund = me?.role === 'admin' && !paid.refundedAt
+      ? el('button', { type: 'button', className: 'btn small', textContent: 'Record refund' })
+      : null;
+    refund?.addEventListener('click', () => {
+      const reason = prompt(`Refund ${birr(paid.amountEtb)} to the applicant? Say why (kept in the activity log).`);
+      if (!reason) return;
+      run(refund, async () => render(await api('POST', `/api/cases/${caseId}/payment/refund`, { reason })));
+    });
     $('#payment-recorded').replaceChildren(...[
-      el('p', { className: 'flat' }, el('span', { className: 'chip submitted', textContent: 'Paid' }), ` ${birr(paid.amountEtb)} · ${METHODS[paid.method]}`),
+      paid.refundedAt
+        ? el('p', { className: 'flat' }, el('span', { className: 'chip warn', textContent: 'Refunded' }), ` ${birr(paid.amountEtb)} · ${METHODS[paid.method]}`)
+        : el('p', { className: 'flat' }, el('span', { className: 'chip submitted', textContent: 'Paid' }), ` ${birr(paid.amountEtb)} · ${METHODS[paid.method]}`),
+      paid.refundedAt ? el('p', { className: 'muted small flat', textContent: `Refunded ${timeAgo(paid.refundedAt)} by ${paid.refundedBy}: ${paid.refundReason}` }) : null,
+      refund,
       el('p', { className: 'muted small flat', textContent: `${paid.reference ? `Ref ${paid.reference} · ` : ''}${timeAgo(paid.receivedAt)} · ${paid.recordedBy}` }),
       paid.amountEtb !== c.expectedEtb && c.expectedEtb ? el('p', { className: 'muted small flat', textContent: `Differs from the package price (${birr(c.expectedEtb)}).` }) : null,
       remove,

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revenue share — Ethio DV Assist partners</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&amp;family=Inter:wght@400;500;600&amp;family=Noto+Sans+Ethiopic:wght@400;500;600&amp;family=Noto+Serif+Ethiopic:wght@500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/apply.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="/partner/">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#fff"/><path d="M8 26h24M8 31h24" stroke="#B22234" stroke-width="3" stroke-linecap="round"/><path d="M20 7l2.1 4.3 4.7.6-3.4 3.2.9 4.7-4.3-2.3-4.3 2.3.9-4.7-3.4-3.2 4.7-.6z" fill="#0A3161"/></svg>
+      <span>Ethio DV Assist · Partners</span>
+    </a>
+    <div class="top-side">
+      <span id="org-name" class="muted-on-navy"></span>
+      <button id="sign-out" class="link-on-navy" type="button">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <p id="error" class="error" role="alert" hidden></p>
+  <section class="view" id="view" hidden>
+    <a class="back-link" id="back" href="/partner/">← Dashboard</a>
+    <div class="actions">
+      <div class="intro">
+        <p class="eyebrow" id="org">Revenue share</p>
+        <h1>Your revenue share</h1>
+        <p lang="am" class="am-sub">የትርፍ ድርሻዎ</p>
+        <p class="lead" id="terms"></p>
+      </div>
+      <a class="btn ghost" id="csv" href="/api/partner/revenue-share.csv">Monthly statement (CSV)</a>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><p>Applicants counted</p><b id="t-counted">0</b></div>
+      <div class="stat"><p>Your share this season</p><b id="t-share">0</b></div>
+      <div class="stat"><p>Paid to you</p><b id="t-paid">0</b></div>
+      <div class="stat navy"><p id="t-balance-label">Owed to you</p><b id="t-balance">0</b></div>
+    </div>
+
+    <div class="with-side">
+      <div class="main-col">
+        <section class="card">
+          <h2>How your share is worked out <span lang="am">· ድርሻዎ እንዴት እንደሚሰላ</span></h2>
+          <div class="table-wrap">
+            <table class="ledger streams">
+              <thead><tr><th scope="col"></th><th scope="col">Direct</th><th scope="col">Through us</th><th scope="col">Total</th></tr></thead>
+              <tbody id="streams"></tbody>
+            </table>
+          </div>
+          <p class="muted small">Each applicant counts once their payment has cleared and their entry is submitted, using what they actually paid. Costs per applicant: <span id="cost-basis"></span>. Shares are never below zero.</p>
+        </section>
+
+        <section class="card">
+          <h2>Monthly statement <span lang="am">· ወርሃዊ መግለጫ</span></h2>
+          <div class="table-wrap">
+            <table class="referrals">
+              <thead><tr><th scope="col">Month</th><th scope="col">Direct</th><th scope="col">Through us</th><th scope="col">Net profit</th><th scope="col">Your share</th></tr></thead>
+              <tbody id="months"></tbody>
+            </table>
+          </div>
+          <p class="muted small" id="no-months">Nothing counted yet.</p>
+          <p class="muted small">Raise any question about a statement within 7 days. You may review the cost records once per season.</p>
+        </section>
+
+        <section class="card">
+          <h2>Payouts <span lang="am">· ክፍያዎች</span></h2>
+          <ul class="payouts-full" id="payouts"></ul>
+          <p class="muted" id="no-payouts" hidden>No payouts yet.</p>
+        </section>
+      </div>
+
+      <aside class="side-col">
+        <section class="card">
+          <p class="eyebrow">Still on the way</p>
+          <div class="bars" id="pipeline"></div>
+          <p class="muted small">These count as soon as payment has cleared and the entry is submitted.</p>
+        </section>
+        <section class="card">
+          <p class="eyebrow">Through us, by channel</p>
+          <div class="bars" id="channels"></div>
+          <p class="muted small">Totals only: other people's applicants are never shown by name.</p>
+        </section>
+      </aside>
+    </div>
+  </section>
+</main>
+<script type="module" src="/partner/share.js"></script>
+</body>
+</html>

@@ -28,15 +28,16 @@ function pendingActions(p) {
 async function load() {
   const o = await api('GET', '/api/payouts');
   $('#rate').textContent = o.commissionEtb == null
-    ? 'The commission per submitted entry is not set yet (PARTNER_COMMISSION_ETB on Render). Payouts can be created once it is.'
+    ? 'The tech-centre commission is not set yet: save it on the Costs page. Revenue-share partners can be paid already.'
     : `Commission: ${birr(o.commissionEtb)} per submitted entry.`;
 
   $('#owed').replaceChildren(...o.owed.map((w) => el('tr', {},
-    el('td', {}, el('b', { textContent: w.organisation }), w.status !== 'active' ? el('span', { className: 'muted small', textContent: ` · ${w.status}` }) : null),
-    el('td', {}, String(w.entries), el('br'), el('span', { className: 'muted small mono', textContent: w.cases.join(', ') })),
-    el('td', { textContent: birr(w.amountEtb) }),
+    el('td', {}, el('b', { textContent: w.organisation }), w.status !== 'active' ? el('span', { className: 'muted small', textContent: ` · ${w.status}` }) : null,
+      w.kind === 'revenue_share' ? el('div', { className: 'muted small' }, 'Revenue share · ', el('a', { href: `/partner/share.html?partner=${w.partnerId}`, textContent: 'account' })) : null),
+    el('td', {}, String(w.entries), el('br'), el('span', { className: 'muted small mono', textContent: w.kind === 'revenue_share' ? 'applicants counted' : w.cases.join(', ') })),
+    el('td', { textContent: w.amountEtb < 0 ? `−${birr(-w.amountEtb)} (refunds to recover)` : birr(w.amountEtb) }),
     el('td', { className: 'mono', textContent: w.payTo }),
-    el('td', {}, o.commissionEtb == null ? '' : button('Create payout', async () => {
+    el('td', {}, (w.kind === 'revenue_share' ? w.amountEtb <= 0 : o.commissionEtb == null) ? '' : button('Create payout', async () => {
       if (!confirm(`Create a payout of ${birr(w.amountEtb)} to ${w.organisation} (${w.payTo})?`)) return;
       await api('POST', '/api/payouts', { partnerId: w.partnerId });
       await load();
@@ -46,7 +47,7 @@ async function load() {
   $('#payouts').replaceChildren(...o.payouts.map((p) => el('tr', {},
     el('td', {}, timeAgo(p.createdAt), el('br'), el('span', { className: 'muted small', textContent: `by ${p.createdBy ?? '—'}` })),
     el('td', { textContent: p.organisation }),
-    el('td', {}, birr(p.amountEtb), el('br'), el('span', { className: 'muted small', textContent: `${p.entries} × ${birr(p.rateEtb)}` })),
+    el('td', {}, birr(p.amountEtb), el('br'), el('span', { className: 'muted small', textContent: p.rateEtb ? `${p.entries} × ${birr(p.rateEtb)}` : `Revenue share · ${p.entries} applicants` })),
     el('td', { className: 'mono', textContent: p.payTo }),
     el('td', {}, el('span', { className: `chip ${STATUS[p.status][1]}`, textContent: STATUS[p.status][0] }),
       p.reference ? el('div', { className: 'muted small mono', textContent: p.reference }) : null,

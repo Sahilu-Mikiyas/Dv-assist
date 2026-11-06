@@ -74,6 +74,18 @@ numbers it covered. Partners see only their own referrals. Admins see every part
 on staff → Partners → Partner report (CSV export). All three views come from one calculation
 (`src/domain/statement.js`), so they always agree.
 
+**Revenue-share partners:** an admin can switch any partner from "tech centre" (fixed commission per
+submitted entry) to "revenue share" with a direct %, a through-us % and an optional ladder (staff → Partners →
+Set terms). Their account (`src/domain/revenue-share.js`) counts an applicant once payment has cleared and the
+entry is submitted, and splits them into direct (through the partner's account) and through us (everyone else).
+Net profit per stream = what applicants actually paid − payment cost − collection fee − tech-centre commission
+(only where a tech centre referred) − marketing (through us only) − support − development; their share is the
+percentage of that, never below zero. Costs are set by admins on staff → **Costs** (defaults: the offer's Model A
+planning figures; every change is logged). Refunds (admin, on the case page) stop an applicant counting, and any
+share already paid out comes off later payouts. Payouts pay the current balance. The partner sees the whole
+account, a monthly statement (CSV), payouts, the pipeline still to count, and through-us totals by channel
+(never other people's names); admins open the same page from the Partners list.
+
 **Applicant payments:** until Telebirr / CBE Birr are connected, staff record what each applicant paid on the
 case page (amount, method, transaction number; one per case; admins can remove a wrong one).
 

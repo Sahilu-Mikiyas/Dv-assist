@@ -14,7 +14,7 @@ Last updated: 2026-11-06
   issue card, show card details, record confirmation number.
 - Bitnob signed requests (HMAC) to `https://api.bitnob.com`. Sandbox key, company "Furii Labs".
 - Sandbox card-holder customer exists (`BITNOB_CARD_CUSTOMER_ID` on Render).
-- 65 automated tests, run by GitHub Actions on every push.
+- 71 automated tests, run by GitHub Actions on every push.
 
 ## Pinned: automatic SMS and email are NOT switched on
 
@@ -67,6 +67,20 @@ Last updated: 2026-11-06
   hour per IP; wrong codes to 10 per 15 minutes.
 - Payment is a placeholder: "our team will contact you" (Telebirr / CBE Birr).
 - Staff app moved to `/staff/`.
+
+## Revenue share for Mr. Ermiyas Abera (built; terms not yet signed)
+
+- Offer: docs shared 27 Oct 2026; 55% of net profit on direct applicants, 23.5% on everyone else, paid only on
+  applicants whose payment cleared and whose entry was submitted; refunds deducted; optional ladder 45/55/60%.
+- In the app: staff → Partners → Set terms (revenue share, %s, ladder); staff → Costs (per-applicant costs,
+  defaults = offer Model A: 900 payment, 1% collection, 300 tech-centre, 40 marketing, 20 support, 41 dev);
+  refunds on the case page; Payouts pay his balance; his page /partner/share.html (and admins via Partners).
+- Verified: the calculation reproduces the offer's 524 / 184 ETB per applicant; payout, refund-after-payout and
+  ladder all tested in the browser.
+- Before he signs, fix in the offer: the chart's 5,000-direct bars use 55% although the ladder says 60%; it
+  assumes every applicant pays 1,500 ETB (a 500 ETB Self-guided applicant loses money under Model A); the fee is
+  paid on the official DV site (Pay.gov unconfirmed). Have a lawyer draft the final agreement.
+- Saving the Costs page also sets what tech centres are paid (its tech-centre commission).
 
 ## Passport scans (built)
 
