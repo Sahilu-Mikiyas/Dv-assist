@@ -167,6 +167,8 @@ export const MIGRATIONS = [
   'ALTER TABLE partners ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
   // The last authenticator time-step used, so a code cannot be used twice.
   'ALTER TABLE staff ADD COLUMN totp_last_step INTEGER',
+  // Recovery: two interrupted deploys recorded migration 49 on the live database without creating this index.
+  "CREATE UNIQUE INDEX IF NOT EXISTS payouts_one_pending ON payouts (partner_id) WHERE status = 'pending'",
 ];
 
 const norm = (v) => String(v ?? '').trim().toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
@@ -215,10 +217,15 @@ async function migrate(db) {
   await db.execute('CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)');
   const { rows } = await db.execute('SELECT COALESCE(MAX(version), 0) AS v FROM schema_migrations');
   for (let v = Number(rows[0].v) + 1; v <= MIGRATIONS.length; v++) {
-    await db.batch([
-      MIGRATIONS[v - 1],
-      { sql: 'INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)', args: [v, new Date().toISOString()] },
-    ], 'write');
+    const recordVersion = { sql: 'INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)', args: [v, new Date().toISOString()] };
+    try {
+      await db.batch([MIGRATIONS[v - 1], recordVersion], 'write');
+    } catch (err) {
+      // The change is already there (a column or table added by an earlier, interrupted deploy): record the
+      // version and carry on. Anything else stops start-up, as before.
+      if (!/duplicate column name|already exists/i.test(err.message)) throw err;
+      await db.batch([recordVersion], 'write');
+    }
   }
 }
 

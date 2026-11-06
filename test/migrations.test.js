@@ -34,3 +34,26 @@ test('a database at any earlier version upgrades cleanly to the latest', async (
     db.close();
   }
 });
+
+test('the live database\'s half-migrated state (from the two failed deploys) upgrades cleanly', async () => {
+  // What the failed deploys left: versions 1–48 as listed, then 49–51 recorded but holding other statements
+  // (the misordered list), and the payout index missing.
+  const url = `file:${join(mkdtempSync(join(tmpdir(), 'dv-mig-')), 'db.sqlite')}`;
+  const old = createClient({ url });
+  await old.execute('CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)');
+  const misordered = [
+    ...MIGRATIONS.slice(0, 48),
+    'ALTER TABLE staff ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE partners ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE staff ADD COLUMN totp_last_step INTEGER',
+  ];
+  for (const [i, m] of misordered.entries()) {
+    await old.batch([m, { sql: 'INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)', args: [i + 1, 'then'] }], 'write');
+  }
+  old.close();
+  const db = await openDb({ url });
+  assert.equal(Number((await db.execute('SELECT MAX(version) AS v FROM schema_migrations')).rows[0].v), MIGRATIONS.length);
+  const index = await db.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'payouts_one_pending'");
+  assert.equal(index.rows.length, 1);
+  db.close();
+});
