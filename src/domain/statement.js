@@ -31,7 +31,7 @@ export function buildStatement({ cases, introductions, payoutItems, payments, pa
       package: c.package,
       how: c.filledTogether ? 'together' : c.introductionId ? 'introduced' : 'link',
       stage,
-      applicantPaid: payments.has(c.id),
+      applicantPaid: Boolean(payments.get(c.id) && !payments.get(c.id).refundedAt),
       startedAt: c.createdAt,
       submittedAt: c.submittedAt ?? null,
       commission,

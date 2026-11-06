@@ -248,6 +248,20 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       return withPhotos(existing);
     },
 
+    // Money returned to the applicant: they stop counting for revenue shares; already-paid shares are deducted later.
+    async refundPayment(id, reason, ctx) {
+      if (ctx?.staff?.role !== 'admin') throw new ForbiddenError('Only an admin can record a refund');
+      const existing = await mustGet(id);
+      const payment = await repo.payment(id);
+      if (!payment) throw new ValidationError(['No payment is recorded for this case']);
+      if (payment.refundedAt) throw new ValidationError(['This payment is already refunded']);
+      const why = String(reason ?? '').trim().slice(0, 200);
+      if (!why) throw new ValidationError(['Say why the payment was refunded']);
+      await repo.refundPayment(id, { reason: why, refundedBy: ctx.staff.name });
+      await record('payment_refunded', id, ctx, `${payment.amountEtb} ETB: ${why}`);
+      return withPhotos(existing);
+    },
+
     async removePayment(id, ctx) {
       if (ctx?.staff?.role !== 'admin') throw new ForbiddenError('Only an admin can remove a payment');
       const existing = await mustGet(id);

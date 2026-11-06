@@ -135,7 +135,35 @@ const MIGRATIONS = [
      data    BLOB NOT NULL,
      PRIMARY KEY (case_id, kind)
    )`,
+  // Business settings edited by admins, e.g. the cost figures the revenue share is computed from.
+  `CREATE TABLE settings (
+     key        TEXT PRIMARY KEY,
+     value      TEXT NOT NULL,
+     updated_at TEXT NOT NULL,
+     updated_by TEXT
+   )`,
+  // "tech_center": fixed commission per submitted entry. "revenue_share": a share of net profit (terms in deal).
+  "ALTER TABLE partners ADD COLUMN kind TEXT NOT NULL DEFAULT 'tech_center'",
+  'ALTER TABLE partners ADD COLUMN deal TEXT',
+  'ALTER TABLE payments ADD COLUMN refunded_at TEXT',
+  'ALTER TABLE payments ADD COLUMN refunded_by TEXT',
+  'ALTER TABLE payments ADD COLUMN refund_reason TEXT',
 ];
+
+export function settingsRepository(db) {
+  const run = (sql, ...args) => db.execute({ sql, args });
+  return {
+    async get(key) {
+      const row = (await run('SELECT * FROM settings WHERE key = ?', key)).rows[0];
+      return row ? { value: JSON.parse(row.value), updatedAt: row.updated_at, updatedBy: row.updated_by } : null;
+    },
+    async set(key, value, updatedBy) {
+      await run(`INSERT INTO settings (key, value, updated_at, updated_by) VALUES (?, ?, ?, ?)
+                 ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+      key, JSON.stringify(value), new Date().toISOString(), updatedBy);
+    },
+  };
+}
 
 // What an erased case's applicant reads as: no personal data, but the shape the rest of the code expects.
 const ERASED_APPLICANT = Object.freeze({
@@ -195,6 +223,7 @@ export function caseRepository(db, crypt) {
   const toPayment = (row) =>
     row && {
       amountEtb: Number(row.amount_etb), method: row.method, reference: row.reference, receivedAt: row.received_at, recordedBy: row.recorded_by,
+      refundedAt: row.refunded_at ?? null, refundedBy: row.refunded_by ?? null, refundReason: row.refund_reason ?? null,
     };
 
   return {
@@ -232,6 +261,25 @@ export function caseRepository(db, crypt) {
       await run('INSERT INTO payments (case_id, amount_etb, method, reference, received_at, recorded_by) VALUES (?, ?, ?, ?, ?, ?)',
         caseId, amountEtb, method, reference, now(), recordedBy);
     },
+    async refundPayment(caseId, { reason, refundedBy }) {
+      await run('UPDATE payments SET refunded_at = ?, refunded_by = ?, refund_reason = ? WHERE case_id = ? AND refunded_at IS NULL',
+        now(), refundedBy, reason, caseId);
+    },
+
+    // Every payment, for the revenue-share accounts.
+    async allPayments() {
+      return new Map((await run('SELECT * FROM payments')).rows.map((r) => [r.case_id, toPayment(r)]));
+    },
+
+    // Every case without decrypting applicants: just what the accounts need.
+    async listForAccounting() {
+      const { rows } = await run('SELECT id, case_number, partner_id, source, package, status, sent_at, submitted_at, erased_at, created_at FROM cases');
+      return rows.map((r) => ({
+        id: r.id, caseNumber: Number(r.case_number), partnerId: r.partner_id, source: r.source, package: r.package, status: r.status,
+        sentAt: r.sent_at, submittedAt: r.submitted_at, erasedAt: r.erased_at, createdAt: r.created_at,
+      }));
+    },
+
     async removePayment(caseId) {
       await run('DELETE FROM payments WHERE case_id = ?', caseId);
     },
@@ -333,6 +381,8 @@ export function partnerRepository(db, crypt) {
       id: row.id,
       ...crypt.decryptJson(row.details),
       status: row.status,
+      kind: row.kind ?? 'tech_center',
+      deal: row.deal ? JSON.parse(row.deal) : null,
       refCode: row.ref_code,
       hasAccessCode: Boolean(row.access_hash),
       createdAt: row.created_at,
@@ -384,6 +434,9 @@ export function partnerRepository(db, crypt) {
       await run('UPDATE partners SET status = ?, approved_at = COALESCE(approved_at, ?) WHERE id = ?',
         status, status === 'active' ? new Date().toISOString() : null, id);
     },
+    async setDeal(id, { kind, deal }) {
+      await run('UPDATE partners SET kind = ?, deal = ? WHERE id = ?', kind, deal ? JSON.stringify(deal) : null, id);
+    },
     async setAccessHash(id, accessHash) {
       await run('UPDATE partners SET access_hash = ? WHERE id = ?', accessHash, id);
     },
@@ -402,12 +455,13 @@ export function partnerRepository(db, crypt) {
       return (await run('SELECT * FROM introductions ORDER BY created_at DESC')).rows.map(toIntroduction);
     },
     // ---- payouts ----
-    async insertPayout({ id, partnerId, rateEtb, caseIds, payTo, createdBy }) {
+    // Tech centres: rate × the cases listed. Revenue share: an explicit amount, the entries it covers counted.
+    async insertPayout({ id, partnerId, rateEtb, caseIds, payTo, createdBy, amountEtb = rateEtb * caseIds.length, entries = caseIds.length }) {
       const ts = new Date().toISOString();
       await db.batch([
         { sql: `INSERT INTO payouts (id, partner_id, rate_etb, amount_etb, entries, pay_to, status, created_at, created_by)
                 VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-          args: [id, partnerId, rateEtb, rateEtb * caseIds.length, caseIds.length, crypt.encryptJson({ payTo }), ts, createdBy] },
+          args: [id, partnerId, rateEtb, amountEtb, entries, crypt.encryptJson({ payTo }), ts, createdBy] },
         ...caseIds.map((caseId) => ({ sql: 'INSERT INTO payout_items (case_id, payout_id, amount_etb) VALUES (?, ?, ?)', args: [caseId, id, rateEtb] })),
       ], 'write');
     },

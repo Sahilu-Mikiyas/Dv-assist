@@ -11,7 +11,12 @@ const QUIET = { notify: async () => {} };
 // Telebirr transaction numbers are letters and digits, e.g. "BKJ4F2T9XQ".
 const REFERENCE = /^[A-Z0-9]{6,30}$/;
 
-export function payoutService({ partnerRepo, caseRepo, audit, notifications = QUIET, commissionEtb = null }) {
+// `commission()`: tech-centre rate per submitted entry. `revenueShare(partner)`: a revenue-share partner's
+// account (see partners service), whose balance is what they are owed.
+export function payoutService({
+  partnerRepo, caseRepo, audit, notifications = QUIET, commissionEtb = null, commission = async () => commissionEtb,
+  revenueShare = async () => null,
+}) {
   const requireAdmin = (ctx) => {
     if (ctx?.staff?.role !== 'admin') throw new ForbiddenError('Admins only');
   };
@@ -21,6 +26,24 @@ export function payoutService({ partnerRepo, caseRepo, audit, notifications = QU
   async function unpaidCases(partnerId) {
     const items = await partnerRepo.payoutItems(partnerId);
     return (await caseRepo.listByPartner(partnerId)).filter((c) => c.status === STATUS.SUBMITTED && !items.has(c.id));
+  }
+
+  // A revenue-share payout is the balance owed now: the share earned so far, less what was paid or is being paid.
+  async function createRevenueSharePayout(partner, ctx) {
+    const account = await revenueShare(partner);
+    if (!account) throw new ValidationError(['Set this partner\'s revenue-share terms first']);
+    if (account.balanceEtb <= 0) {
+      throw new ValidationError([account.balanceEtb < 0
+        ? `Nothing to pay: refunds leave ${-account.balanceEtb} ETB to come off future earnings`
+        : 'Nothing is owed to this partner']);
+    }
+    const id = randomUUID();
+    await partnerRepo.insertPayout({
+      id, partnerId: partner.id, rateEtb: 0, caseIds: [], payTo: partner.payoutPhone, createdBy: ctx.staff.name,
+      amountEtb: account.balanceEtb, entries: account.countedApplicants,
+    });
+    await record('payout_created', ctx, `${partner.refCode} revenue share ${account.balanceEtb} ETB`);
+    return partnerRepo.payout(id);
   }
 
   async function mustGetPayout(id) {
@@ -36,12 +59,23 @@ export function payoutService({ partnerRepo, caseRepo, audit, notifications = QU
       requireAdmin(ctx);
       const partners = await partnerRepo.list();
       const names = new Map(partners.map((p) => [p.id, p.organisation]));
+      const commissionEtb = await commission();
       const owed = [];
       for (const p of partners) {
+        if (p.kind === 'revenue_share') {
+          const account = await revenueShare(p);
+          if (account && account.balanceEtb !== 0) {
+            owed.push({
+              partnerId: p.id, organisation: p.organisation, status: p.status, payTo: p.payoutPhone, kind: 'revenue_share',
+              entries: account.countedApplicants, amountEtb: account.balanceEtb, cases: [],
+            });
+          }
+          continue;
+        }
         const unpaid = await unpaidCases(p.id);
         if (unpaid.length) {
           owed.push({
-            partnerId: p.id, organisation: p.organisation, status: p.status, payTo: p.payoutPhone, entries: unpaid.length,
+            partnerId: p.id, organisation: p.organisation, status: p.status, payTo: p.payoutPhone, kind: 'tech_center', entries: unpaid.length,
             amountEtb: commissionEtb == null ? null : unpaid.length * commissionEtb,
             cases: unpaid.map((c) => caseCode(c.caseNumber)),
           });
@@ -53,12 +87,14 @@ export function payoutService({ partnerRepo, caseRepo, audit, notifications = QU
 
     async create(partnerId, ctx) {
       requireAdmin(ctx);
-      if (commissionEtb == null) throw new ValidationError(['Set the commission (PARTNER_COMMISSION_ETB) before paying partners']);
       const partner = await partnerRepo.get(partnerId);
       if (!partner) throw new NotFoundError('Partner not found');
       if ((await partnerRepo.payouts(partnerId)).some((p) => p.status === 'pending')) {
         throw new ValidationError(['This partner already has a payout waiting to be paid']);
       }
+      if (partner.kind === 'revenue_share') return createRevenueSharePayout(partner, ctx);
+      const commissionEtb = await commission();
+      if (commissionEtb == null) throw new ValidationError(['Set the tech-centre commission (Costs page) before paying partners']);
       const unpaid = await unpaidCases(partnerId);
       if (!unpaid.length) throw new ValidationError(['Nothing is owed to this partner']);
       const id = randomUUID();

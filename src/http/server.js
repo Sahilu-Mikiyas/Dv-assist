@@ -96,6 +96,17 @@ const csvCell = (v) => {
   return `"${(/^[=+\-@]/.test(text) ? `'${text}` : text).replace(/"/g, '""')}"`;
 };
 
+// Monthly revenue-share statement: one line per month and stream, then the season total.
+function revenueShareCsv(a, refCode) {
+  const line = (month, stream, s) => [month, stream, s.applicants, s.revenue, s.costs.payment, s.costs.collection, s.costs.commission,
+    s.costs.marketing, s.costs.support, s.costs.development, s.netProfit, s.pct, s.share];
+  return csvFile(`revenue-share-${refCode}.csv`,
+    ['month', 'stream', 'applicants', 'revenue_etb', 'payment_cost', 'collection_fee', 'tech_centre_commission', 'marketing', 'support',
+      'development', 'net_profit_etb', 'share_pct', 'share_etb'],
+    [...a.months.flatMap((m) => [line(m.month, 'direct', m.direct), line(m.month, 'through us', m.throughUs)]),
+      line('season', 'direct', a.streams.direct), line('season', 'through us', a.streams.throughUs)]);
+}
+
 function csvFile(filename, header, rows) {
   return {
     body: `${[header.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n')}\n`,
@@ -114,7 +125,7 @@ function verifyWebhook(raw, signature, secret) {
 // `stage`: 'public' (no session), 'applicant' (applicant cookie), 'partner' (partner cookie), 'setup' (staff
 // signed in, authenticator not yet set up) or null (staff fully signed in).
 function routes({
-  cases, staff, applications, partners, payouts, notifications, retention, authn, applicantAuthn, partnerAuthn,
+  cases, staff, applications, partners, payouts, economics, notifications, retention, authn, applicantAuthn, partnerAuthn,
   limiter, startLimiter, resumeLimiter, partnerLimiter, webhookSecret,
 }) {
   const sessionFor = (result) => authn.sessionCookie(result.staff.id, { stage: result.needsAuthenticator ? 'setup' : 'ok' });
@@ -218,6 +229,16 @@ function routes({
     }],
     ['POST', /^\/api\/partner\/logout$/, 'public', async () => ({ body: { ok: true }, headers: { 'Set-Cookie': partnerAuthn.clearCookie() } })],
     ['GET', /^\/api\/partner$/, 'partner', async (_, __, ctx) => partners.dashboard(ctx.partner)],
+    ['GET', /^\/api\/partner\/revenue-share$/, 'partner', async (_, __, ctx) => {
+      const account = await partners.revenueShare(ctx.partner);
+      if (!account) throw new HttpError(404, 'This account is not a revenue-share partnership');
+      return account;
+    }],
+    ['GET', /^\/api\/partner\/revenue-share\.csv$/, 'partner', async (_, __, ctx) => {
+      const account = await partners.revenueShare(ctx.partner);
+      if (!account) throw new HttpError(404, 'This account is not a revenue-share partnership');
+      return revenueShareCsv(account, ctx.partner.refCode);
+    }],
     ['GET', /^\/api\/partner\/statement$/, 'partner', async (_, __, ctx) => partners.statement(ctx.partner)],
     ['GET', /^\/api\/partner\/statement\.csv$/, 'partner', async (_, __, ctx) => {
       const st = await partners.statement(ctx.partner);
@@ -226,6 +247,17 @@ function routes({
         st.rows.map((r) => [r.code, r.name, r.people, r.package, r.how, r.stage, r.applicantPaid ? 'yes' : 'no',
           r.startedAt, r.submittedAt, r.commission?.amountEtb, r.commission?.status]));
     }],
+    ['POST', /^\/api\/partners\/([\w-]+)\/terms$/, null, async (req, [id], ctx) => partners.setDeal(id, await readJson(req), ctx)],
+    ['GET', /^\/api\/partners\/([\w-]+)\/revenue-share$/, null, async (_, [id], ctx) => {
+      const account = await partners.revenueShareFor(id, ctx);
+      if (!account) throw new HttpError(404, 'This partner has no revenue-share terms');
+      return account;
+    }],
+    ['GET', /^\/api\/economics$/, null, async (_, __, ctx) => {
+      if (ctx.staff.role !== 'admin') throw new ForbiddenError('Admins only');
+      return economics.current();
+    }],
+    ['PUT', /^\/api\/economics$/, null, async (req, _, ctx) => economics.save(await readJson(req), ctx)],
     ['GET', /^\/api\/partners\/report$/, null, async (_, __, ctx) => partners.report(ctx)],
     ['GET', /^\/api\/partners\/report\.csv$/, null, async (_, __, ctx) => {
       const report = await partners.report(ctx);
@@ -319,6 +351,7 @@ function routes({
       return cases.submit(id, confirmationNumber, ctx);
     }],
     ['POST', /^\/api\/cases\/([\w-]+)\/payment$/, null, async (req, [id], ctx) => cases.recordPayment(id, await readJson(req), ctx)],
+    ['POST', /^\/api\/cases\/([\w-]+)\/payment\/refund$/, null, async (req, [id], ctx) => cases.refundPayment(id, (await readJson(req)).reason, ctx)],
     ['DELETE', /^\/api\/cases\/([\w-]+)\/payment$/, null, async (_, [id], ctx) => cases.removePayment(id, ctx)],
     ['GET', /^\/api\/cases\/([\w-]+)\/activity$/, null, async (_, [id]) => cases.activity(id)],
 

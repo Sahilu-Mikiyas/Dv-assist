@@ -81,7 +81,7 @@ test('cancelling a pending payout releases its entries; no payouts without a com
   const unset = await setupCases({ commissionEtb: null });
   const staff = await seedStaff(unset);
   const p2 = await partnerWithSubmissions(unset, staff.admin, staff.meron, 1);
-  await assert.rejects(unset.payouts.create(p2.id, ctxFor(staff.admin)), /Set the commission/);
+  await assert.rejects(unset.payouts.create(p2.id, ctxFor(staff.admin)), /Set the tech-centre commission/);
   const board = await unset.partners.dashboard(p2);
   assert.equal(board.earned, null);
   assert.equal(board.referrals[0].payout, 'due');

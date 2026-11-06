@@ -18,7 +18,7 @@ async function startServer({ secureCookies = true, perIp = 5 } = {}) {
   const seeded = await seedStaff(env);
   const secrets = { sessionSecret: 's'.repeat(32), secureCookies };
   const server = createApp({
-    cases: env.cases, staff: env.staff, applications: env.applications, partners: env.partners, notifications: env.notifications, retention: env.retention, payouts: env.payouts,
+    cases: env.cases, staff: env.staff, applications: env.applications, partners: env.partners, notifications: env.notifications, retention: env.retention, payouts: env.payouts, economics: env.economics,
     authn: auth(secrets), applicantAuthn: applicantAuth(secrets), partnerAuthn: partnerAuth(secrets),
     limiter: loginLimiter({ perIp }), startLimiter: loginLimiter({ perIp: 3 }), resumeLimiter: loginLimiter({ perIp }),
     partnerLimiter: loginLimiter({ perIp }),
@@ -191,6 +191,20 @@ test('partners sign in with a code, introduce people, and their short links redi
   assert.equal((await meron('GET', '/api/partners/report')).status, 403);
   assert.equal((await (await admin('GET', '/api/partners/report')).json()).totals.referrals, 2);
   assert.equal((await fetch(`${url}/vendor/qrcode.mjs`)).headers.get('content-type'), 'text/javascript; charset=utf-8');
+
+  // Revenue share: costs and terms are admin-only; a tech centre has no revenue-share account.
+  assert.equal((await fetch(`${url}/api/partner/revenue-share`, { headers: { cookie } })).status, 404);
+  assert.equal((await meron('GET', '/api/economics')).status, 403);
+  const costs = await (await admin('GET', '/api/economics')).json();
+  assert.equal(costs.values.paymentCostEtb, 900);
+  assert.equal((await meron('PUT', '/api/economics', costs.values)).status, 403);
+  assert.equal((await admin('PUT', '/api/economics', { ...costs.values, supportEtb: 25 })).status, 200);
+  assert.equal((await meron('POST', `/api/partners/${partner.id}/terms`, { kind: 'revenue_share', deal: { directPct: 55, throughUsPct: 23.5 } })).status, 403);
+  assert.equal((await admin('POST', `/api/partners/${partner.id}/terms`, { kind: 'revenue_share', deal: { directPct: 55, throughUsPct: 23.5 } })).status, 200);
+  const share = await (await fetch(`${url}/api/partner/revenue-share`, { headers: { cookie } })).json();
+  assert.equal(share.deal.directPct, 55);
+  assert.match(await (await fetch(`${url}/api/partner/revenue-share.csv`, { headers: { cookie } })).text(), /^month,stream,applicants/);
+  assert.equal((await (await admin('GET', `/api/partners/${partner.id}/revenue-share`)).json()).deal.throughUsPct, 23.5);
 
   // Payouts are admin-only.
   assert.equal((await meron('GET', '/api/payouts')).status, 403);

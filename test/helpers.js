@@ -2,10 +2,13 @@
 
 import { randomBytes } from 'node:crypto';
 import { cipher, hashPassword } from '../src/infra/crypto.js';
-import { auditLog, caseRepository, messageRepository, openDb, partnerRepository, staffRepository } from '../src/infra/db.js';
+import {
+  auditLog, caseRepository, messageRepository, openDb, partnerRepository, settingsRepository, staffRepository,
+} from '../src/infra/db.js';
 import { newTotpSecret } from '../src/infra/totp.js';
 import { applicationService } from '../src/services/applications.js';
 import { caseService } from '../src/services/cases.js';
+import { economicsService } from '../src/services/economics.js';
 import { notificationService } from '../src/services/notifications.js';
 import { partnerService } from '../src/services/partners.js';
 import { payoutService } from '../src/services/payouts.js';
@@ -90,15 +93,17 @@ export async function setupCases({ sms = null, email = null, retentionPolicy = {
   });
   notifications.wake = () => {}; // tests deliver explicitly with deliverDue()
   const partnerRepo = partnerRepository(db, crypt);
-  const partners = partnerService({ repo: partnerRepo, caseRepo: repo, audit, commissionEtb, notifications });
-  const payouts = payoutService({ partnerRepo, caseRepo: repo, audit, notifications, commissionEtb });
+  const economics = economicsService({ settingsRepo: settingsRepository(db), audit, envCommissionEtb: commissionEtb });
+  const commission = () => economics.techCenterCommission();
+  const partners = partnerService({ repo: partnerRepo, caseRepo: repo, audit, notifications, commission, economics: () => economics.values() });
+  const payouts = payoutService({ partnerRepo, caseRepo: repo, audit, notifications, commission, revenueShare: (p) => partners.revenueShare(p) });
   const retention = retentionService({ caseRepo: repo, partnerRepo, audit, policy: retentionPolicy, now: () => clock });
   const cases = caseService({ repo, audit, bitnob, cardAmountUsd: 5, partners, notifications });
   const applications = applicationService({ repo, audit, partners, notifications });
   const advanceClock = (ms) => { clock += ms; };
   const staffRepo = staffRepository(db, crypt);
   const staff = staffService({ repo: staffRepo, audit });
-  return { db, cases, applications, partners, payouts, notifications, retention, advanceClock, audit, bitnob, staff, staffRepo };
+  return { db, cases, applications, partners, payouts, economics, notifications, retention, advanceClock, audit, bitnob, staff, staffRepo };
 }
 
 // Two signed-in-ready staff members (an admin and a staff member) with authenticators set up.

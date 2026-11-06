@@ -6,11 +6,14 @@ import { loginLimiter } from './http/rate-limit.js';
 import { createApp } from './http/server.js';
 import { bitnobClient } from './infra/bitnob.js';
 import { cipher } from './infra/crypto.js';
-import { auditLog, caseRepository, messageRepository, openDb, partnerRepository, staffRepository } from './infra/db.js';
+import {
+  auditLog, caseRepository, messageRepository, openDb, partnerRepository, settingsRepository, staffRepository,
+} from './infra/db.js';
 import { afroMessageSms, brevoEmail } from './infra/messaging.js';
 import { log } from './infra/log.js';
 import { applicationService } from './services/applications.js';
 import { caseService } from './services/cases.js';
+import { economicsService } from './services/economics.js';
 import { notificationService } from './services/notifications.js';
 import { partnerService } from './services/partners.js';
 import { payoutService } from './services/payouts.js';
@@ -35,8 +38,10 @@ const notifications = notificationService({
 
 const caseRepo = caseRepository(db, crypt);
 const partnerRepo = partnerRepository(db, crypt);
+const economics = economicsService({ settingsRepo: settingsRepository(db), audit, envCommissionEtb: config.partnerCommissionEtb });
 const partners = partnerService({
-  repo: partnerRepo, caseRepo, audit, commissionEtb: config.partnerCommissionEtb, notifications,
+  repo: partnerRepo, caseRepo, audit, notifications,
+  commission: () => economics.techCenterCommission(), economics: () => economics.values(),
 });
 const retention = retentionService({ caseRepo, partnerRepo, audit, policy: config.retention });
 const cases = caseService({
@@ -55,7 +60,11 @@ const server = createApp({
   applications: applicationService({ repo: caseRepo, audit, partners, notifications }),
   notifications,
   retention,
-  payouts: payoutService({ partnerRepo, caseRepo, audit, notifications, commissionEtb: config.partnerCommissionEtb }),
+  economics,
+  payouts: payoutService({
+    partnerRepo, caseRepo, audit, notifications,
+    commission: () => economics.techCenterCommission(), revenueShare: (p) => partners.revenueShare(p),
+  }),
   authn: auth(config),
   applicantAuthn: applicantAuth(config),
   partnerAuthn: partnerAuth(config),

@@ -10,6 +10,8 @@ import {
   validatePartnerApplication,
 } from '../domain/partner.js';
 import { hashCode, newAccessCode, normalizeCode, randomChars } from '../infra/codes.js';
+import { DEFAULT_ECONOMICS, validateDeal } from '../domain/economics.js';
+import { computeRevenueShare } from '../domain/revenue-share.js';
 import { buildStatement } from '../domain/statement.js';
 import { NotFoundError, caseCode } from './cases.js';
 import { ForbiddenError } from './staff.js';
@@ -18,7 +20,12 @@ const INVITE_STALE_MS = 2 * 24 * 60 * 60 * 1000; // the team calls invitees who 
 
 const QUIET = { notify: async () => {}, smsEnabled: false };
 
-export function partnerService({ repo, caseRepo, audit, commissionEtb = null, notifications = QUIET }) {
+// `commission()`: what a tech centre earns per submitted entry (null until agreed). `economics()`: the cost
+// figures for revenue-share accounts.
+export function partnerService({
+  repo, caseRepo, audit, commissionEtb = null, commission = async () => commissionEtb,
+  economics = async () => DEFAULT_ECONOMICS, notifications = QUIET,
+}) {
   const record = (action, ctx = {}, detail = null) =>
     audit.record({ action, ip: ctx.ip, staffId: ctx.staff?.id ?? null, detail });
 
@@ -44,14 +51,32 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null, no
   // Everything about one partner's referrals, from every route, and their earnings (see domain/statement.js).
   async function statementOf(partnerId) {
     const cases = await caseRepo.listByPartner(partnerId);
+    const partner = await repo.get(partnerId);
+    const revenueShare = partner?.kind === 'revenue_share';
     return buildStatement({
       cases,
       introductions: await repo.introductionsFor(partnerId),
-      payoutItems: await repo.payoutItems(partnerId),
+      // A revenue-share partner is not paid per entry: their earnings come from the revenue-share account.
+      payoutItems: revenueShare ? new Map() : await repo.payoutItems(partnerId),
       payments: await caseRepo.paymentsFor(cases.map((c) => c.id)),
-      payouts: await repo.payouts(partnerId),
-      commissionEtb,
+      payouts: revenueShare ? [] : await repo.payouts(partnerId),
+      commissionEtb: revenueShare ? 0 : await commission(),
       codeOf: caseCode,
+    });
+  }
+
+  // A revenue-share partner's account across every applicant (see domain/revenue-share.js).
+  async function revenueShareOf(partner) {
+    if (partner.kind !== 'revenue_share' || !partner.deal) return null;
+    const partners = await repo.list();
+    return computeRevenueShare({
+      partnerId: partner.id,
+      deal: partner.deal,
+      economics: await economics(),
+      cases: await caseRepo.listForAccounting(),
+      payments: await caseRepo.allPayments(),
+      techCenterIds: new Set(partners.filter((p) => p.kind !== 'revenue_share').map((p) => p.id)),
+      payouts: await repo.payouts(partner.id),
     });
   }
 
@@ -84,9 +109,10 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null, no
       return {
         name: partner.name,
         organisation: partner.organisation,
+        kind: partner.kind,
         refCode: partner.refCode,
         payoutPhoneEnding: partner.payoutPhone.slice(-2),
-        commissionEtb,
+        commissionEtb: partner.kind === 'revenue_share' ? null : await commission(),
         counts: countsOf(st),
         paidEtb: st.earnings.paidEtb,
         owedEtb: st.earnings.owedEtb,
@@ -105,15 +131,40 @@ export function partnerService({ repo, caseRepo, audit, commissionEtb = null, no
       };
     },
 
+    // The revenue-share account for the partner themselves.
+    revenueShare: (partner) => revenueShareOf(partner),
+
+    // Admins: a partner's revenue-share account.
+    async revenueShareFor(id, ctx) {
+      requireAdmin(ctx);
+      return revenueShareOf(await mustGet(id));
+    },
+
+    // Admins: make a partner a tech centre (fixed commission) or a revenue-share partner with terms.
+    async setDeal(id, { kind, deal } = {}, ctx) {
+      requireAdmin(ctx);
+      const partner = await mustGet(id);
+      if (!['tech_center', 'revenue_share'].includes(kind)) throw new ValidationError(['Choose tech centre or revenue share']);
+      const terms = kind === 'revenue_share' ? validateDeal(deal) : null;
+      await repo.setDeal(id, { kind, deal: terms });
+      await record('partner_terms_set', ctx, `${partner.refCode} ${kind}${terms ? ` ${terms.directPct}% / ${terms.throughUsPct}%` : ''}`);
+      return repo.get(id);
+    },
+
     // Admins: every partner's statement summary side by side, with totals.
     async report(ctx) {
       requireAdmin(ctx);
+      const commissionEtb = await commission();
       const rows = [];
       for (const p of await repo.list()) {
         const st = await statementOf(p.id);
+        const share = await revenueShareOf(p);
+        const earnings = share
+          ? { paidEtb: share.paidEtb, waitingEtb: share.waitingEtb, dueEtb: Math.max(0, share.balanceEtb), owedEtb: share.waitingEtb + Math.max(0, share.balanceEtb), earnedEtb: share.totalShare }
+          : st.earnings;
         rows.push({
-          partnerId: p.id, organisation: p.organisation, refCode: p.refCode, status: p.status,
-          ...st.totals, byStage: st.byStage, byPackage: st.byPackage, byHow: st.byHow, payments: st.payments, earnings: st.earnings,
+          partnerId: p.id, organisation: p.organisation, refCode: p.refCode, status: p.status, kind: p.kind,
+          ...st.totals, byStage: st.byStage, byPackage: st.byPackage, byHow: st.byHow, payments: st.payments, earnings,
         });
       }
       const sum = (pick) => rows.reduce((s, r) => s + (pick(r) ?? 0), 0);
