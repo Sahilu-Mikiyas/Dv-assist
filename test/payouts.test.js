@@ -23,6 +23,7 @@ async function submitReferral(env, admin, meron, partner) {
   await env.applications.approve(caseId, { confirm: true }, ctx);
   await env.cases.issueCard(caseId, ctxFor(admin));
   await env.cases.submit(caseId, '2028ABCD1234EFGH', ctxFor(admin));
+  await env.cases.recordPayment(caseId, { amountEtb: 500, method: 'cash' }, ctxFor(meron));
   return caseId;
 }
 
@@ -64,6 +65,16 @@ test('a payout covers what is owed, is paid with a Telebirr reference, and each 
   await env.notifications.deliverDue();
   const note = sms.sent.find((m) => m.text.includes('400 ETB'));
   assert.ok(note && note.to === '+251911000000' && note.text.includes('BKJ4F2T9XQ') && note.text.includes('ending 41'));
+});
+
+test('tech centres earn commission only on applicants who paid and were not refunded', async () => {
+  const env = await setupCases();
+  const { admin, meron } = await seedStaff(env);
+  const partner = await partnerWithSubmissions(env, admin, meron, 2);
+  const [, second] = (await env.partners.statement(partner)).rows;
+  const caseId = (await env.cases.list()).cases.find((c) => c.code === second.code).id;
+  await env.cases.refundPayment(caseId, 'Withdrew', ctxFor(admin));
+  assert.equal((await env.payouts.overview(ctxFor(admin))).owed[0].entries, 1);
 });
 
 test('cancelling a pending payout releases its entries; no payouts without a commission rate', async () => {

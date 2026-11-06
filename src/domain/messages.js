@@ -35,9 +35,9 @@ export const TEMPLATES = {
     text: `${BRAND}: the partner account for ${organisation} is approved. Sign in at ${url}/partner/ with the code our team gives you.\n`
       + 'የአጋርነት ጥያቄዎ ጸድቋል።',
   }),
-  payout_paid: ({ amountEtb, entries, reference, ending }) => ({
+  payout_paid: ({ amountEtb, entries, reference, ending, revenueShare = false }) => ({
     subject: `Payout of ${amountEtb} ETB sent`,
-    text: `${BRAND}: we sent ${amountEtb} ETB for ${entries} submitted ${entries === 1 ? 'entry' : 'entries'} to your Telebirr ending ${ending}. Transaction: ${reference}. Thank you!\n`
+    text: `${BRAND}: we sent ${amountEtb} ETB ${revenueShare ? 'of your revenue share' : `for ${entries} submitted ${entries === 1 ? 'entry' : 'entries'}`} to your Telebirr ending ${ending}. Transaction: ${reference}. Thank you!\n`
       + `${amountEtb} ብር ወደ ቴሌብርዎ ተልኳል። ቁጥር፦ ${reference}። እናመሰግናለን!`,
   }),
   approval_reminder: ({ code, url }) => ({

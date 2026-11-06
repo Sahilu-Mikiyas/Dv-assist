@@ -47,6 +47,15 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     return DOCUMENT_KINDS.map((kind) => ({ kind, uploaded: present.includes(kind) }));
   }
 
+  // A state change that did not apply means someone else changed the case first.
+  function changed(applied) {
+    if (!applied) throw new ValidationError(['This case was changed by someone else just now. Reload and try again.']);
+  }
+
+  function assertNotIssuing(id) {
+    if (issuing.has(id)) throw new ValidationError(['A card is being issued for this case right now. Wait a moment.']);
+  }
+
   const partnerNames = async () => (partners ? partners.names() : new Map());
 
   async function withPhotos(c) {
@@ -167,7 +176,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       if (sameP.length) {
         throw new ValidationError([`Same passport as ${sameP.map((d) => caseCode(d.caseNumber)).join(', ')}. One entry per person: erase the extra entry first.`]);
       }
-      await repo.setStatus(id, { status: STATUS.CHECKED, checks: { abol: stamp(ctx) } });
+      changed(await repo.setStatus(id, { status: STATUS.CHECKED, checks: { abol: stamp(ctx) }, from: STATUS.DRAFT }));
       await record('check_abol', id, ctx);
       return withPhotos(await mustGet(id));
     },
@@ -176,7 +185,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     async verify(id, ctx) {
       const existing = await mustGetActive(id);
       assertCanVerify(existing, ctx?.staff?.id);
-      await repo.setStatus(id, { status: STATUS.VERIFIED, checks: { ...existing.checks, tona: stamp(ctx) } });
+      changed(await repo.setStatus(id, { status: STATUS.VERIFIED, checks: { ...existing.checks, tona: stamp(ctx) }, from: STATUS.CHECKED }));
       await record('check_tona', id, ctx);
       // Website applicants give their approval online; tell them it is their turn.
       if (existing.source === 'website') {
@@ -191,7 +200,9 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     async approve(id, method, ctx) {
       const existing = await mustGetActive(id);
       assertCanApprove(existing, method);
-      await repo.setStatus(id, { status: STATUS.APPROVED, checks: { ...existing.checks, baraka: stamp(ctx, { method }) } });
+      // "Online" is only ever the applicant's own approval on the website, never something staff record.
+      if (method === 'online') throw new ValidationError(['Online approval is given by the applicant on the website']);
+      changed(await repo.setStatus(id, { status: STATUS.APPROVED, checks: { ...existing.checks, baraka: stamp(ctx, { method }) }, from: STATUS.VERIFIED }));
       await record('check_baraka', id, ctx, method);
       return withPhotos(await mustGet(id));
     },
@@ -199,7 +210,8 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     async reopen(id, reason, ctx) {
       const existing = await mustGetActive(id);
       assertCanReopen(existing);
-      await repo.setStatus(id, { status: STATUS.DRAFT, checks: {} });
+      assertNotIssuing(id);
+      changed(await repo.setStatus(id, { status: STATUS.DRAFT, checks: {}, from: existing.status }));
       await record('case_reopened', id, ctx, (reason ?? '').slice(0, 200) || null);
       if (existing.source === 'website') {
         await notifications.notify('needs_correction', {
@@ -218,7 +230,11 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
         // Reference is derived from the case id so a retried request cannot create a second card.
         const cardReference = `dv-${id}`;
         const { cardId } = await bitnob.createCard({ amountUsd: cardAmountUsd, reference: cardReference });
-        await repo.markCardIssued(id, { cardId, cardReference, status: STATUS.CARD_ISSUED });
+        if (!(await repo.markCardIssued(id, { cardId, cardReference, status: STATUS.CARD_ISSUED }))) {
+          // Should not happen: the case cannot be reopened or erased while issuing. Keep a trail of the card.
+          await record('card_orphaned', id, ctx, cardId);
+          throw new ValidationError(['The case changed while the card was being issued. The card is recorded in the activity log: contact an admin.']);
+        }
         await record('card_issued', id, ctx, `$${cardAmountUsd.toFixed(2)}`);
       } finally {
         issuing.delete(id);
@@ -239,7 +255,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       const existing = await mustGetActive(id);
       const normalized = (confirmationNumber ?? '').trim().toUpperCase();
       assertCanSubmit(existing, normalized);
-      await repo.markSubmitted(id, { confirmationNumber: normalized, status: STATUS.SUBMITTED });
+      changed(await repo.markSubmitted(id, { confirmationNumber: normalized, status: STATUS.SUBMITTED }));
       await record('case_submitted', id, ctx, normalized);
       await notifications.notify('submitted', {
         caseId: id, phone: existing.applicant.phone, email: existing.applicant.email,
@@ -268,7 +284,9 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       if (payment.refundedAt) throw new ValidationError(['This payment is already refunded']);
       const why = String(reason ?? '').trim().slice(0, 200);
       if (!why) throw new ValidationError(['Say why the payment was refunded']);
-      await repo.refundPayment(id, { reason: why, refundedBy: ctx.staff.name });
+      if (!(await repo.refundPayment(id, { reason: why, refundedBy: ctx.staff.name }))) {
+        throw new ValidationError(['This payment is already refunded']);
+      }
       await record('payment_refunded', id, ctx, `${payment.amountEtb} ETB: ${why}`);
       return withPhotos(existing);
     },
@@ -282,6 +300,8 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       await record('payment_removed', id, ctx, `${payment.amountEtb} ETB ${payment.method}`);
       return withPhotos(existing);
     },
+
+    isIssuing: (id) => issuing.has(id),
 
     async auditList(options) {
       return (await audit.list(options)).map((r) => ({ ...r, caseCode: r.caseNumber ? caseCode(r.caseNumber) : null }));

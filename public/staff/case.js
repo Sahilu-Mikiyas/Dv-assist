@@ -277,7 +277,7 @@ function renderAction(c) {
     ];
   } else if (c.status === 'verified') {
     const select = el('select');
-    fillSelect(select, options.approvalMethods ?? []);
+    fillSelect(select, (options.approvalMethods ?? []).filter((m) => m !== 'online'));
     parts = [
       el('p', { className: 'eyebrow on-navy', textContent: 'Next: በረካ Baraka' }),
       el('h2', { textContent: "Applicant's approval" }),

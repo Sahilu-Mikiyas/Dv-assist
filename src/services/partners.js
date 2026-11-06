@@ -24,7 +24,7 @@ const QUIET = { notify: async () => {}, smsEnabled: false };
 // figures for revenue-share accounts.
 export function partnerService({
   repo, caseRepo, audit, commissionEtb = null, commission = async () => commissionEtb,
-  economics = async () => DEFAULT_ECONOMICS, notifications = QUIET,
+  economics = async () => DEFAULT_ECONOMICS, economicsHistory = null, notifications = QUIET,
 }) {
   const record = (action, ctx = {}, detail = null) =>
     audit.record({ action, ip: ctx.ip, staffId: ctx.staff?.id ?? null, detail });
@@ -73,9 +73,11 @@ export function partnerService({
       partnerId: partner.id,
       deal: partner.deal,
       economics: await economics(),
+      ...(economicsHistory ? { economicsHistory: await economicsHistory() } : {}),
       cases: await caseRepo.listForAccounting(),
       payments: await caseRepo.allPayments(),
       techCenterIds: new Set(partners.filter((p) => p.kind !== 'revenue_share').map((p) => p.id)),
+      revenueSharePartnerIds: new Set(partners.filter((p) => p.kind === 'revenue_share' && p.id !== partner.id).map((p) => p.id)),
       payouts: await repo.payouts(partner.id),
     });
   }
@@ -146,6 +148,11 @@ export function partnerService({
       const partner = await mustGet(id);
       if (!['tech_center', 'revenue_share'].includes(kind)) throw new ValidationError(['Choose tech centre or revenue share']);
       const terms = kind === 'revenue_share' ? validateDeal(deal) : null;
+      // Back to a fixed commission after revenue-share payouts would pay the same applicants twice.
+      if (partner.kind === 'revenue_share' && kind === 'tech_center'
+        && (await repo.payouts(id)).some((p) => p.status !== 'cancelled')) {
+        throw new ValidationError(['This partner has revenue-share payouts. Switching back to a fixed commission would pay the same applicants twice: keep them on revenue share, or end this account and open a new one.']);
+      }
       await repo.setDeal(id, { kind, deal: terms });
       await record('partner_terms_set', ctx, `${partner.refCode} ${kind}${terms ? ` ${terms.directPct}% / ${terms.throughUsPct}%` : ''}`);
       return repo.get(id);
@@ -160,7 +167,8 @@ export function partnerService({
         const st = await statementOf(p.id);
         const share = await revenueShareOf(p);
         const earnings = share
-          ? { paidEtb: share.paidEtb, waitingEtb: share.waitingEtb, dueEtb: Math.max(0, share.balanceEtb), owedEtb: share.waitingEtb + Math.max(0, share.balanceEtb), earnedEtb: share.totalShare }
+          // A negative balance (refunds after a payout) is shown as negative, the amount still to recover.
+          ? { paidEtb: share.paidEtb, waitingEtb: share.waitingEtb, dueEtb: share.balanceEtb, owedEtb: share.waitingEtb + share.balanceEtb, earnedEtb: share.totalShare }
           : st.earnings;
         rows.push({
           partnerId: p.id, organisation: p.organisation, refCode: p.refCode, status: p.status, kind: p.kind,
@@ -207,7 +215,8 @@ export function partnerService({
       if (invite) {
         const introduction = await repo.introductionByToken(normalizeCode(invite));
         const partner = introduction && (await this.activeById(introduction.partnerId));
-        if (partner) return { partner, introduction };
+        // An invitation is used once; a second entry from the same link still counts for the partner, as their link.
+        if (partner) return { partner, introduction: introduction.caseId ? null : introduction };
       }
       if (ref) {
         const partner = await repo.byRefCode(normalizeCode(ref));

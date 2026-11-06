@@ -188,7 +188,9 @@ export function applicationService({ repo, audit, partners = null, notifications
       assertCanApprove(existing, 'online');
       if (confirm !== true) throw new ValidationError(['Confirm that every detail and photo is correct']);
       const baraka = { by: null, name: 'Applicant', at: new Date().toISOString(), method: 'online' };
-      await repo.setStatus(id, { status: STATUS.APPROVED, checks: { ...existing.checks, baraka } });
+      if (!(await repo.setStatus(id, { status: STATUS.APPROVED, checks: { ...existing.checks, baraka }, from: STATUS.VERIFIED }))) {
+        throw new ValidationError(['Your entry changed just now. Reload the page.']);
+      }
       await record('check_baraka', id, ctx, 'online (applicant)');
       return view(await mustGet(id));
     },

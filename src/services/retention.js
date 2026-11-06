@@ -14,7 +14,7 @@ import { ForbiddenError } from './staff.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function retentionService({ caseRepo, partnerRepo, audit, policy = {}, now = () => Date.now() }) {
+export function retentionService({ caseRepo, partnerRepo, audit, policy = {}, now = () => Date.now(), isIssuing = () => false }) {
   const { afterSubmissionDays = null, unsentDays = null } = policy;
 
   const requireAdmin = (ctx) => {
@@ -25,10 +25,13 @@ export function retentionService({ caseRepo, partnerRepo, audit, policy = {}, no
   // What each rule would erase right now, whether or not the rule is switched on.
   async function due({ submittedDays = afterSubmissionDays, draftDays = unsentDays } = {}) {
     const cases = (await caseRepo.list()).filter((c) => !c.erasedAt);
+    const payments = await caseRepo.allPayments();
     const intros = await partnerRepo.listIntroductions();
     return {
       submitted: cases.filter((c) => c.status === STATUS.SUBMITTED && olderThan(c.submittedAt, submittedDays)),
-      unsent: cases.filter((c) => c.source === 'website' && c.status === STATUS.DRAFT && !c.sentAt && olderThan(c.updatedAt, draftDays)),
+      // Never an entry someone has paid for: that needs a refund or the team's attention first.
+      unsent: cases.filter((c) => c.source === 'website' && c.status === STATUS.DRAFT && !c.sentAt && olderThan(c.updatedAt, draftDays)
+        && !(payments.get(c.id) && !payments.get(c.id).refundedAt)),
       introductions: intros.filter((i) => !i.caseId && olderThan(i.createdAt, draftDays)),
     };
   }
@@ -76,6 +79,7 @@ export function retentionService({ caseRepo, partnerRepo, audit, policy = {}, no
       if (!c) throw new NotFoundError(`Case ${id} not found`);
       if (c.erasedAt) throw new ValidationError(['This case is already erased']);
       if (c.status === STATUS.CARD_ISSUED) throw new ValidationError(['A card is issued for this case. Submit or settle it first.']);
+      if (isIssuing(id)) throw new ValidationError(['A card is being issued for this case right now. Wait a moment.']);
       await eraseCase(c, 'applicant request', ctx);
       return { code: caseCode(c.caseNumber) };
     },

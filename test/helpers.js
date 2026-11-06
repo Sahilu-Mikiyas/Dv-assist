@@ -97,9 +97,11 @@ export async function setupCases({ sms = null, email = null, retentionPolicy = {
   const partnerRepo = partnerRepository(db, crypt);
   const economics = economicsService({ settingsRepo: settingsRepository(db), audit, envCommissionEtb: commissionEtb });
   const commission = () => economics.techCenterCommission();
-  const partners = partnerService({ repo: partnerRepo, caseRepo: repo, audit, notifications, commission, economics: () => economics.values() });
+  const partners = partnerService({
+    repo: partnerRepo, caseRepo: repo, audit, notifications, commission, economics: () => economics.values(), economicsHistory: () => economics.history(),
+  });
   const payouts = payoutService({ partnerRepo, caseRepo: repo, audit, notifications, commission, revenueShare: (p) => partners.revenueShare(p) });
-  const retention = retentionService({ caseRepo: repo, partnerRepo, audit, policy: retentionPolicy, now: () => clock });
+  const retention = retentionService({ caseRepo: repo, partnerRepo, audit, policy: retentionPolicy, now: () => clock, isIssuing: (id) => cases.isIssuing(id) });
   const cases = caseService({ repo, audit, bitnob, cardAmountUsd: 5, partners, notifications });
   const applications = applicationService({ repo, audit, partners, notifications });
   const advanceClock = (ms) => { clock += ms; };

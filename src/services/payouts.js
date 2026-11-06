@@ -23,9 +23,13 @@ export function payoutService({
   const record = (action, ctx, detail) => audit.record({ action, ip: ctx.ip, staffId: ctx.staff?.id, detail });
 
   // Submitted referrals not yet in a payout.
+  // Submitted referrals not yet in a payout, whose applicant has paid (and was not refunded): commission follows
+  // money actually received, the same rule as the revenue share.
   async function unpaidCases(partnerId) {
     const items = await partnerRepo.payoutItems(partnerId);
-    return (await caseRepo.listByPartner(partnerId)).filter((c) => c.status === STATUS.SUBMITTED && !items.has(c.id));
+    const cases = (await caseRepo.listByPartner(partnerId)).filter((c) => c.status === STATUS.SUBMITTED && !items.has(c.id));
+    const payments = await caseRepo.paymentsFor(cases.map((c) => c.id));
+    return cases.filter((c) => payments.get(c.id) && !payments.get(c.id).refundedAt);
   }
 
   // A revenue-share payout is the balance owed now: the share earned so far, less what was paid or is being paid.
@@ -38,12 +42,26 @@ export function payoutService({
         : 'Nothing is owed to this partner']);
     }
     const id = randomUUID();
-    await partnerRepo.insertPayout({
+    // "Entries" on a revenue-share payout: applicants counted since the earlier payouts, not the running total.
+    const earlier = (await partnerRepo.payouts(partner.id)).filter((p) => p.status !== 'cancelled').reduce((n, p) => n + p.entries, 0);
+    await insertOnce({
       id, partnerId: partner.id, rateEtb: 0, caseIds: [], payTo: partner.payoutPhone, createdBy: ctx.staff.name,
-      amountEtb: account.balanceEtb, entries: account.countedApplicants,
+      amountEtb: account.balanceEtb, entries: Math.max(0, account.countedApplicants - earlier),
     });
     await record('payout_created', ctx, `${partner.refCode} revenue share ${account.balanceEtb} ETB`);
     return partnerRepo.payout(id);
+  }
+
+  // The database allows one waiting payout per partner; a second request at the same moment is refused there.
+  async function insertOnce(payout) {
+    try {
+      await partnerRepo.insertPayout(payout);
+    } catch (err) {
+      if (/SQLITE_CONSTRAINT/.test(String(err.code ?? '') + err.message)) {
+        throw new ValidationError(['This partner already has a payout waiting to be paid']);
+      }
+      throw err;
+    }
   }
 
   async function mustGetPayout(id) {
@@ -98,7 +116,7 @@ export function payoutService({
       const unpaid = await unpaidCases(partnerId);
       if (!unpaid.length) throw new ValidationError(['Nothing is owed to this partner']);
       const id = randomUUID();
-      await partnerRepo.insertPayout({
+      await insertOnce({
         id, partnerId, rateEtb: commissionEtb, caseIds: unpaid.map((c) => c.id), payTo: partner.payoutPhone, createdBy: ctx.staff.name,
       });
       await record('payout_created', ctx, `${partner.refCode} ${unpaid.length} × ${commissionEtb} ETB`);
@@ -110,12 +128,14 @@ export function payoutService({
       const payout = await mustGetPayout(id);
       const ref = String(reference ?? '').trim().toUpperCase().replace(/\s+/g, '');
       if (!REFERENCE.test(ref)) throw new ValidationError(['Enter the Telebirr transaction number (letters and digits)']);
-      await partnerRepo.settlePayout(id, { status: 'paid', reference: ref, settledBy: ctx.staff.name });
+      if (!(await partnerRepo.settlePayout(id, { status: 'paid', reference: ref, settledBy: ctx.staff.name }))) {
+        throw new ValidationError(['This payout was settled by someone else just now. Reload.']);
+      }
       await record('payout_paid', ctx, `${payout.amountEtb} ETB ${ref}`);
       const partner = await partnerRepo.get(payout.partnerId);
       await notifications.notify('payout_paid', {
         partnerId: partner.id, phone: partner.phone,
-        data: { amountEtb: payout.amountEtb, entries: payout.entries, reference: ref, ending: payout.payTo.slice(-2) },
+        data: { amountEtb: payout.amountEtb, entries: payout.entries, reference: ref, ending: payout.payTo.slice(-2), revenueShare: partner.kind === 'revenue_share' },
       });
       return partnerRepo.payout(id);
     },
@@ -123,7 +143,9 @@ export function payoutService({
     async cancel(id, ctx) {
       requireAdmin(ctx);
       const payout = await mustGetPayout(id);
-      await partnerRepo.settlePayout(id, { status: 'cancelled', settledBy: ctx.staff.name });
+      if (!(await partnerRepo.settlePayout(id, { status: 'cancelled', settledBy: ctx.staff.name }))) {
+        throw new ValidationError(['This payout was settled by someone else just now. Reload.']);
+      }
       await record('payout_cancelled', ctx, `${payout.amountEtb} ETB`);
       return partnerRepo.payout(id);
     },

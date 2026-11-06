@@ -153,6 +153,8 @@ const MIGRATIONS = [
   'ALTER TABLE cases ADD COLUMN person_fp TEXT',
   'CREATE INDEX cases_passport_fp ON cases (passport_fp)',
   'CREATE INDEX cases_person_fp ON cases (person_fp)',
+  // At most one payout waiting to be paid per partner, enforced by the database (two clicks cannot both pay).
+  "CREATE UNIQUE INDEX payouts_one_pending ON payouts (partner_id) WHERE status = 'pending'",
   // Reminder messages already sent, so each goes out once.
   `CREATE TABLE reminders (
      case_id TEXT NOT NULL,
@@ -315,9 +317,11 @@ export function caseRepository(db, crypt) {
       await run('INSERT INTO payments (case_id, amount_etb, method, reference, received_at, recorded_by) VALUES (?, ?, ?, ?, ?, ?)',
         caseId, amountEtb, method, reference, now(), recordedBy);
     },
+    // Returns false if the payment was already refunded (e.g. two admins at once).
     async refundPayment(caseId, { reason, refundedBy }) {
-      await run('UPDATE payments SET refunded_at = ?, refunded_by = ?, refund_reason = ? WHERE case_id = ? AND refunded_at IS NULL',
+      const r = await run('UPDATE payments SET refunded_at = ?, refunded_by = ?, refund_reason = ? WHERE case_id = ? AND refunded_at IS NULL',
         now(), refundedBy, reason, caseId);
+      return r.rowsAffected === 1;
     },
 
     // Every payment, for the revenue-share accounts.
@@ -360,9 +364,12 @@ export function caseRepository(db, crypt) {
       await run('UPDATE cases SET sent_at = ?, updated_at = ? WHERE id = ?', now(), now(), id);
     },
 
-    async setStatus(id, { status, checks }) {
-      await run('UPDATE cases SET status = ?, checks = ?, updated_at = ? WHERE id = ?',
-        status, JSON.stringify(checks), now(), id);
+    // State changes only apply if the case is still in the state it was read in (`from`), and not erased:
+    // two people acting at once cannot both win. Returns whether the change applied.
+    async setStatus(id, { status, checks, from }) {
+      const r = await run('UPDATE cases SET status = ?, checks = ?, updated_at = ? WHERE id = ? AND status = ? AND erased_at IS NULL',
+        status, JSON.stringify(checks), now(), id, from);
+      return r.rowsAffected === 1;
     },
 
     async assign(id, staffId) {
@@ -380,13 +387,17 @@ export function caseRepository(db, crypt) {
     },
 
     async markCardIssued(id, { cardId, cardReference, status }) {
-      await run('UPDATE cases SET card_id = ?, card_reference = ?, status = ?, updated_at = ? WHERE id = ?',
-        cardId, cardReference, status, now(), id);
+      const r = await run(`UPDATE cases SET card_id = ?, card_reference = ?, status = ?, updated_at = ?
+                           WHERE id = ? AND status = 'approved' AND erased_at IS NULL`,
+      cardId, cardReference, status, now(), id);
+      return r.rowsAffected === 1;
     },
 
     async markSubmitted(id, { confirmationNumber, status }) {
-      await run('UPDATE cases SET confirmation_number = ?, status = ?, updated_at = ?, submitted_at = ? WHERE id = ?',
-        confirmationNumber, status, now(), now(), id);
+      const r = await run(`UPDATE cases SET confirmation_number = ?, status = ?, updated_at = ?, submitted_at = ?
+                           WHERE id = ? AND status = 'card_issued' AND erased_at IS NULL`,
+      confirmationNumber, status, now(), now(), id);
+      return r.rowsAffected === 1;
     },
 
     async get(id) {
@@ -536,16 +547,26 @@ export function partnerRepository(db, crypt) {
         JOIN payouts p ON p.id = i.payout_id WHERE p.partner_id = ?`, partnerId);
       return new Map(rows.map((r) => [r.case_id, { payoutId: r.payout_id, amountEtb: Number(r.amount_etb), status: r.status }]));
     },
+    // Settles a waiting payout as paid or cancelled. Returns false if it was already settled. A cancelled
+    // payout releases its entries, in the same transaction and only if this call cancelled it.
     async settlePayout(id, { status, reference = null, settledBy }) {
       const ts = new Date().toISOString();
-      const statements = [{
-        sql: "UPDATE payouts SET status = ?, reference = ?, settled_at = ?, settled_by = ? WHERE id = ? AND status = 'pending'",
-        args: [status, reference, ts, settledBy, id],
-      }];
-      // A cancelled payout releases its entries so they can go into the next one.
-      if (status === 'cancelled') statements.push({ sql: 'DELETE FROM payout_items WHERE payout_id = ?', args: [id] });
-      await db.batch(statements, 'write');
+      const [update] = await db.batch([
+        {
+          sql: "UPDATE payouts SET status = ?, reference = ?, settled_at = ?, settled_by = ? WHERE id = ? AND status = 'pending'",
+          args: [status, reference, ts, settledBy, id],
+        },
+        // Runs in the same batch (one transaction) and only deletes if this very call cancelled the payout.
+        {
+          sql: `DELETE FROM payout_items WHERE payout_id = ?
+                AND (SELECT status FROM payouts WHERE id = ?) = 'cancelled' AND (SELECT settled_at FROM payouts WHERE id = ?) = ?`,
+          args: [id, id, id, status === 'cancelled' ? ts : '-'],
+        },
+      ], 'write');
+      return update.rowsAffected === 1;
     },
+
+
 
     async deleteIntroduction(id) {
       await run('DELETE FROM introductions WHERE id = ?', id);

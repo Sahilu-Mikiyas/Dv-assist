@@ -33,8 +33,15 @@ function finish(stream, pct) {
 
 // cases: every case (accounting fields). payments: Map case id → payment. techCenterIds: Set of tech-centre
 // partner ids. payouts: this partner's payouts. monthOf: ISO date → "YYYY-MM".
-export function computeRevenueShare({ partnerId, deal, economics, cases, payments, techCenterIds, payouts }) {
-  const e = economics;
+// economicsHistory: [{ from: ISO date or null, values }], oldest first. Each applicant is costed with the
+// figures in force when they counted, so later cost changes never rewrite shares already earned.
+// revenueSharePartnerIds: other revenue-share partners' own applicants are theirs, not "through us" for this one.
+export function computeRevenueShare({
+  partnerId, deal, economics, economicsHistory = [{ from: null, values: economics }], cases, payments, techCenterIds, payouts,
+  revenueSharePartnerIds = new Set(),
+}) {
+  const costsAt = (iso) => economicsHistory.filter((h) => !h.from || h.from <= iso).at(-1)?.values ?? economicsHistory[0].values;
+  const e = economicsHistory.at(-1).values;
   const direct = emptyStream();
   const throughUs = emptyStream();
   const months = new Map();
@@ -47,6 +54,8 @@ export function computeRevenueShare({ partnerId, deal, economics, cases, payment
     const cleared = payment && !payment.refundedAt;
     const submitted = c.status === 'submitted';
     const isDirect = c.partnerId === partnerId;
+    // Another revenue-share partner's own applicant: shared with them, not with this partner.
+    if (!isDirect && c.partnerId && revenueSharePartnerIds.has(c.partnerId)) continue;
     if (payment?.refundedAt) pipeline.refunded += 1;
     if (!(cleared && submitted)) {
       if (submitted && !payment) pipeline.awaitingPayment += 1;
@@ -56,6 +65,9 @@ export function computeRevenueShare({ partnerId, deal, economics, cases, payment
     }
     const revenue = payment.amountEtb;
     const viaTechCentre = Boolean(c.partnerId && techCenterIds.has(c.partnerId));
+    // The moment an applicant counts: when both payment and submission were done.
+    const countedAt = [payment.receivedAt, c.submittedAt].filter(Boolean).sort().at(-1);
+    const e = costsAt(countedAt);
     const costs = {
       payment: e.paymentCostEtb,
       collection: revenue * e.collectionFeePct / 100,
@@ -67,12 +79,11 @@ export function computeRevenueShare({ partnerId, deal, economics, cases, payment
     addApplicant(isDirect ? direct : throughUs, revenue, costs);
     if (!isDirect) {
       if (viaTechCentre) channels.techCentres += 1;
-      else if (c.partnerId) channels.otherPartners += 1;
+      else if (c.partnerId) channels.otherPartners += 1; // reserved: other partner kinds
       else if (c.source === 'website') channels.website += 1;
       else channels.office += 1;
     }
-    // The month an applicant counts: when both payment and submission were done.
-    const month = [payment.receivedAt, c.submittedAt].filter(Boolean).sort().at(-1).slice(0, 7);
+    const month = countedAt.slice(0, 7);
     if (!months.has(month)) months.set(month, { direct: emptyStream(), throughUs: emptyStream() });
     addApplicant(months.get(month)[isDirect ? 'direct' : 'throughUs'], revenue, costs);
     counted.push(c.id);

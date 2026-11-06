@@ -406,6 +406,10 @@ function toErrorResponse(err, requestId) {
     log.warn('bitnob_error', { requestId, status: err.status, message: err.message, details: err.details });
     return [502, { error: `Bitnob: ${err.message}` }];
   }
+  // Two requests doing the same thing at once: the database refused the second. Not a server fault.
+  if (String(err.code ?? '').startsWith('SQLITE_CONSTRAINT') || /SQLITE_CONSTRAINT/.test(err.message ?? '')) {
+    return [409, { error: 'This was just done by another request. Reload and check.' }];
+  }
   log.error('unhandled_error', { requestId, message: err.message, stack: err.stack });
   return [500, { error: 'Internal error', requestId }];
 }

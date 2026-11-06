@@ -48,6 +48,7 @@ export function validateDeal(input) {
       .sort((a, b) => a.from - b.from);
     if (ladder[0].from !== 0) errors.push('The ladder must start from 0 applicants');
     if (ladder.some((t) => !Number.isInteger(t.from) || t.from < 0 || !pct(t.pct))) errors.push('Each ladder step needs a whole number of applicants and a percentage');
+    if (new Set(ladder.map((t) => t.from)).size !== ladder.length) errors.push('Each ladder step needs a different number of applicants');
   }
   if (errors.length) throw new ValidationError(errors);
   return { directPct: Number(input.directPct), throughUsPct: Number(input.throughUsPct), ladder };

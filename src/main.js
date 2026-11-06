@@ -45,8 +45,9 @@ const economics = economicsService({ settingsRepo: settingsRepository(db), audit
 const partners = partnerService({
   repo: partnerRepo, caseRepo, audit, notifications,
   commission: () => economics.techCenterCommission(), economics: () => economics.values(),
+  economicsHistory: () => economics.history(),
 });
-const retention = retentionService({ caseRepo, partnerRepo, audit, policy: config.retention });
+const retention = retentionService({ caseRepo, partnerRepo, audit, policy: config.retention, isIssuing: (id) => cases.isIssuing(id) });
 const cases = caseService({
   repo: caseRepo,
   partners,
