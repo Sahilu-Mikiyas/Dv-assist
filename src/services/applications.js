@@ -35,8 +35,22 @@ export function applicationService({ repo, audit, partners = null, notifications
     return found;
   }
 
+  // One entry per person: a passport already on another live entry is refused (the DV rules disqualify
+  // people who enter twice).
+  async function assertNoPassportDuplicate(id, applicant) {
+    if ((await repo.duplicatesOf({ id, applicant })).some((d) => d.match === 'passport')) {
+      throw new ValidationError(['An entry with this passport number already exists. Continue it with your code, or contact us.']);
+    }
+  }
+
   const record = (action, caseId, ctx = {}, detail = null) =>
     audit.record({ action, caseId, ip: ctx.ip, detail: detail ?? 'applicant' });
+
+  async function paymentView(id) {
+    const p = await repo.payment(id);
+    if (!p) return { status: 'none' };
+    return { status: p.refundedAt ? 'refunded' : 'paid', amountEtb: p.amountEtb };
+  }
 
   // What the applicant sees: their own details and progress, never staff names or card data.
   async function view(c) {
@@ -53,6 +67,7 @@ export function applicationService({ repo, audit, partners = null, notifications
       editable: c.status === STATUS.DRAFT && !c.sentAt,
       checks: { abol: Boolean(c.checks.abol), tona: Boolean(c.checks.tona), baraka: Boolean(c.checks.baraka) },
       confirmationNumber: c.status === STATUS.SUBMITTED ? c.confirmationNumber : null,
+      payment: await paymentView(c.id),
       createdAt: c.createdAt,
     };
   }
@@ -63,6 +78,7 @@ export function applicationService({ repo, audit, partners = null, notifications
     async start(input, ctx) {
       const pkg = validatePackage(input?.package);
       const applicant = validateApplicant(input?.applicant);
+      await assertNoPassportDuplicate(null, applicant);
       const id = randomUUID();
       const resumeCode = newResumeCode();
       await repo.insert({ id, applicant, status: STATUS.DRAFT, source: 'website', pkg, accessHash: hashCode(resumeCode) });
@@ -91,7 +107,9 @@ export function applicationService({ repo, audit, partners = null, notifications
     async update(id, input, ctx) {
       assertApplicantCanEdit(await mustGet(id));
       const pkg = validatePackage(input?.package);
-      await repo.updateApplicant(id, validateApplicant(input?.applicant));
+      const applicant = validateApplicant(input?.applicant);
+      await assertNoPassportDuplicate(id, applicant);
+      await repo.updateApplicant(id, applicant);
       await repo.setPackage(id, pkg);
       await record('application_updated', id, ctx);
       return view(await mustGet(id));

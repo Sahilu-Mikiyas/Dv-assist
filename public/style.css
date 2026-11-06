@@ -237,3 +237,5 @@ table.report tfoot th, table.report tfoot td { font-weight: 700; border-top: 2px
 .check-row { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
 .error-text { color: #8E1B2A; margin: 0; white-space: pre-line; }
 .stack-tight { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.dup-warning { margin-top: 10px; padding: 10px 14px; border-radius: 10px; background: #FDECEE; color: #8E1B2A; font-size: 14px; }
+.dup-warning a { color: inherit; font-weight: 600; }

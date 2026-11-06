@@ -475,7 +475,14 @@ function renderStatus() {
   $('#confirmation').hidden = !app.confirmationNumber;
   $('#confirmation-number').textContent = app.confirmationNumber ?? '';
   $('#approve-form').hidden = stage !== 'approve';
-  $('#payment-note').hidden = stage === 'submitted';
+  const pay = app.payment;
+  const price = PACKAGES[app.package]?.price;
+  $('#payment-text').textContent = pay?.status === 'paid'
+    ? `Payment received: ${pay.amountEtb.toLocaleString('en-US')} ETB. Thank you.`
+    : pay?.status === 'refunded'
+      ? `Your payment of ${pay.amountEtb.toLocaleString('en-US')} ETB was refunded.`
+      : `Price: ${price} ETB. Our team will contact you to arrange payment by Telebirr or CBE Birr before your entry is filed.`;
+  $('#payment-note').hidden = stage === 'submitted' && pay?.status !== 'paid';
   if (stage === 'approve') renderSummary($('#approve-summary'), false);
 
   const steps = [

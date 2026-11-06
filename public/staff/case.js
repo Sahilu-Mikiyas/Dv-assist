@@ -344,6 +344,21 @@ function renderStages(c) {
   }));
 }
 
+// One entry per person: the same passport is a definite duplicate; the same name and birth date may be.
+function renderDuplicates(c) {
+  const dups = c.duplicates ?? [];
+  $('#duplicates').hidden = !dups.length;
+  if (!dups.length) return;
+  const passport = dups.some((d) => d.match === 'passport');
+  $('#duplicates').replaceChildren(
+    el('b', { textContent: passport ? 'Duplicate entry: the same passport is on another case.' : 'Possible duplicate: same name and birth date as another case.' }),
+    ' ',
+    ...dups.flatMap((d, i) => [i ? ', ' : '', el('a', { href: `/staff/case.html?id=${d.id}`, textContent: `${d.code} (${d.match}, ${STAGE_LABELS[d.status] ?? d.status})` })]),
+    el('div', { className: 'small', textContent: passport
+      ? 'The DV rules disqualify people who enter twice. Keep one entry and erase the other before the first check.'
+      : 'Check the passports: if it is the same person, keep one entry only.' }));
+}
+
 function renderAssign(c) {
   $('#assign-box').hidden = false;
   const select = $('#assign');
@@ -366,6 +381,7 @@ function render(c) {
   $('#meta').textContent = `${c.code} · ${c.photos.length} ${c.photos.length === 1 ? 'person' : 'people'} · ${sourceLabel(c)} · ${STAGE_LABELS[c.status]}`;
   renderStages(c);
   renderAssign(c);
+  renderDuplicates(c);
 
   form.hidden = !draft;
   if (draft) writeForm(c.applicant);

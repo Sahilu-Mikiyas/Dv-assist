@@ -25,13 +25,15 @@ export const person = (overrides = {}) => ({
   ...overrides,
 });
 
+// Each call gets its own passport number: one entry per passport is enforced.
+let passportSeq = 1000000;
 export const applicantInput = (overrides = {}) => ({
   ...person(),
   eligibilityCountry: 'Ethiopia',
   mailingAddress: 'Bole, Addis Ababa',
   residenceCountry: 'Ethiopia',
   email: 'kebede@example.com',
-  passportNumber: 'EP1234567',
+  passportNumber: `EP${passportSeq++}`,
   passportCountry: 'Ethiopia',
   passportExpiry: '2031-06-30',
   education: 'university_degree',
@@ -103,7 +105,7 @@ export async function setupCases({ sms = null, email = null, retentionPolicy = {
   const advanceClock = (ms) => { clock += ms; };
   const staffRepo = staffRepository(db, crypt);
   const staff = staffService({ repo: staffRepo, audit });
-  return { db, cases, applications, partners, payouts, economics, notifications, retention, advanceClock, audit, bitnob, staff, staffRepo };
+  return { db, caseRepo: repo, cases, applications, partners, payouts, economics, notifications, retention, advanceClock, audit, bitnob, staff, staffRepo };
 }
 
 // Two signed-in-ready staff members (an admin and a staff member) with authenticators set up.

@@ -148,7 +148,29 @@ const MIGRATIONS = [
   'ALTER TABLE payments ADD COLUMN refunded_at TEXT',
   'ALTER TABLE payments ADD COLUMN refunded_by TEXT',
   'ALTER TABLE payments ADD COLUMN refund_reason TEXT',
+  // Keyed fingerprints of the principal applicant, to find duplicate entries (one entry per person).
+  'ALTER TABLE cases ADD COLUMN passport_fp TEXT',
+  'ALTER TABLE cases ADD COLUMN person_fp TEXT',
+  'CREATE INDEX cases_passport_fp ON cases (passport_fp)',
+  'CREATE INDEX cases_person_fp ON cases (person_fp)',
+  // Reminder messages already sent, so each goes out once.
+  `CREATE TABLE reminders (
+     case_id TEXT NOT NULL,
+     kind    TEXT NOT NULL,
+     sent_at TEXT NOT NULL,
+     PRIMARY KEY (case_id, kind)
+   )`,
 ];
+
+const norm = (v) => String(v ?? '').trim().toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
+// The principal applicant's fingerprints: passport number, and full name with birth date.
+export function applicantFingerprints(crypt, a) {
+  const passport = String(a.passportNumber ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return {
+    passportFp: passport ? crypt.fingerprint(`passport|${passport}`) : null,
+    personFp: a.lastName && a.birthDate ? crypt.fingerprint(`person|${norm(a.lastName)}|${norm(a.firstName)}|${a.birthDate}`) : null,
+  };
+}
 
 export function settingsRepository(db) {
   const run = (sql, ...args) => db.execute({ sql, args });
@@ -230,10 +252,41 @@ export function caseRepository(db, crypt) {
     // source: 'staff' or 'website'. Website cases carry the hash of the applicant's resume code.
     async insert({ id, applicant, status, source = 'staff', pkg = null, accessHash = null }) {
       const ts = now();
+      const { passportFp, personFp } = applicantFingerprints(crypt, applicant);
       const { rows } = await run("UPDATE counters SET value = value + 1 WHERE name = 'case' RETURNING value");
-      await run(`INSERT INTO cases (id, case_number, applicant, status, checks, source, package, access_hash, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      id, rows[0].value, crypt.encryptJson(applicant), status, '{}', source, pkg, accessHash, ts, ts);
+      await run(`INSERT INTO cases (id, case_number, applicant, status, checks, source, package, access_hash, passport_fp, person_fp, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, rows[0].value, crypt.encryptJson(applicant), status, '{}', source, pkg, accessHash, passportFp, personFp, ts, ts);
+    },
+
+    // Other live cases for the same person: same passport number, or same name and birth date.
+    async duplicatesOf({ id = null, applicant }) {
+      const { passportFp, personFp } = applicantFingerprints(crypt, applicant);
+      if (!passportFp && !personFp) return [];
+      const { rows } = await run(`SELECT id, case_number, status, passport_fp, person_fp FROM cases
+        WHERE erased_at IS NULL AND id IS NOT ? AND ((passport_fp IS NOT NULL AND passport_fp = ?) OR (person_fp IS NOT NULL AND person_fp = ?))`,
+      id, passportFp, personFp);
+      return rows.map((r) => ({
+        id: r.id, caseNumber: Number(r.case_number), status: r.status,
+        match: passportFp && r.passport_fp === passportFp ? 'passport' : 'name and birth date',
+      }));
+    },
+
+    // Cases saved before fingerprints existed get them on start-up.
+    async backfillFingerprints() {
+      const { rows } = await run('SELECT id, applicant FROM cases WHERE erased_at IS NULL AND passport_fp IS NULL AND person_fp IS NULL');
+      for (const r of rows) {
+        const { passportFp, personFp } = applicantFingerprints(crypt, crypt.decryptJson(r.applicant));
+        await run('UPDATE cases SET passport_fp = ?, person_fp = ? WHERE id = ?', passportFp, personFp, r.id);
+      }
+      return rows.length;
+    },
+
+    async remindedAlready(caseId, kind) {
+      return (await run('SELECT 1 FROM reminders WHERE case_id = ? AND kind = ?', caseId, kind)).rows.length > 0;
+    },
+    async markReminded(caseId, kind) {
+      await run('INSERT INTO reminders (case_id, kind, sent_at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING', caseId, kind, now());
     },
 
     async findByAccessHash(accessHash) {
@@ -249,7 +302,8 @@ export function caseRepository(db, crypt) {
     async erase(id) {
       const ts = now();
       await db.batch([
-        { sql: 'UPDATE cases SET applicant = ?, confirmation_number = NULL, access_hash = NULL, erased_at = ?, updated_at = ? WHERE id = ?',
+        { sql: `UPDATE cases SET applicant = ?, confirmation_number = NULL, access_hash = NULL, passport_fp = NULL, person_fp = NULL,
+                erased_at = ?, updated_at = ? WHERE id = ?`,
           args: [crypt.encryptJson({ erased: true }), ts, ts, id] },
         { sql: 'DELETE FROM photos WHERE case_id = ?', args: [id] },
         { sql: 'DELETE FROM documents WHERE case_id = ?', args: [id] },
@@ -273,10 +327,10 @@ export function caseRepository(db, crypt) {
 
     // Every case without decrypting applicants: just what the accounts need.
     async listForAccounting() {
-      const { rows } = await run('SELECT id, case_number, partner_id, source, package, status, sent_at, submitted_at, erased_at, created_at FROM cases');
+      const { rows } = await run('SELECT id, case_number, partner_id, source, package, status, sent_at, submitted_at, erased_at, created_at, updated_at FROM cases');
       return rows.map((r) => ({
         id: r.id, caseNumber: Number(r.case_number), partnerId: r.partner_id, source: r.source, package: r.package, status: r.status,
-        sentAt: r.sent_at, submittedAt: r.submitted_at, erasedAt: r.erased_at, createdAt: r.created_at,
+        sentAt: r.sent_at, submittedAt: r.submitted_at, erasedAt: r.erased_at, createdAt: r.created_at, updatedAt: r.updated_at,
       }));
     },
 
@@ -320,7 +374,9 @@ export function caseRepository(db, crypt) {
     },
 
     async updateApplicant(id, applicant) {
-      await run('UPDATE cases SET applicant = ?, updated_at = ? WHERE id = ?', crypt.encryptJson(applicant), now(), id);
+      const { passportFp, personFp } = applicantFingerprints(crypt, applicant);
+      await run('UPDATE cases SET applicant = ?, passport_fp = ?, person_fp = ?, updated_at = ? WHERE id = ?',
+        crypt.encryptJson(applicant), passportFp, personFp, now(), id);
     },
 
     async markCardIssued(id, { cardId, cardReference, status }) {

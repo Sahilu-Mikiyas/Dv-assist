@@ -1,6 +1,6 @@
 // Encryption at rest (AES-256-GCM) and password hashing (scrypt).
 
-import { createCipheriv, createDecipheriv, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 
 const scryptAsync = promisify(scrypt);
@@ -34,9 +34,15 @@ export function cipher(key) {
     return Buffer.concat([d.update(buf.subarray(1 + IV_BYTES + TAG_BYTES)), d.final()]);
   }
 
+  // Keyed fingerprint for finding equal values (e.g. a passport number) without storing them readably.
+  // Uses a subkey, so the encryption key itself is never used for two purposes.
+  const fingerprintKey = createHmac('sha256', key).update('dv-assist fingerprint key').digest();
+  const fingerprint = (text) => createHmac('sha256', fingerprintKey).update(String(text)).digest('hex');
+
   return {
     encrypt,
     decrypt,
+    fingerprint,
     encryptJson: (value) => encrypt(Buffer.from(JSON.stringify(value))),
     decryptJson: (blob) => JSON.parse(decrypt(blob).toString('utf8')),
   };

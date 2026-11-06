@@ -59,6 +59,8 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       code: caseCode(c.caseNumber),
       photos: photoKeys(c.applicant).map((key) => ({ key, uploaded: present.includes(key) })),
       documents: await documentsOf(c.id),
+      duplicates: c.erasedAt ? [] : (await repo.duplicatesOf({ id: c.id, applicant: c.applicant }))
+        .map((d) => ({ id: d.id, code: caseCode(d.caseNumber), status: d.status, match: d.match })),
     };
   }
 
@@ -161,6 +163,10 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     async check(id, ctx) {
       const existing = await mustGetActive(id);
       assertCanCheck(existing, await repo.photoKeys(id), await repo.documentKinds(id));
+      const sameP = (await repo.duplicatesOf({ id, applicant: existing.applicant })).filter((d) => d.match === 'passport');
+      if (sameP.length) {
+        throw new ValidationError([`Same passport as ${sameP.map((d) => caseCode(d.caseNumber)).join(', ')}. One entry per person: erase the extra entry first.`]);
+      }
       await repo.setStatus(id, { status: STATUS.CHECKED, checks: { abol: stamp(ctx) } });
       await record('check_abol', id, ctx);
       return withPhotos(await mustGet(id));
@@ -195,6 +201,11 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       assertCanReopen(existing);
       await repo.setStatus(id, { status: STATUS.DRAFT, checks: {} });
       await record('case_reopened', id, ctx, (reason ?? '').slice(0, 200) || null);
+      if (existing.source === 'website') {
+        await notifications.notify('needs_correction', {
+          caseId: id, phone: existing.applicant.phone, email: existing.applicant.email, data: { code: caseCode(existing.caseNumber) },
+        });
+      }
       return withPhotos(await mustGet(id));
     },
 

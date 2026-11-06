@@ -40,6 +40,21 @@ export const TEMPLATES = {
     text: `${BRAND}: we sent ${amountEtb} ETB for ${entries} submitted ${entries === 1 ? 'entry' : 'entries'} to your Telebirr ending ${ending}. Transaction: ${reference}. Thank you!\n`
       + `${amountEtb} ብር ወደ ቴሌብርዎ ተልኳል። ቁጥር፦ ${reference}። እናመሰግናለን!`,
   }),
+  approval_reminder: ({ code, url }) => ({
+    subject: `Reminder: entry ${code} is waiting for your approval`,
+    text: `${BRAND}: entry ${code} is still waiting for your approval. Open ${url}/apply#resume with your code. We cannot file it without your approval.\n`
+      + `ምዝገባዎ ፈቃድዎን እየጠበቀ ነው፦ ${url}/apply#resume`,
+  }),
+  finish_entry: ({ code, url }) => ({
+    subject: `Finish entry ${code}`,
+    text: `${BRAND}: your entry ${code} is not finished yet. Continue with your code: ${url}/apply#resume\n`
+      + `ምዝገባዎ ገና አልተጠናቀቀም። በኮድዎ ይቀጥሉ፦ ${url}/apply#resume`,
+  }),
+  needs_correction: ({ code }) => ({
+    subject: `We are correcting entry ${code}`,
+    text: `${BRAND}: we found something to correct in entry ${code}. Our team will fix it and ask you to approve again. We may call you.\n`
+      + 'በምዝገባዎ ላይ የሚታረም ነገር አግኝተናል፤ እናስተካክለዋለን።',
+  }),
 };
 
 export const TEMPLATE_LABELS = {
@@ -50,6 +65,9 @@ export const TEMPLATE_LABELS = {
   invitation: 'Partner invitation',
   partner_approved: 'Partner approved',
   payout_paid: 'Partner payout sent',
+  approval_reminder: 'Approval reminder',
+  finish_entry: 'Finish your entry',
+  needs_correction: 'Entry being corrected',
 };
 
 export function render(template, data) {

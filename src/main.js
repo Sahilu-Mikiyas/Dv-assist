@@ -17,6 +17,7 @@ import { economicsService } from './services/economics.js';
 import { notificationService } from './services/notifications.js';
 import { partnerService } from './services/partners.js';
 import { payoutService } from './services/payouts.js';
+import { reminderService } from './services/reminders.js';
 import { retentionService } from './services/retention.js';
 import { staffService } from './services/staff.js';
 
@@ -37,6 +38,8 @@ const notifications = notificationService({
 });
 
 const caseRepo = caseRepository(db, crypt);
+const fingerprinted = await caseRepo.backfillFingerprints();
+if (fingerprinted) log.info('fingerprints_backfilled', { cases: fingerprinted });
 const partnerRepo = partnerRepository(db, crypt);
 const economics = economicsService({ settingsRepo: settingsRepository(db), audit, envCommissionEtb: config.partnerCommissionEtb });
 const partners = partnerService({
@@ -86,9 +89,14 @@ const messageTimer = setInterval(() => notifications.wake(), 30_000);
 messageTimer.unref();
 notifications.wake();
 
-// Data retention: applies the switched-on rules at start and every 6 hours.
-const sweep = () => retention.run().then((n) => n.submitted + n.unsent + n.introductions && log.info('retention_run', n))
-  .catch((err) => log.error('retention_failed', { message: err.message }));
+// Periodic jobs at start and every 6 hours: data retention rules and reminders.
+const reminders = reminderService({ caseRepo, notifications });
+const sweep = () => Promise.all([
+  retention.run().then((n) => n.submitted + n.unsent + n.introductions && log.info('retention_run', n))
+    .catch((err) => log.error('retention_failed', { message: err.message })),
+  reminders.run().then((n) => n && log.info('reminders_sent', { count: n }))
+    .catch((err) => log.error('reminders_failed', { message: err.message })),
+]);
 const retentionTimer = setInterval(sweep, 6 * 60 * 60 * 1000);
 retentionTimer.unref();
 sweep();
