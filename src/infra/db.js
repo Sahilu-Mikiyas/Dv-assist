@@ -6,7 +6,7 @@ import { dirname } from 'node:path';
 import { createClient } from '@libsql/client';
 
 // Append-only: each entry runs once, in order, and is recorded in schema_migrations.
-const MIGRATIONS = [
+export const MIGRATIONS = [
   `CREATE TABLE cases (
      id                  TEXT PRIMARY KEY,
      applicant           BLOB NOT NULL,
@@ -153,13 +153,6 @@ const MIGRATIONS = [
   'ALTER TABLE cases ADD COLUMN person_fp TEXT',
   'CREATE INDEX cases_passport_fp ON cases (passport_fp)',
   'CREATE INDEX cases_person_fp ON cases (person_fp)',
-  // At most one payout waiting to be paid per partner, enforced by the database (two clicks cannot both pay).
-  "CREATE UNIQUE INDEX payouts_one_pending ON payouts (partner_id) WHERE status = 'pending'",
-  // Session versions: bumping one signs that person out everywhere (logout, password or code changes).
-  'ALTER TABLE staff ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
-  'ALTER TABLE partners ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
-  // The last authenticator time-step used, so a code cannot be used twice.
-  'ALTER TABLE staff ADD COLUMN totp_last_step INTEGER',
   // Reminder messages already sent, so each goes out once.
   `CREATE TABLE reminders (
      case_id TEXT NOT NULL,
@@ -167,6 +160,13 @@ const MIGRATIONS = [
      sent_at TEXT NOT NULL,
      PRIMARY KEY (case_id, kind)
    )`,
+  // At most one payout waiting to be paid per partner, enforced by the database (two clicks cannot both pay).
+  "CREATE UNIQUE INDEX payouts_one_pending ON payouts (partner_id) WHERE status = 'pending'",
+  // Session versions: bumping one signs that person out everywhere (logout, password or code changes).
+  'ALTER TABLE staff ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
+  'ALTER TABLE partners ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
+  // The last authenticator time-step used, so a code cannot be used twice.
+  'ALTER TABLE staff ADD COLUMN totp_last_step INTEGER',
 ];
 
 const norm = (v) => String(v ?? '').trim().toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
