@@ -42,3 +42,21 @@ test('reads JPEG dimensions and enforces photo rules', () => {
   assert.throws(() => validatePhoto(Buffer.from('not a jpeg')), /JPEG/);
   assert.throws(() => validatePhoto(fakeJpeg(600, 600, 241 * 1024)), /240 KB/);
 });
+
+test('the entrant needs a valid passport: number, country and a future expiry date', async () => {
+  const { validateApplicant } = await import('../src/domain/case.js');
+  const { applicantInput } = await import('./helpers.js');
+  assert.equal(validateApplicant(applicantInput({ passportNumber: 'ep 123 4567' })).passportNumber, 'EP1234567');
+  assert.throws(() => validateApplicant(applicantInput({ passportNumber: '12' })), /passportNumber is invalid/);
+  assert.throws(() => validateApplicant(applicantInput({ passportCountry: '' })), /passportCountry is required/);
+  assert.throws(() => validateApplicant(applicantInput({ passportExpiry: '2020-01-01' })), /passport must be valid/);
+});
+
+test('passport scans must be readable JPEGs of a sensible size', async () => {
+  const { validateDocument } = await import('../src/domain/photo.js');
+  const { fakeJpeg, fakePassport } = await import('./helpers.js');
+  assert.doesNotThrow(() => validateDocument(fakePassport()));
+  assert.throws(() => validateDocument(fakeJpeg(600, 400)), /too small to read/);
+  assert.throws(() => validateDocument(Buffer.from('not a jpeg')), /must be a JPEG/);
+  assert.throws(() => validateDocument(fakeJpeg(1200, 850, 2 * 1024 * 1024)), /1.5 MB/);
+});

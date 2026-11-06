@@ -83,6 +83,14 @@ then records the Telebirr transaction number ("Mark paid"), and the partner gets
 can be cancelled, which releases its entries. Each entry can be paid only once (enforced by the database).
 Partners see paid and owed amounts and their payout history. CSV export for bookkeeping.
 
+## Passport (DV-2027 rule)
+
+Entrants must now give a valid passport. Both the applicant form and the staff form ask for passport number,
+issuing country and expiry date (an expired passport is refused), and take a picture of the passport photo page
+(required) and the signature page (only if separate). Pictures are resized in the browser (long side up to
+1600 px, about 1 MB), stored encrypted in `documents`, erased with the rest of the case, and required before an
+entry can be sent for checking or pass Abol. Staff see and download them on the case page.
+
 ## Photo analyzer
 
 Every photo, from applicants or staff, goes through the same on-device editor (`public/photo/`):

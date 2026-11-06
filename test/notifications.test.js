@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DeliveryError, afroMessageSms, brevoEmail } from '../src/infra/messaging.js';
-import { applicantInput, ctxFor, fakeChannel, fakeJpeg, seedStaff, setupCases } from './helpers.js';
+import { applicantInput, ctxFor, fakeChannel, fakeJpeg, fakePassport, seedStaff, setupCases } from './helpers.js';
 
 const ctx = { ip: '203.0.113.5' };
 const start = (env, overrides = {}) =>
@@ -45,6 +45,7 @@ test('sends by SMS to Ethiopian mobiles, by email otherwise, through the whole e
   assert.match(email.sent[0].subject, /EDA-0002 is saved/);
 
   await env.applications.savePhoto(caseId, 'applicant', fakeJpeg(), ctx);
+  await env.applications.saveDocument(caseId, 'passport', fakePassport(), ctx);
   await env.applications.send(caseId, ctx);
   await env.cases.check(caseId, ctxFor(meron));
   await env.cases.verify(caseId, ctxFor(admin));

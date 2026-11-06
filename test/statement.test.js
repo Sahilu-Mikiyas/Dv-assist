@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applicantInput, approvedCase, ctxFor, fakeJpeg, person, seedStaff, setupCases } from './helpers.js';
+import { applicantInput, approvedCase, ctxFor, fakeJpeg, fakePassport, person, seedStaff, setupCases } from './helpers.js';
 
 const ctx = { ip: '203.0.113.3' };
 
@@ -13,6 +13,7 @@ async function newPartner(env, admin, organisation, phone) {
 
 async function through(env, admin, meron, caseId, until) {
   await env.applications.savePhoto(caseId, 'applicant', fakeJpeg(), ctx);
+  await env.applications.saveDocument(caseId, 'passport', fakePassport(), ctx);
   for (const key of (await env.cases.get(caseId)).photos.map((p) => p.key)) await env.applications.savePhoto(caseId, key, fakeJpeg(), ctx);
   await env.applications.send(caseId, ctx);
   if (until === 'checking') return;

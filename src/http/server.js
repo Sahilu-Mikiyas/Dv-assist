@@ -9,7 +9,7 @@ import {
   APPROVAL_METHODS, EDUCATION_LEVELS, MARITAL_STATUSES, PACKAGE_PRICES_ETB, PACKAGES, PAYMENT_METHODS, ValidationError,
 } from '../domain/case.js';
 import { PARTNER_TYPES } from '../domain/partner.js';
-import { MAX_PHOTO_BYTES } from '../domain/photo.js';
+import { MAX_DOCUMENT_BYTES, MAX_PHOTO_BYTES } from '../domain/photo.js';
 import { BitnobError } from '../infra/bitnob.js';
 import { log } from '../infra/log.js';
 import { TOGETHER_SESSION_MS } from './auth.js';
@@ -75,9 +75,9 @@ async function readJson(req) {
   }
 }
 
-async function readJpeg(req) {
+async function readJpeg(req, limit = MAX_PHOTO_BYTES) {
   if (req.headers['content-type'] !== 'image/jpeg') throw new HttpError(415, 'Expected image/jpeg');
-  return readBody(req, MAX_PHOTO_BYTES + 1);
+  return readBody(req, limit + 1);
 }
 
 function send(res, status, body, headers = {}) {
@@ -186,6 +186,11 @@ function routes({
     })],
     ['PUT', /^\/api\/apply\/photos\/(\w+)$/, 'applicant', async (req, [key], ctx) =>
       applications.savePhoto(ctx.caseId, key, await readJpeg(req), ctx)],
+    ['GET', /^\/api\/apply\/documents\/(\w+)$/, 'applicant', async (_, [kind], ctx) => ({
+      body: await applications.getDocument(ctx.caseId, kind), headers: { 'Content-Type': 'image/jpeg' },
+    })],
+    ['PUT', /^\/api\/apply\/documents\/(\w+)$/, 'applicant', async (req, [kind], ctx) =>
+      applications.saveDocument(ctx.caseId, kind, await readJpeg(req, MAX_DOCUMENT_BYTES), ctx)],
     ['POST', /^\/api\/apply\/send$/, 'applicant', async (_, __, ctx) => applications.send(ctx.caseId, ctx)],
     ['POST', /^\/api\/apply\/approve$/, 'applicant', async (req, _, ctx) => applications.approve(ctx.caseId, await readJson(req), ctx)],
 
@@ -290,6 +295,16 @@ function routes({
     }],
     ['PUT', /^\/api\/cases\/([\w-]+)\/photos\/(\w+)$/, null, async (req, [id, key], ctx) => {
       await cases.savePhoto(id, key, await readJpeg(req), ctx);
+      return { ok: true };
+    }],
+    ['GET', /^\/api\/cases\/([\w-]+)\/documents\/(\w+)$/, null, async (_, [id, kind], __, url) => {
+      const c = await cases.get(id);
+      const headers = { 'Content-Type': 'image/jpeg' };
+      if (url.searchParams.get('download')) headers['Content-Disposition'] = `attachment; filename="${c.code}-${kind}.jpg"`;
+      return { body: await cases.getDocument(id, kind), headers };
+    }],
+    ['PUT', /^\/api\/cases\/([\w-]+)\/documents\/(\w+)$/, null, async (req, [id, kind], ctx) => {
+      await cases.saveDocument(id, kind, await readJpeg(req, MAX_DOCUMENT_BYTES), ctx);
       return { ok: true };
     }],
     ['POST', /^\/api\/cases\/([\w-]+)\/assign$/, null, async (req, [id], ctx) => cases.assign(id, (await readJson(req)).staffId, ctx)],

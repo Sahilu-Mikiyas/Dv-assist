@@ -3,6 +3,7 @@
 
 import { randomUUID } from 'node:crypto';
 import {
+  DOCUMENT_KINDS,
   PACKAGE_PRICES_ETB,
   STATUS,
   ValidationError,
@@ -16,7 +17,7 @@ import {
   photoKeys,
   validateApplicant,
 } from '../domain/case.js';
-import { validatePhoto } from '../domain/photo.js';
+import { validateDocument, validatePhoto } from '../domain/photo.js';
 import { ForbiddenError } from './staff.js';
 
 export class NotFoundError extends Error {}
@@ -41,6 +42,11 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     return found;
   }
 
+  async function documentsOf(id) {
+    const present = await repo.documentKinds(id);
+    return DOCUMENT_KINDS.map((kind) => ({ kind, uploaded: present.includes(kind) }));
+  }
+
   const partnerNames = async () => (partners ? partners.names() : new Map());
 
   async function withPhotos(c) {
@@ -52,6 +58,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       payment: (await repo.payment(c.id)) ?? null,
       code: caseCode(c.caseNumber),
       photos: photoKeys(c.applicant).map((key) => ({ key, uploaded: present.includes(key) })),
+      documents: await documentsOf(c.id),
     };
   }
 
@@ -130,6 +137,20 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       await record(`photo_saved:${personKey}`, id, ctx);
     },
 
+    async saveDocument(id, kind, data, ctx) {
+      await mustGetDraft(id);
+      if (!DOCUMENT_KINDS.includes(kind)) throw new ValidationError([`Unknown document "${kind}"`]);
+      validateDocument(data);
+      await repo.saveDocument(id, kind, data);
+      await record(`document_saved:${kind}`, id, ctx);
+    },
+
+    async getDocument(id, kind) {
+      const data = await repo.getDocument(id, kind);
+      if (!data) throw new NotFoundError('Document not found');
+      return data;
+    },
+
     async getPhoto(id, personKey) {
       const data = await repo.getPhoto(id, personKey);
       if (!data) throw new NotFoundError('Photo not found');
@@ -139,7 +160,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     // Abol: first check.
     async check(id, ctx) {
       const existing = await mustGetActive(id);
-      assertCanCheck(existing, await repo.photoKeys(id));
+      assertCanCheck(existing, await repo.photoKeys(id), await repo.documentKinds(id));
       await repo.setStatus(id, { status: STATUS.CHECKED, checks: { abol: stamp(ctx) } });
       await record('check_abol', id, ctx);
       return withPhotos(await mustGet(id));

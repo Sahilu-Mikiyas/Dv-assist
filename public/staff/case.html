@@ -60,6 +60,14 @@
               </div>
             </div>
           </fieldset>
+          <fieldset>
+            <legend>Passport</legend>
+            <div class="grid">
+              <label class="field">Passport number<input name="passportNumber" required autocomplete="off"></label>
+              <label class="field">Issuing country<input name="passportCountry" required></label>
+              <label class="field">Expiry date<input type="date" name="passportExpiry" required></label>
+            </div>
+          </fieldset>
           <fieldset data-person="spouse" hidden><legend>Spouse</legend></fieldset>
           <div id="children" class="stack"></div>
           <div class="row">
@@ -78,6 +86,12 @@
           <h2 class="card-title">Photos</h2>
           <p class="muted flat small" id="photos-help">Choose any photo: it is cropped to a square, resized to 600×600 and compressed automatically. Check each one: face centred, plain light background, no glasses.</p>
           <div class="photos" id="photos"></div>
+        </section>
+
+        <section class="card" id="documents-card" hidden>
+          <h2 class="card-title">Passport scans</h2>
+          <p class="muted flat small" id="documents-help">The photo page is required; add the signature page only if it is separate. Check the number, name and expiry match the form.</p>
+          <div class="photos" id="documents"></div>
         </section>
       </div>
 

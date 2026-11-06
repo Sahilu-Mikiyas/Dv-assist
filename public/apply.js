@@ -3,6 +3,7 @@
 
 import { $, el } from '/dom.js';
 import { openPhotoEditor } from '/photo/editor.js';
+import { prepareScan } from '/photo/scan.js';
 
 const PACKAGES = {
   self: { name: 'Self-guided', am: 'በራስዎ', price: '500', points: ['We review your form', 'Photo checked and resized', 'You submit it yourself'] },
@@ -38,6 +39,7 @@ const FIELD_NAMES = {
   lastName: 'last name', firstName: 'first name', gender: 'gender', birthDate: 'birth date', birthCity: 'city of birth',
   birthCountry: 'country of birth', eligibilityCountry: 'country of eligibility', mailingAddress: 'mailing address',
   residenceCountry: 'country where you live', email: 'email', education: 'education', maritalStatus: 'marital status',
+  passportNumber: 'passport number', passportCountry: 'passport issuing country', passportExpiry: 'passport expiry date',
 };
 
 let app = null; // the entry as the server sees it, once created
@@ -73,6 +75,7 @@ async function api(method, path, body, contentType = 'application/json') {
 // "children[1].birthDate must be YYYY-MM-DD" → "Child 2: birth date must be a date".
 function friendlyError(data) {
   const details = (data.details ?? []).map((d) => d
+    .replace(/^applicant\.passportExpiry has passed.*$/, 'Your passport has expired: renew it before entering')
     .replace(/^applicant\./, 'You: ')
     .replace(/^spouse\./, 'Spouse: ')
     .replace(/^children\[(\d+)\]\./, (_, i) => `Child ${Number(i) + 1}: `)
@@ -83,6 +86,8 @@ function friendlyError(data) {
       return `${name} is required`;
     })
     .replace(/Photo missing for applicant/, 'Add your own photo')
+    .replace(/Passport scan missing/, "Add a picture of your passport's photo page")
+
     .replace(/Photo missing for spouse/, "Add your spouse's photo")
     .replace(/Photo missing for child(\d+)/, (_, i) => `Add a photo for child ${Number(i) + 1}`));
   return details.length ? details.join('\n') : (data.error ?? 'Something went wrong. Try again.');
@@ -232,7 +237,7 @@ function setupDetailsForm() {
 
 function fillDetails(a) {
   fillPerson($('#applicant-person'), a);
-  for (const name of ['eligibilityCountry', 'residenceCountry', 'mailingAddress', 'phone', 'email', 'education', 'maritalStatus']) {
+  for (const name of ['eligibilityCountry', 'residenceCountry', 'mailingAddress', 'phone', 'email', 'education', 'maritalStatus', 'passportNumber', 'passportCountry', 'passportExpiry']) {
     form.elements.namedItem(name).value = a[name] ?? '';
   }
   $('#spouse-box').hidden = !a.spouse;
@@ -253,6 +258,9 @@ function readDetails() {
     email: v('email'),
     education: v('education'),
     maritalStatus: v('maritalStatus'),
+    passportNumber: v('passportNumber'),
+    passportCountry: v('passportCountry'),
+    passportExpiry: v('passportExpiry'),
     spouse: needsSpouse() ? readPerson($('#spouse-person')) : null,
     children: [...$('#children').children].map((box) => readPerson(box.querySelector('div'))),
   };
@@ -347,6 +355,36 @@ function renderPhotos() {
     return card;
   }));
   $('#photo-count').textContent = `${uploaded.size} of ${people().length} photos ready`;
+  renderDocuments();
+}
+
+const DOCUMENTS = [
+  { kind: 'passport', name: 'Passport photo page', note: 'Required' },
+  { kind: 'passport_signature', name: 'Signature page', note: 'Only if your signature is on a different page' },
+];
+
+function renderDocuments() {
+  const uploaded = new Set((app.documents ?? []).filter((d) => d.uploaded).map((d) => d.kind));
+  $('#document-list').replaceChildren(...DOCUMENTS.map(({ kind, name, note }) => {
+    const input = el('input', { type: 'file', accept: 'image/*', className: 'visually-hidden', id: `doc-${kind}` });
+    const label = el('label', { htmlFor: `doc-${kind}`, className: 'btn ghost small', textContent: uploaded.has(kind) ? 'Replace picture' : 'Add picture' });
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      input.value = '';
+      if (!file) return;
+      run(label, async () => {
+        app = await api('PUT', `/api/apply/documents/${kind}`, await prepareScan(file), 'image/jpeg');
+        renderDocuments();
+      });
+    });
+    return el('div', { className: `photo-card doc-card${uploaded.has(kind) ? ' has' : ''}` },
+      uploaded.has(kind)
+        ? el('img', { src: `/api/apply/documents/${kind}?v=${Date.now()}`, alt: name, width: 160, height: 110 })
+        : el('span', { className: 'photo-empty doc-empty', textContent: '🛂' }),
+      el('div', {}, el('p', { className: 'photo-name', textContent: name }),
+        el('p', { className: uploaded.has(kind) ? 'ok' : 'muted', textContent: uploaded.has(kind) ? '✓ Added' : note }),
+        input, label));
+  }));
 }
 
 $('#photos-back').addEventListener('click', () => {
@@ -356,6 +394,9 @@ $('#photos-back').addEventListener('click', () => {
 $('#photos-next').addEventListener('click', () => {
   const missing = app.photos.filter((p) => !p.uploaded).length;
   if (missing) return showError(new Error(`Add ${missing === 1 ? 'the last photo' : `the ${missing} missing photos`} first.`));
+  if (!app.documents?.find((d) => d.kind === 'passport')?.uploaded) {
+    return showError(new Error("Add a picture of your passport's photo page first."));
+  }
   renderSummary($('#summary'), true);
   show('review');
 });
@@ -385,6 +426,7 @@ function renderSummary(target, editable) {
         row('Born', `${longDate(a.birthDate)} · ${a.birthCity}, ${a.birthCountry}`),
         row('Gender', a.gender === 'female' ? 'Female' : 'Male'),
         row('Eligibility country', a.eligibilityCountry),
+        row('Passport', `${a.passportNumber} · ${a.passportCountry} · valid until ${longDate(a.passportExpiry)}`),
         row('Education', EDUCATION[a.education]),
         row('Marital status', MARITAL[a.maritalStatus]),
         row('Mailing address', a.mailingAddress),
@@ -494,7 +536,7 @@ function route() {
   if (!app) return location.hash === '#resume' ? show('resume') : show('package');
   if (!app.editable) return renderStatus();
   fillDetails(app.applicant);
-  if (app.photos.some((p) => !p.uploaded)) {
+  if (app.photos.some((p) => !p.uploaded) || !app.documents?.find((d) => d.kind === 'passport')?.uploaded) {
     renderPhotos();
     return show('photos');
   }

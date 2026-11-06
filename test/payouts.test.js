@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applicantInput, ctxFor, fakeChannel, fakeJpeg, seedStaff, setupCases } from './helpers.js';
+import { applicantInput, ctxFor, fakeChannel, fakeJpeg, fakePassport, seedStaff, setupCases } from './helpers.js';
 
 const ctx = { ip: '203.0.113.4' };
 
@@ -16,6 +16,7 @@ async function partnerWithSubmissions(env, admin, meron, count) {
 async function submitReferral(env, admin, meron, partner) {
   const { caseId } = await env.applications.start({ package: 'self', applicant: applicantInput(), ref: partner.refCode }, ctx);
   await env.applications.savePhoto(caseId, 'applicant', fakeJpeg(), ctx);
+  await env.applications.saveDocument(caseId, 'passport', fakePassport(), ctx);
   await env.applications.send(caseId, ctx);
   await env.cases.check(caseId, ctxFor(meron));
   await env.cases.verify(caseId, ctxFor(admin));

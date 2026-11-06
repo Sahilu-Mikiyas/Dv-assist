@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { newResumeCode } from '../src/services/applications.js';
-import { applicantInput, ctxFor, fakeJpeg, person, seedStaff, setupCases } from './helpers.js';
+import { applicantInput, ctxFor, fakeJpeg, fakePassport, person, seedStaff, setupCases } from './helpers.js';
 
 const ctx = { ip: '203.0.113.9' };
 
@@ -32,6 +32,7 @@ test('a website entry goes from applicant to staff checks to online approval', a
   // Not in the staff queue, and not checkable, until it is sent.
   assert.equal((await cases.list()).cases.length, 0);
   await applications.savePhoto(caseId, 'applicant', fakeJpeg(), ctx);
+  await applications.saveDocument(caseId, 'passport', fakePassport(), ctx);
   await assert.rejects(applications.send(caseId, ctx), /Photo missing for child0/);
   await applications.savePhoto(caseId, 'child0', fakeJpeg(), ctx);
   await assert.rejects(cases.check(caseId, ctxFor(meron)), /has not sent/);

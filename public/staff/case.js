@@ -1,10 +1,12 @@
 import { api, $, el, label, loadShell, personName, run, showError, sourceLabel, STAGE_LABELS, timeAgo } from '/staff/app.js';
 import { analyzePhoto } from '/photo/check.js';
 import { openPhotoEditor } from '/photo/editor.js';
+import { prepareScan } from '/photo/scan.js';
 
 const SPOUSE_REQUIRED = 'married_spouse_not_us_citizen_or_lpr';
 const PERSON_FIELDS = ['lastName', 'firstName', 'middleName', 'gender', 'birthDate', 'birthCity', 'birthCountry'];
-const ENTRY_FIELDS = ['eligibilityCountry', 'mailingAddress', 'residenceCountry', 'phone', 'email', 'education', 'maritalStatus'];
+const ENTRY_FIELDS = ['eligibilityCountry', 'mailingAddress', 'residenceCountry', 'phone', 'email', 'education', 'maritalStatus',
+  'passportNumber', 'passportCountry', 'passportExpiry'];
 const STAGE_ORDER = ['draft', 'checked', 'verified', 'approved', 'card_issued', 'submitted'];
 
 const form = $('#form');
@@ -103,6 +105,9 @@ function renderCopy(a) {
     ['Applicant', [
       ...personRows(a),
       ['Country of eligibility', upper(a.eligibilityCountry)],
+      ['Passport number', upper(a.passportNumber)],
+      ['Passport issuing country', upper(a.passportCountry)],
+      ['Passport expiry', a.passportExpiry || '—'],
       ['Mailing address', upper(a.mailingAddress)],
       ['Country where they live', upper(a.residenceCountry)],
       ['Phone', a.phone || '—'],
@@ -130,7 +135,38 @@ function personLabel(key, a) {
   return `${child?.firstName || 'Child'} (child)`;
 }
 
+const DOCUMENT_NAMES = { passport: 'Passport photo page', passport_signature: 'Signature page (if separate)' };
+
+function renderDocuments(c) {
+  const draft = c.status === 'draft';
+  $('#documents-card').hidden = Boolean(c.erasedAt);
+  $('#documents-help').hidden = !draft;
+  $('#documents').replaceChildren(...(c.documents ?? []).map(({ kind, uploaded }) => {
+    const src = `/api/cases/${c.id}/documents/${kind}`;
+    const cell = el('div', { className: 'photo' },
+      uploaded ? el('a', { href: src, target: '_blank', rel: 'noopener' }, el('img', { src: `${src}?t=${Date.now()}`, alt: DOCUMENT_NAMES[kind], className: 'scan' }))
+        : el('div', { className: 'empty', textContent: kind === 'passport' ? 'Required' : 'Optional' }),
+      el('b', { textContent: DOCUMENT_NAMES[kind] }));
+    if (draft) {
+      const input = el('input', { type: 'file', accept: 'image/*' });
+      input.setAttribute('aria-label', `Choose ${DOCUMENT_NAMES[kind]}`);
+      input.addEventListener('change', () => run(input, async () => {
+        const file = input.files[0];
+        input.value = '';
+        if (!file) return;
+        await api('PUT', src, await prepareScan(file), 'image/jpeg');
+        await reload();
+      }));
+      cell.append(input);
+    } else if (uploaded) {
+      cell.append(el('a', { className: 'btn small', href: `${src}?download=1`, textContent: 'Download' }));
+    }
+    return cell;
+  }));
+}
+
 function renderPhotos(c) {
+  renderDocuments(c);
   const draft = c.status === 'draft';
   $('#photos-help').hidden = !draft;
   $('#photos').replaceChildren(...c.photos.map(({ key, uploaded }) => {

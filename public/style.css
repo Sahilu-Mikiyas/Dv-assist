@@ -223,3 +223,4 @@ table.report tfoot th, table.report tfoot td { font-weight: 700; border-top: 2px
 .report-totals .counter { cursor: default; display: flex; flex-direction: column; gap: 2px; }
 .report-totals .counter b { font-size: 20px; }
 .report-totals .counter span { color: var(--muted); font-size: 13px; }
+.photo img.scan { aspect-ratio: 1.42; object-fit: contain; background: #fff; }

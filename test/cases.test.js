@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ValidationError } from '../src/domain/case.js';
-import { applicantInput, approvedCase, ctxFor, fakeJpeg, seedStaff, setupCases } from './helpers.js';
+import { applicantInput, approvedCase, ctxFor, fakeJpeg, fakePassport, seedStaff, setupCases } from './helpers.js';
 
 test('runs a case through Abol, Tona and Baraka to submitted', async () => {
   const env = await setupCases();
@@ -13,8 +13,9 @@ test('runs a case through Abol, Tona and Baraka to submitted', async () => {
   assert.equal(c.code, 'EDA-0001');
   assert.equal(c.assignedTo, meron.id);
 
-  await assert.rejects(cases.check(c.id, ctxFor(meron)), /Photo missing for applicant/);
+  await assert.rejects(cases.check(c.id, ctxFor(meron)), /Photo missing for applicant.*Passport scan missing/s);
   await cases.savePhoto(c.id, 'applicant', fakeJpeg(), ctxFor(meron));
+  await cases.saveDocument(c.id, 'passport', fakePassport(), ctxFor(meron));
 
   const checked = await cases.check(c.id, ctxFor(meron));
   assert.equal(checked.status, 'checked');
@@ -40,7 +41,7 @@ test('runs a case through Abol, Tona and Baraka to submitted', async () => {
 
   const { rows } = await db.execute('SELECT action, staff_id FROM audit_events ORDER BY id');
   assert.deepEqual(rows.map((r) => r.action), [
-    'case_created', 'photo_saved:applicant', 'check_abol', 'check_tona', 'check_baraka',
+    'case_created', 'photo_saved:applicant', 'document_saved:passport', 'check_abol', 'check_tona', 'check_baraka',
     'card_issued', 'card_revealed', 'case_submitted',
   ]);
   assert.equal(rows[0].staff_id, meron.id);
@@ -64,6 +65,7 @@ test('stores applicant data and photos encrypted', async () => {
   const { meron } = await seedStaff(env);
   const c = await env.cases.create(applicantInput(), ctxFor(meron));
   await env.cases.savePhoto(c.id, 'applicant', fakeJpeg(), ctxFor(meron));
+  await env.cases.saveDocument(c.id, 'passport', fakePassport(), ctxFor(meron));
   const raw = (await env.db.execute('SELECT applicant FROM cases')).rows[0].applicant;
   assert.ok(!Buffer.from(raw).toString('latin1').includes('Kebede'));
   const photo = (await env.db.execute('SELECT data FROM photos')).rows[0].data;

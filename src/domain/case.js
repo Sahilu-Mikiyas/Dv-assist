@@ -96,6 +96,10 @@ export function validateApplicant(input) {
 
   const applicant = {
     ...validatePerson(a, 'applicant', errors),
+    // Since DV-2027 the entrant gives their passport details and a scan of its photo and signature pages.
+    passportNumber: text(a.passportNumber).toUpperCase().replace(/\s+/g, ''),
+    passportCountry: text(a.passportCountry),
+    passportExpiry: text(a.passportExpiry),
     eligibilityCountry: text(a.eligibilityCountry),
     mailingAddress: text(a.mailingAddress),
     residenceCountry: text(a.residenceCountry),
@@ -105,6 +109,10 @@ export function validateApplicant(input) {
     maritalStatus: text(a.maritalStatus),
   };
 
+  if (!/^[A-Z0-9]{6,20}$/.test(applicant.passportNumber)) errors.push('applicant.passportNumber is invalid');
+  if (!applicant.passportCountry) errors.push('applicant.passportCountry is required');
+  if (!isDate(applicant.passportExpiry)) errors.push('applicant.passportExpiry must be YYYY-MM-DD');
+  else if (Date.parse(applicant.passportExpiry) <= Date.now()) errors.push('applicant.passportExpiry has passed: the passport must be valid');
   if (!applicant.eligibilityCountry) errors.push('applicant.eligibilityCountry is required');
   if (!applicant.mailingAddress) errors.push('applicant.mailingAddress is required');
   if (!applicant.residenceCountry) errors.push('applicant.residenceCountry is required');
@@ -137,9 +145,15 @@ function assertStatus(caseRecord, expected, action) {
   }
 }
 
-function assertAllPhotos(caseRecord, photoKeysPresent) {
+// Documents besides photos. The passport photo page is required; the signature page only if it is separate.
+export const DOCUMENT_KINDS = ['passport', 'passport_signature'];
+export const REQUIRED_DOCUMENTS = ['passport'];
+
+function assertAllPhotos(caseRecord, photoKeysPresent, documentsPresent) {
   const missing = photoKeys(caseRecord.applicant).filter((k) => !photoKeysPresent.includes(k));
-  if (missing.length) throw new ValidationError(missing.map((k) => `Photo missing for ${k}`));
+  const errors = missing.map((k) => `Photo missing for ${k}`);
+  for (const kind of REQUIRED_DOCUMENTS) if (!documentsPresent.includes(kind)) errors.push('Passport scan missing');
+  if (errors.length) throw new ValidationError(errors);
 }
 
 // A website applicant edits their own entry until they send it for checking.
@@ -149,19 +163,19 @@ export function assertApplicantCanEdit(caseRecord) {
   }
 }
 
-export function assertCanSend(caseRecord, photoKeysPresent) {
+export function assertCanSend(caseRecord, photoKeysPresent, documentsPresent = []) {
   assertApplicantCanEdit(caseRecord);
-  assertAllPhotos(caseRecord, photoKeysPresent);
+  assertAllPhotos(caseRecord, photoKeysPresent, documentsPresent);
 }
 
-// Abol: the first check. Every person on the entry needs a photo first, and a website entry must
+// Abol: the first check. Every person on the entry needs a photo, the passport must be scanned, and a website entry must
 // have been sent by its applicant.
-export function assertCanCheck(caseRecord, photoKeysPresent) {
+export function assertCanCheck(caseRecord, photoKeysPresent, documentsPresent = []) {
   assertStatus(caseRecord, STATUS.DRAFT, 'run the first check');
   if (caseRecord.source === 'website' && !caseRecord.sentAt) {
     throw new ValidationError(['The applicant has not sent this entry for checking yet']);
   }
-  assertAllPhotos(caseRecord, photoKeysPresent);
+  assertAllPhotos(caseRecord, photoKeysPresent, documentsPresent);
 }
 
 // Tona: the second check, by someone other than whoever did the first.

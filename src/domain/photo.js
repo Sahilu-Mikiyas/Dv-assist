@@ -31,3 +31,16 @@ export function validatePhoto(buf) {
     throw new ValidationError([`Photo must be 600x600 pixels (got ${dims.width}x${dims.height})`]);
   }
 }
+
+// Passport scans: a readable JPEG, prepared in the browser (long side up to 1600 px, about 1 MB at most).
+export const MAX_DOCUMENT_BYTES = 1536 * 1024;
+const MIN_DOCUMENT_SIDE_PX = 800;
+
+export function validateDocument(buf) {
+  if (buf.length > MAX_DOCUMENT_BYTES) throw new ValidationError(['Passport scan must be 1.5 MB or smaller']);
+  const dims = jpegDimensions(buf);
+  if (!dims) throw new ValidationError(['Passport scan must be a JPEG image']);
+  if (Math.max(dims.width, dims.height) < MIN_DOCUMENT_SIDE_PX) {
+    throw new ValidationError([`Passport scan is too small to read (${dims.width}x${dims.height}). Take it closer, in good light.`]);
+  }
+}

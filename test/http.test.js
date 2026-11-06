@@ -5,7 +5,7 @@ import { applicantAuth, auth, partnerAuth } from '../src/http/auth.js';
 import { loginLimiter } from '../src/http/rate-limit.js';
 import { createApp } from '../src/http/server.js';
 import { totpCode } from '../src/infra/totp.js';
-import { PASSWORD, applicantInput, fakeJpeg, seedStaff, setupCases } from './helpers.js';
+import { PASSWORD, applicantInput, fakeJpeg, fakePassport, seedStaff, setupCases } from './helpers.js';
 
 const WEBHOOK_SECRET = 'whsec_test';
 const servers = [];
@@ -97,6 +97,13 @@ test('website applicants start, resume and send over HTTP with their own cookie'
     method: 'PUT', headers: { cookie, 'content-type': 'image/jpeg' }, body: fakeJpeg(),
   });
   assert.equal(photo.status, 200);
+  assert.equal((await fetch(`${url}/api/apply/send`, { method: 'POST', headers: { cookie } })).status, 422);
+  const scan = await fetch(`${url}/api/apply/documents/passport`, {
+    method: 'PUT', headers: { cookie, 'content-type': 'image/jpeg' }, body: fakePassport(),
+  });
+  assert.equal(scan.status, 200);
+  assert.equal((await scan.json()).documents.find((d) => d.kind === 'passport').uploaded, true);
+  assert.equal((await fetch(`${url}/api/apply/documents/passport`, { headers: { cookie } })).status, 200);
   assert.equal((await fetch(`${url}/api/apply/send`, { method: 'POST', headers: { cookie } })).status, 200);
 
   // A resume code signs the applicant back in; wrong codes are limited.
@@ -247,6 +254,11 @@ test('full flow over HTTP with two staff members', async () => {
   assert.equal((await meron('PUT', `/api/cases/${created.id}/photos/applicant`, fakeJpeg(), 'image/jpeg')).status, 200);
   const download = await meron('GET', `/api/cases/${created.id}/photos/applicant?download=1`);
   assert.match(download.headers.get('content-disposition'), /EDA-0001-applicant\.jpg/);
+  assert.equal((await meron('POST', `/api/cases/${created.id}/check`)).status, 422); // no passport scan yet
+  assert.equal((await meron('PUT', `/api/cases/${created.id}/documents/passport`, fakeJpeg(), 'image/jpeg')).status, 422); // too small to read
+  assert.equal((await meron('PUT', `/api/cases/${created.id}/documents/passport`, fakePassport(), 'image/jpeg')).status, 200);
+  const scanDownload = await meron('GET', `/api/cases/${created.id}/documents/passport?download=1`);
+  assert.match(scanDownload.headers.get('content-disposition'), /EDA-0001-passport\.jpg/);
 
   assert.equal((await meron('POST', `/api/cases/${created.id}/check`)).status, 200);
   assert.equal((await meron('POST', `/api/cases/${created.id}/verify`)).status, 422);

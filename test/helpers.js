@@ -28,6 +28,9 @@ export const applicantInput = (overrides = {}) => ({
   mailingAddress: 'Bole, Addis Ababa',
   residenceCountry: 'Ethiopia',
   email: 'kebede@example.com',
+  passportNumber: 'EP1234567',
+  passportCountry: 'Ethiopia',
+  passportExpiry: '2031-06-30',
   education: 'university_degree',
   maritalStatus: 'unmarried',
   children: [],
@@ -42,6 +45,9 @@ export function fakeJpeg(width = 600, height = 600, padTo = 0) {
   const buf = Buffer.concat([Buffer.from([0xff, 0xd8]), sof, Buffer.alloc(20)]);
   return padTo > buf.length ? Buffer.concat([buf, Buffer.alloc(padTo - buf.length)]) : buf;
 }
+
+// A passport scan: a landscape JPEG large enough to read.
+export const fakePassport = () => fakeJpeg(1200, 850);
 
 export function fakeBitnob() {
   const calls = [];
@@ -117,6 +123,7 @@ export const ctxFor = (member) => ({ ip: '203.0.113.7', staff: member });
 export async function approvedCase(cases, first, second, overrides = {}) {
   const c = await cases.create(applicantInput(overrides), ctxFor(first));
   for (const p of c.photos) await cases.savePhoto(c.id, p.key, fakeJpeg(), ctxFor(first));
+  await cases.saveDocument(c.id, 'passport', fakePassport(), ctxFor(first));
   await cases.check(c.id, ctxFor(first));
   await cases.verify(c.id, ctxFor(second));
   return cases.approve(c.id, 'in_person', ctxFor(second));

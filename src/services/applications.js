@@ -3,6 +3,7 @@
 
 import { randomUUID } from 'node:crypto';
 import {
+  DOCUMENT_KINDS,
   PACKAGES,
   STATUS,
   ValidationError,
@@ -12,7 +13,7 @@ import {
   photoKeys,
   validateApplicant,
 } from '../domain/case.js';
-import { validatePhoto } from '../domain/photo.js';
+import { validateDocument, validatePhoto } from '../domain/photo.js';
 import { hashCode, newAccessCode, normalizeCode } from '../infra/codes.js';
 import { NotFoundError, caseCode } from './cases.js';
 
@@ -40,12 +41,14 @@ export function applicationService({ repo, audit, partners = null, notifications
   // What the applicant sees: their own details and progress, never staff names or card data.
   async function view(c) {
     const present = await repo.photoKeys(c.id);
+    const documents = await repo.documentKinds(c.id);
     return {
       code: caseCode(c.caseNumber),
       status: c.status,
       package: c.package,
       applicant: c.applicant,
       photos: photoKeys(c.applicant).map((key) => ({ key, uploaded: present.includes(key) })),
+      documents: DOCUMENT_KINDS.map((kind) => ({ kind, uploaded: documents.includes(kind) })),
       sentAt: c.sentAt,
       editable: c.status === STATUS.DRAFT && !c.sentAt,
       checks: { abol: Boolean(c.checks.abol), tona: Boolean(c.checks.tona), baraka: Boolean(c.checks.baraka) },
@@ -106,6 +109,22 @@ export function applicationService({ repo, audit, partners = null, notifications
       return view(await mustGet(id));
     },
 
+    async saveDocument(id, kind, data, ctx) {
+      assertApplicantCanEdit(await mustGet(id));
+      if (!DOCUMENT_KINDS.includes(kind)) throw new ValidationError([`Unknown document "${kind}"`]);
+      validateDocument(data);
+      await repo.saveDocument(id, kind, data);
+      await record(`document_saved:${kind}`, id, ctx);
+      return view(await mustGet(id));
+    },
+
+    async getDocument(id, kind) {
+      await mustGet(id);
+      const data = await repo.getDocument(id, kind);
+      if (!data) throw new NotFoundError('Document not found');
+      return data;
+    },
+
     async getPhoto(id, personKey) {
       await mustGet(id);
       const data = await repo.getPhoto(id, personKey);
@@ -115,7 +134,7 @@ export function applicationService({ repo, audit, partners = null, notifications
 
     // Puts the entry in the staff queue for the first check.
     async send(id, ctx) {
-      assertCanSend(await mustGet(id), await repo.photoKeys(id));
+      assertCanSend(await mustGet(id), await repo.photoKeys(id), await repo.documentKinds(id));
       await repo.markSent(id);
       await record('application_sent', id, ctx);
       const sent = await mustGet(id);

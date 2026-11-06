@@ -26,7 +26,7 @@
 <nav id="steps" class="steps" aria-label="Application steps" hidden>
   <ol>
     <li data-step="details"><span class="dot">1</span><span class="step-en">You &amp; family</span><span lang="am">እርስዎ እና ቤተሰብ</span></li>
-    <li data-step="photos"><span class="dot">2</span><span class="step-en">Photos</span><span lang="am">ፎቶዎች</span></li>
+    <li data-step="photos"><span class="dot">2</span><span class="step-en">Photos &amp; passport</span><span lang="am">ፎቶ እና ፓስፖርት</span></li>
     <li data-step="review"><span class="dot">3</span><span class="step-en">Review</span><span lang="am">ማረጋገጫ</span></li>
     <li data-step="checking"><span class="dot">4</span><span class="step-en">Checking</span><span lang="am">ማጣራት</span></li>
     <li data-step="submitted"><span class="dot">★</span><span class="step-en">Submitted</span><span lang="am">ገብቷል</span></li>
@@ -100,6 +100,17 @@
         </section>
 
         <section class="card">
+          <h2>Your passport <span lang="am">· ፓስፖርትዎ</span></h2>
+          <p class="muted">Since DV-2027 every entry needs a valid passport. Copy these exactly from your passport's photo page. You will add a picture of the page in the next step.</p>
+          <div class="grid">
+            <label class="field"><span>Passport number <span lang="am">· የፓስፖርት ቁጥር</span></span><input name="passportNumber" required autocapitalize="characters" autocomplete="off" placeholder="EP1234567"></label>
+            <label class="field"><span>Issuing country <span lang="am">· ያወጣው ሀገር</span></span><input name="passportCountry" required value="Ethiopia"></label>
+            <label class="field"><span>Expiry date <span lang="am">· የሚያበቃበት ቀን</span></span><input name="passportExpiry" type="date" required></label>
+          </div>
+          <p class="muted small">No passport yet? Apply at the Immigration and Citizenship Service first. We can only file entries with a valid passport.</p>
+        </section>
+
+        <section class="card">
           <h2>Your family <span lang="am">· ቤተሰብዎ</span></h2>
           <p class="muted">List your spouse and <strong>every</strong> unmarried child under 21, even if they will not travel with you.</p>
           <label class="field half"><span>Marital status <span lang="am">· የጋብቻ ሁኔታ</span></span><select name="maritalStatus" required></select></label>
@@ -150,11 +161,16 @@
   <!-- Photos -->
   <section id="view-photos" class="view" hidden>
     <div class="intro">
-      <h1>A photo for each person</h1>
-      <p lang="am" class="am-sub">ለእያንዳንዱ ሰው ፎቶ</p>
+      <h1>Photos and passport</h1>
+      <p lang="am" class="am-sub">ፎቶዎች እና ፓስፖርት</p>
       <p class="lead">Choose a photo, then line it up with the guides. We check the background, head size, light and focus on your device, and make it exactly 600 × 600. Our team also checks every photo before your entry is filed.</p>
     </div>
     <div id="photo-list" class="photo-list"></div>
+    <section class="card">
+      <h2>Passport pages <span lang="am">· የፓስፖርት ገጾች</span></h2>
+      <p class="muted">A clear, flat photo of your passport's photo page: all four corners in view, no glare, every letter readable. If your signature is on a different page, add that page too.</p>
+      <div id="document-list" class="photo-list"></div>
+    </section>
     <section class="card tips">
       <h2>How to take a photo that passes <span lang="am">· ትክክለኛ ፎቶ እንዴት እንደሚነሳ</span></h2>
       <ul class="tick-list">

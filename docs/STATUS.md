@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-11-04
+Last updated: 2026-11-06
 
 ## Live
 
@@ -14,7 +14,7 @@ Last updated: 2026-11-04
   issue card, show card details, record confirmation number.
 - Bitnob signed requests (HMAC) to `https://api.bitnob.com`. Sandbox key, company "Furii Labs".
 - Sandbox card-holder customer exists (`BITNOB_CARD_CUSTOMER_ID` on Render).
-- 63 automated tests, run by GitHub Actions on every push.
+- 65 automated tests, run by GitHub Actions on every push.
 
 ## Pinned: automatic SMS and email are NOT switched on
 
@@ -67,6 +67,13 @@ Last updated: 2026-11-04
   hour per IP; wrong codes to 10 per 15 minutes.
 - Payment is a placeholder: "our team will contact you" (Telebirr / CBE Birr).
 - Staff app moved to `/staff/`.
+
+## Passport scans (built)
+
+- DV-2027 requires a valid passport: number, issuing country, expiry, and scans of the photo page (required)
+  and signature page (if separate). On the applicant form, the staff form, Abol check and the copy rows.
+- Entries started before this need the passport added before they can be sent or checked.
+- Confirm the exact passport rules on travel.state.gov when the DV-2027 entry period opens.
 
 ## Data retention (built; rules off until you set the days)
 

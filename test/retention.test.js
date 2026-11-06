@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applicantInput, approvedCase, ctxFor, fakeJpeg, seedStaff, setupCases } from './helpers.js';
+import { applicantInput, approvedCase, ctxFor, fakeJpeg, fakePassport, seedStaff, setupCases } from './helpers.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const ctx = { ip: '203.0.113.9' };
@@ -31,6 +31,7 @@ test('erases submitted entries after the set days, and unsent website entries an
   const inProgress = await approvedCase(env.cases, meron, admin, { firstName: 'Still' });
   const { caseId: unsent, resumeCode } = await env.applications.start({ package: 'self', applicant: applicantInput({ firstName: 'Gone' }) }, ctx);
   await env.applications.savePhoto(unsent, 'applicant', fakeJpeg(), ctx);
+  await env.applications.saveDocument(unsent, 'passport', fakePassport(), ctx);
   await env.partners.apply({ name: 'T', organisation: 'Cafe', type: 'shop', phone: '0911000000', city: 'Adama', payoutPhone: '0911000000', agree: true }, ctx);
   const [p] = await env.partners.list(ctxFor(admin));
   const { code } = await env.partners.issueCode(p.id, ctxFor(admin));

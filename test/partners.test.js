@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizePhone, refCodePrefix } from '../src/domain/partner.js';
-import { applicantInput, ctxFor, fakeJpeg, seedStaff, setupCases } from './helpers.js';
+import { applicantInput, ctxFor, fakeJpeg, fakePassport, seedStaff, setupCases } from './helpers.js';
 
 const ctx = { ip: '203.0.113.7' };
 const application = (overrides = {}) => ({
@@ -92,6 +92,7 @@ test('referrals: introductions, referral links and filling together, followed to
   // Staff see who referred the entry.
   const id = viaInvite.caseId;
   await env.applications.savePhoto(id, 'applicant', fakeJpeg(), ctx);
+  await env.applications.saveDocument(id, 'passport', fakePassport(), ctx);
   await env.applications.send(id, ctx);
   assert.equal((await env.cases.list()).cases[0].partner, 'Haile Internet Café');
   await env.cases.check(id, ctxFor(meron));

@@ -248,3 +248,5 @@ input[type=radio], input[type=checkbox] { accent-color: var(--navy-2); width: 18
 .bar-fill { display: block; height: 100%; width: var(--w, 0); background: var(--navy-2); border-radius: 999px; }
 .bar b { text-align: right; }
 .referrals td.mono { white-space: nowrap; }
+.doc-card img { width: 140px; height: 100px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.doc-empty { font-size: 34px; }

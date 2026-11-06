@@ -128,6 +128,13 @@ const MIGRATIONS = [
      received_at TEXT NOT NULL,
      recorded_by TEXT NOT NULL
    )`,
+  // Passport scans (and any later documents), encrypted like photos.
+  `CREATE TABLE documents (
+     case_id TEXT NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+     kind    TEXT NOT NULL,
+     data    BLOB NOT NULL,
+     PRIMARY KEY (case_id, kind)
+   )`,
 ];
 
 // What an erased case's applicant reads as: no personal data, but the shape the rest of the code expects.
@@ -216,6 +223,7 @@ export function caseRepository(db, crypt) {
         { sql: 'UPDATE cases SET applicant = ?, confirmation_number = NULL, access_hash = NULL, erased_at = ?, updated_at = ? WHERE id = ?',
           args: [crypt.encryptJson({ erased: true }), ts, ts, id] },
         { sql: 'DELETE FROM photos WHERE case_id = ?', args: [id] },
+        { sql: 'DELETE FROM documents WHERE case_id = ?', args: [id] },
         { sql: 'DELETE FROM messages WHERE case_id = ?', args: [id] },
       ], 'write');
     },
@@ -294,6 +302,21 @@ export function caseRepository(db, crypt) {
     async getPhoto(caseId, personKey) {
       const row = (await run('SELECT data FROM photos WHERE case_id = ? AND person_key = ?', caseId, personKey)).rows[0];
       return row ? crypt.decrypt(row.data) : null;
+    },
+
+    async saveDocument(caseId, kind, data) {
+      await run(`INSERT INTO documents (case_id, kind, data) VALUES (?, ?, ?)
+                 ON CONFLICT (case_id, kind) DO UPDATE SET data = excluded.data`,
+      caseId, kind, crypt.encrypt(data));
+    },
+
+    async getDocument(caseId, kind) {
+      const row = (await run('SELECT data FROM documents WHERE case_id = ? AND kind = ?', caseId, kind)).rows[0];
+      return row ? crypt.decrypt(row.data) : null;
+    },
+
+    async documentKinds(caseId) {
+      return (await run('SELECT kind FROM documents WHERE case_id = ?', caseId)).rows.map((r) => r.kind);
     },
 
     async photoKeys(caseId) {
