@@ -212,6 +212,9 @@ function routes({
       return { body: { ok: true }, headers: { 'Set-Cookie': staffCookie(member) } };
     }],
 
+    // What the policy pages say about how long data is kept: the configured retention rules.
+    ['GET', /^\/api\/public\/policy$/, 'public', async () => ({ retention: retention.policy })],
+
     // Website applicants.
     ['GET', /^\/api\/apply\/options$/, 'public', async () => ({
       packages: PACKAGES, educationLevels: EDUCATION_LEVELS, maritalStatuses: MARITAL_STATUSES,

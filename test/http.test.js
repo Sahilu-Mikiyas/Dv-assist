@@ -73,8 +73,13 @@ test('serves pages without login but not files outside public/', async () => {
   assert.equal((await fetch(`${base}/%2e%2e/package.json`)).status, 404);
 });
 
+test('the privacy page states the configured retention rules', async () => {
+  const policy = await (await fetch(`${base}/api/public/policy`)).json();
+  assert.deepEqual(policy.retention, { afterSubmissionDays: null, unsentDays: null });
+});
+
 test('serves clean URLs for the landing page, applicant flow and staff app', async () => {
-  for (const path of ['/', '/apply', '/photo', '/partners', '/partner/login.html', '/staff/', '/staff/login.html', '/staff/data.html', '/staff/messages.html']) {
+  for (const path of ['/', '/apply', '/photo', '/privacy', '/terms', '/refunds', '/partners', '/partner/login.html', '/staff/', '/staff/login.html', '/staff/data.html', '/staff/messages.html']) {
     const res = await fetch(`${base}${path}`);
     assert.equal(res.status, 200, path);
     assert.match(res.headers.get('content-type'), /text\/html/);

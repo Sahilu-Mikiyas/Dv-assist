@@ -256,3 +256,13 @@ input[type=radio], input[type=checkbox] { accent-color: var(--navy-2); width: 18
 .row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 h1, .summary-name, .photo-name, .family-card strong { overflow-wrap: anywhere; }
+
+/* Policy pages */
+.legal { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; line-height: 1.65; }
+.legal section { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px; }
+.legal h2 { margin: 0 0 8px; }
+.legal ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.legal p { margin: 0 0 8px; }
+.draft-banner { margin: 0; padding: 10px 14px; border-radius: 10px; background: #FFF6E5; border: 1px solid #F2D49B; color: #8A5A00; font-weight: 600; }
+.contact-placeholder { background: #FFF6E5; padding: 0 4px; border-radius: 4px; }
+.legal-nav { gap: 16px; }
