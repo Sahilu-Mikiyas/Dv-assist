@@ -28,7 +28,6 @@ export const caseCode = (n) => `EDA-${String(n).padStart(4, '0')}`;
 const QUIET = { notify: async () => {}, smsEnabled: false };
 
 export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = null, notifications = QUIET }) {
-  const issuing = new Set(); // case ids with a card request in flight
 
   // A website entry belongs to its applicant until they send it for checking: staff cannot open it before.
   async function mustGet(id) {
@@ -61,8 +60,8 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     if (!applied) throw new ValidationError(['This case was changed by someone else just now. Reload and try again.']);
   }
 
-  function assertNotIssuing(id) {
-    if (issuing.has(id)) throw new ValidationError(['A card is being issued for this case right now. Wait a moment.']);
+  async function assertNotIssuing(id) {
+    if (await repo.cardBeingIssued(id)) throw new ValidationError(['A card is being issued for this case right now. Wait a moment.']);
   }
 
   const partnerNames = async () => (partners ? partners.names() : new Map());
@@ -222,7 +221,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     async reopen(id, reason, ctx) {
       const existing = await mustGetActive(id);
       assertCanReopen(existing);
-      assertNotIssuing(id);
+      await assertNotIssuing(id);
       changed(await repo.setStatus(id, { status: STATUS.DRAFT, checks: {}, from: existing.status }));
       await record('case_reopened', id, ctx, (reason ?? '').slice(0, 200) || null);
       if (existing.source === 'website') {
@@ -234,11 +233,11 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
     },
 
     async issueCard(id, ctx) {
-      // Claim the case before any await so concurrent requests cannot both pass the status check.
-      if (issuing.has(id)) throw new ValidationError(['A card is already being issued for this case']);
-      issuing.add(id);
+      assertCanIssueCard(await mustGetActive(id));
+      // Claimed in the database, so no other request or server can issue a second card meanwhile.
+      if (!(await repo.claimCard(id))) throw new ValidationError(['A card is already being issued for this case']);
+      let issued = false;
       try {
-        assertCanIssueCard(await mustGetActive(id));
         // Reference is derived from the case id so a retried request cannot create a second card.
         const cardReference = `dv-${id}`;
         const { cardId } = await bitnob.createCard({ amountUsd: cardAmountUsd, reference: cardReference });
@@ -247,9 +246,10 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
           await record('card_orphaned', id, ctx, cardId);
           throw new ValidationError(['The case changed while the card was being issued. The card is recorded in the activity log: contact an admin.']);
         }
+        issued = true;
         await record('card_issued', id, ctx, `$${cardAmountUsd.toFixed(2)}`);
       } finally {
-        issuing.delete(id);
+        if (!issued) await repo.releaseCard(id); // Bitnob refused or failed: the case can be tried again
       }
       return withPhotos(await mustGet(id));
     },
@@ -313,7 +313,7 @@ export function caseService({ repo, audit, bitnob, cardAmountUsd, partners = nul
       return withPhotos(existing);
     },
 
-    isIssuing: (id) => issuing.has(id),
+    isIssuing: (id) => repo.cardBeingIssued(id),
 
     async auditList(options) {
       return (await audit.list(options)).map((r) => ({ ...r, caseCode: r.caseNumber ? caseCode(r.caseNumber) : null }));

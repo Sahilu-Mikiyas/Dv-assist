@@ -37,7 +37,7 @@ export function retentionService({ caseRepo, partnerRepo, audit, policy = {}, no
   }
 
   async function eraseCase(c, reason, ctx = {}) {
-    await caseRepo.erase(c.id);
+    if (!(await caseRepo.erase(c.id))) throw new ValidationError(['A card is being issued for this case right now. Wait a moment.']);
     await audit.record({ action: 'case_erased', caseId: c.id, ip: ctx.ip, staffId: ctx.staff?.id, detail: reason });
   }
 
@@ -79,7 +79,7 @@ export function retentionService({ caseRepo, partnerRepo, audit, policy = {}, no
       if (!c) throw new NotFoundError(`Case ${id} not found`);
       if (c.erasedAt) throw new ValidationError(['This case is already erased']);
       if (c.status === STATUS.CARD_ISSUED) throw new ValidationError(['A card is issued for this case. Submit or settle it first.']);
-      if (isIssuing(id)) throw new ValidationError(['A card is being issued for this case right now. Wait a moment.']);
+      if (await isIssuing(id)) throw new ValidationError(['A card is being issued for this case right now. Wait a moment.']);
       await eraseCase(c, 'applicant request', ctx);
       return { code: caseCode(c.caseNumber) };
     },

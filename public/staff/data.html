@@ -52,6 +52,12 @@
       <p class="muted flat small">Rules that are switched on run by themselves every 6 hours. Set the numbers on Render (Environment), then redeploy. An admin can also erase a single case from its page when an applicant asks to be deleted.</p>
       <div class="row"><button class="btn small" id="run" type="button" hidden>Run the rules now</button><span class="muted small" id="ran"></span></div>
     </section>
+    <h2 class="section-title">Backups</h2>
+    <section class="card stack">
+      <p class="flat">Download a full copy of everything: cases, photos, passport pictures, payments, partners, payouts and the audit log.</p>
+      <p class="muted flat small">Personal data stays encrypted inside the file, so the file alone is unreadable: it needs the site's DATA_ENCRYPTION_KEY, which you keep separately (for example in a password manager). Keep backups somewhere safe and private, such as an encrypted drive. Restoring: see "Backups" in the README. Every download is recorded in the audit log.</p>
+      <div class="row"><a class="btn small primary" href="/api/backup">Download full backup</a></div>
+    </section>
   </main>
 </div>
 <script type="module" src="/staff/data.js"></script>

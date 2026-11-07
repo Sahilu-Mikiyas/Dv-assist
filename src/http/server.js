@@ -150,7 +150,7 @@ function verifyWebhook(raw, signature, secret) {
 // `stage`: 'public' (no session), 'applicant' (applicant cookie), 'partner' (partner cookie), 'setup' (staff
 // signed in, authenticator not yet set up) or null (staff fully signed in).
 function routes({
-  cases, staff, applications, partners, payouts, economics, notifications, retention, authn, applicantAuthn, partnerAuthn,
+  cases, staff, applications, partners, payouts, economics, notifications, retention, backup, audit, authn, applicantAuthn, partnerAuthn,
   limiter, accountLimiter, startLimiter, resumeLimiter, partnerLimiter, partnerApplyLimiter, webhookSecret,
 }) {
   // Staff and partner cookies carry the person's session version: bumping it (logout, password or code change)
@@ -210,6 +210,18 @@ function routes({
     ['POST', /^\/api\/authenticator\/confirm$/, 'setup', async (req, _, ctx) => {
       const member = await staff.confirmAuthenticator(await readJson(req), ctx);
       return { body: { ok: true }, headers: { 'Set-Cookie': staffCookie(member) } };
+    }],
+
+    // Admins: a full backup (personal data stays encrypted). Every download is recorded.
+    ['GET', /^\/api\/backup$/, null, async (_, __, ctx) => {
+      adminOnly(ctx);
+      if (!backup) throw new HttpError(404, 'Backups are not available');
+      await audit.record({ action: 'backup_downloaded', ip: ctx.ip, staffId: ctx.staff.id });
+      const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+      return {
+        stream: (write) => backup(write),
+        headers: { 'Content-Type': 'application/x-ndjson', 'Content-Disposition': `attachment; filename="ethio-dv-assist-backup-${stamp}.ndjson"` },
+      };
     }],
 
     // What the policy pages say about how long data is kept: the configured retention rules.
@@ -503,7 +515,8 @@ function assertSameOrigin(req) {
   if (host !== req.headers.host) throw new HttpError(403, 'Cross-origin request blocked');
 }
 
-export function createApp(deps) {
+export function createApp(input) {
+  const deps = { health: async () => {}, ...input };
   const { staff, authn, applicantAuthn, partnerAuthn, partners, trustProxy = false, hsts = false } = deps;
   const table = routes({ webhookSecret: null, ...deps });
   // Behind a proxy (Render, Railway) the client address is the entry the proxy itself appended: the last one.
@@ -524,7 +537,11 @@ export function createApp(deps) {
     }));
 
     try {
-      if (pathname === '/healthz') return send(res, 200, { ok: true });
+      // Health: the platform and uptime monitors call this. It also checks the database answers.
+      if (pathname === '/healthz') {
+        const healthy = await deps.health().then(() => true, () => false);
+        return send(res, healthy ? 200 : 503, { ok: healthy, database: healthy ? 'ok' : 'unreachable' });
+      }
       // Short links: /r/<partner code> for a partner's own link, /i/<reference> for a personal invitation.
       const short = pathname.match(/^\/(r|i)\/([A-Za-z0-9]{2,16})$/);
       if (short) {
@@ -562,6 +579,12 @@ export function createApp(deps) {
       }
 
       const result = await handler(req, pathname.match(pattern).slice(1), ctx, url);
+      // Large downloads (backups) are written piece by piece instead of built in memory.
+      if (result && typeof result.stream === 'function') {
+        res.writeHead(200, { 'Cache-Control': 'no-store', ...result.headers });
+        await result.stream((chunk) => new Promise((resolve) => (res.write(chunk) ? resolve() : res.once('drain', resolve))));
+        return res.end();
+      }
       const isEnvelope = result && typeof result === 'object' && !Array.isArray(result) && 'body' in result;
       return send(res, isEnvelope ? (result.status ?? 200) : 200, isEnvelope ? result.body : result,
         isEnvelope ? result.headers : undefined);

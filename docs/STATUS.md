@@ -81,8 +81,9 @@ Last updated: 2026-11-06 (break-test round)
   revenue share); cost changes apply from the day saved; the Messages page is admin-only; staff cannot open a
   website entry until the applicant sends it; names must be in English letters as in the passport; only
   children under 21; one partner account per phone; invitations limited to 30 a day.
-- Known limits: one server process assumed (in-process locks for card issuing and one-entry-per-passport);
-  rate-limit counters reset on restart; Bitnob webhook replays only add audit rows.
+- Known limits: rate-limit counters are per server and reset on restart; Bitnob webhook replays only add
+  audit rows. (Card issuing and one-entry-per-passport are claimed in the database since 7 Nov 2026, so two
+  servers are safe: cases.card_claimed_at, expires after 2 minutes; passport_claims table.)
 - The offer's 5,000-direct chart bars use 55%, the ladder says 60% (~131k ETB Model A / ~293k Model B low).
 
 ## Revenue share for Mr. Ermiyas Abera (built; terms not yet signed)
@@ -177,6 +178,14 @@ Last updated: 2026-11-06 (break-test round)
 - Placeholders to decide: entry-window and results dates, phone, office address, data retention, partner
   commission and payout day, VIP service area.
 - The Amharic copy needs a native-speaker review.
+
+## Launch preparation (7 Nov 2026)
+
+- Draft policy pages /privacy, /terms, /refunds (scripts/build-legal.mjs), linked from every footer and the
+  consent checkboxes. Need a lawyer's review; the refund rules are a proposal.
+- /healthz checks the database (503 if unreachable) for an uptime monitor.
+- Full backup: staff → Data → Download full backup (admin, audited); restore with scripts/restore-backup.mjs.
+- docs/LAUNCH.md: the owner's launch checklist and a one-hour rehearsal on the live site.
 
 ## Next phase
 

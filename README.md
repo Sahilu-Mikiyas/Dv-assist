@@ -173,11 +173,29 @@ Store `DATA_ENCRYPTION_KEY` in a password manager. Without it, the stored data c
 Free-tier limit: the service sleeps after about 15 minutes idle, and the first request after that
 takes up to a minute.
 
+## Backups
+
+Admins download a full backup from staff → Data → **Download full backup** (one `.ndjson` file; every download
+is in the audit log). Photos, passports and personal details stay encrypted inside it, so the file is useless
+without `DATA_ENCRYPTION_KEY`, and the key is useless without the file: keep them in separate places.
+
+Restore into a new, empty database (local file or a new Turso database):
+
+```sh
+DATABASE_URL=file:restored.db node scripts/restore-backup.mjs <backup file>.ndjson
+```
+
+The script creates the schema first and refuses to restore over existing cases. Run the app on the restored
+database with the same `DATA_ENCRYPTION_KEY` as the original site. Also turn on Turso's own
+point-in-time restore if your plan includes it. Health check for an uptime monitor: `GET /healthz`
+(503 when the database is unreachable).
+
 ## Move to Railway later
 
 The same Dockerfile and environment variables work on Railway.
 1. Create a project from this repository. Railway builds the `Dockerfile`.
-2. Copy over the same variables, with `TRUST_PROXY=true`.
+2. Copy over the same variables, with `TRUST_PROXY=true`. More than one instance is fine: card issuing and the
+   one-entry-per-passport rule are enforced in the database (rate-limit counters are per instance).
 3. Database, either way:
    - **Keep Turso:** leave `DATABASE_URL` as it is. Nothing to migrate.
    - **Use a Railway volume:** mount it at `/app/data`, set `DATABASE_URL=file:/app/data/dv-assist.db`,

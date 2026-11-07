@@ -169,7 +169,18 @@ export const MIGRATIONS = [
   'ALTER TABLE staff ADD COLUMN totp_last_step INTEGER',
   // Recovery: two interrupted deploys recorded migration 49 on the live database without creating this index.
   "CREATE UNIQUE INDEX IF NOT EXISTS payouts_one_pending ON payouts (partner_id) WHERE status = 'pending'",
+  // A card being issued is claimed in the database, so no second request (on any server) can start another,
+  // and the case cannot be reopened or erased meanwhile. A claim older than CARD_CLAIM_MS has expired.
+  'ALTER TABLE cases ADD COLUMN card_claimed_at TEXT',
+  // One website entry per passport, enforced by the database: the claim's primary key is the passport.
+  `CREATE TABLE passport_claims (
+     passport_fp TEXT PRIMARY KEY,
+     case_id     TEXT NOT NULL
+   )`,
 ];
+
+const CARD_CLAIM_MS = 2 * 60 * 1000;
+const claimExpired = () => new Date(Date.now() - CARD_CLAIM_MS).toISOString();
 
 const norm = (v) => String(v ?? '').trim().toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
 // The principal applicant's fingerprints: passport number, and full name with birth date.
@@ -313,16 +324,20 @@ export function caseRepository(db, crypt) {
 
     // Erases everything personal about a case: applicant details, photos, confirmation number, resume code
     // and queued messages. The row stays (case number, status, dates) so counts and the audit trail add up.
+    // Returns false (and changes nothing) if a card is being issued for the case right now.
     async erase(id) {
       const ts = now();
-      await db.batch([
+      const erasedNow = 'AND (SELECT erased_at FROM cases WHERE id = ?) = ?';
+      const [update] = await db.batch([
         { sql: `UPDATE cases SET applicant = ?, confirmation_number = NULL, access_hash = NULL, passport_fp = NULL, person_fp = NULL,
-                erased_at = ?, updated_at = ? WHERE id = ?`,
-          args: [crypt.encryptJson({ erased: true }), ts, ts, id] },
-        { sql: 'DELETE FROM photos WHERE case_id = ?', args: [id] },
-        { sql: 'DELETE FROM documents WHERE case_id = ?', args: [id] },
-        { sql: 'DELETE FROM messages WHERE case_id = ?', args: [id] },
+                erased_at = ?, updated_at = ? WHERE id = ? AND (card_claimed_at IS NULL OR card_claimed_at < ?)`,
+          args: [crypt.encryptJson({ erased: true }), ts, ts, id, claimExpired()] },
+        { sql: `DELETE FROM photos WHERE case_id = ? ${erasedNow}`, args: [id, id, ts] },
+        { sql: `DELETE FROM documents WHERE case_id = ? ${erasedNow}`, args: [id, id, ts] },
+        { sql: `DELETE FROM messages WHERE case_id = ? ${erasedNow}`, args: [id, id, ts] },
+        { sql: `DELETE FROM passport_claims WHERE case_id = ? ${erasedNow}`, args: [id, id, ts] },
       ], 'write');
+      return update.rowsAffected === 1;
     },
 
     async recordPayment(caseId, { amountEtb, method, reference, recordedBy }) {
@@ -379,9 +394,43 @@ export function caseRepository(db, crypt) {
     // State changes only apply if the case is still in the state it was read in (`from`), and not erased:
     // two people acting at once cannot both win. Returns whether the change applied.
     async setStatus(id, { status, checks, from }) {
-      const r = await run('UPDATE cases SET status = ?, checks = ?, updated_at = ? WHERE id = ? AND status = ? AND erased_at IS NULL',
-        status, JSON.stringify(checks), now(), id, from);
+      const r = await run(`UPDATE cases SET status = ?, checks = ?, updated_at = ?
+                           WHERE id = ? AND status = ? AND erased_at IS NULL AND (card_claimed_at IS NULL OR card_claimed_at < ?)`,
+      status, JSON.stringify(checks), now(), id, from, claimExpired());
       return r.rowsAffected === 1;
+    },
+
+    // Claims the right to issue this case's card; false if another request holds a live claim.
+    async claimCard(id) {
+      const r = await run(`UPDATE cases SET card_claimed_at = ? WHERE id = ? AND status = 'approved' AND erased_at IS NULL
+                           AND (card_claimed_at IS NULL OR card_claimed_at < ?)`, now(), id, claimExpired());
+      return r.rowsAffected === 1;
+    },
+    async releaseCard(id) {
+      await run('UPDATE cases SET card_claimed_at = NULL WHERE id = ?', id);
+    },
+    async cardBeingIssued(id) {
+      const row = (await run('SELECT card_claimed_at FROM cases WHERE id = ?', id)).rows[0];
+      return Boolean(row?.card_claimed_at && row.card_claimed_at >= claimExpired());
+    },
+
+    // Website entries: claim the passport for this case. True if it is this case's now (new, already ours, or
+    // left by an entry that no longer exists or was erased); false if another live entry holds it.
+    async claimPassport(caseId, applicant) {
+      const { passportFp } = applicantFingerprints(crypt, applicant);
+      if (!passportFp) return true;
+      const r = await run(`INSERT INTO passport_claims (passport_fp, case_id) VALUES (?, ?)
+        ON CONFLICT (passport_fp) DO UPDATE SET case_id = excluded.case_id
+        WHERE passport_claims.case_id = excluded.case_id
+           OR passport_claims.case_id NOT IN (SELECT id FROM cases WHERE erased_at IS NULL)`, passportFp, caseId);
+      if (r.rowsAffected !== 1) return false;
+      // A changed passport number frees the old one.
+      await run('DELETE FROM passport_claims WHERE case_id = ? AND passport_fp <> ?', caseId, passportFp);
+      return true;
+    },
+    // Undo a just-created entry that lost the passport claim (nothing else refers to it yet).
+    async deleteNewCase(id) {
+      await run('DELETE FROM cases WHERE id = ?', id);
     },
 
     async assign(id, staffId) {
@@ -399,7 +448,7 @@ export function caseRepository(db, crypt) {
     },
 
     async markCardIssued(id, { cardId, cardReference, status }) {
-      const r = await run(`UPDATE cases SET card_id = ?, card_reference = ?, status = ?, updated_at = ?
+      const r = await run(`UPDATE cases SET card_id = ?, card_reference = ?, status = ?, updated_at = ?, card_claimed_at = NULL
                            WHERE id = ? AND status = 'approved' AND erased_at IS NULL`,
       cardId, cardReference, status, now(), id);
       return r.rowsAffected === 1;

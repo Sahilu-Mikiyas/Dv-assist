@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto';
 import { applicantAuth, auth, partnerAuth } from '../src/http/auth.js';
 import { loginLimiter } from '../src/http/rate-limit.js';
 import { createApp } from '../src/http/server.js';
+import { writeBackup } from '../src/infra/backup.js';
 import { totpCode } from '../src/infra/totp.js';
 import { PASSWORD, applicantInput, fakeJpeg, fakePassport, seedStaff, setupCases } from './helpers.js';
 
@@ -23,6 +24,7 @@ async function startServer({ secureCookies = true, perIp = 5 } = {}) {
     limiter: loginLimiter({ perIp }), accountLimiter: loginLimiter({ perIp: 50 }), startLimiter: loginLimiter({ perIp: 3 }),
     resumeLimiter: loginLimiter({ perIp }), partnerLimiter: loginLimiter({ perIp }), partnerApplyLimiter: loginLimiter({ perIp: 20 }),
     hsts: true, webhookSecret: WEBHOOK_SECRET,
+    audit: env.audit, backup: (write) => writeBackup(env.db, write), health: () => env.db.execute('SELECT 1'),
   });
   await new Promise((resolve) => server.listen(0, resolve));
   servers.push(server);
@@ -55,6 +57,19 @@ before(async () => {
   ({ url: base, members } = await startServer());
 });
 after(() => servers.forEach((s) => s.close()));
+
+test('health check reports the database; backups are admin-only downloads', async () => {
+  const health = await (await fetch(`${base}/healthz`)).json();
+  assert.deepEqual(health, { ok: true, database: 'ok' });
+  const meron = await signedIn(base, members.meron);
+  const admin = await signedIn(base, members.admin);
+  assert.equal((await meron('GET', '/api/backup')).status, 403);
+  const res = await admin('GET', '/api/backup');
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-disposition'), /ethio-dv-assist-backup-.*\.ndjson/);
+  const [header] = (await res.text()).split('\n');
+  assert.equal(JSON.parse(header).kind, 'ethio-dv-assist-backup');
+});
 
 test('sets security headers on every response', async () => {
   const res = await fetch(`${base}/healthz`);

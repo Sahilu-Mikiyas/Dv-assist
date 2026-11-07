@@ -10,6 +10,7 @@ import {
   auditLog, caseRepository, messageRepository, openDb, partnerRepository, settingsRepository, staffRepository,
 } from './infra/db.js';
 import { afroMessageSms, brevoEmail } from './infra/messaging.js';
+import { writeBackup } from './infra/backup.js';
 import { log } from './infra/log.js';
 import { applicationService } from './services/applications.js';
 import { caseService } from './services/cases.js';
@@ -80,6 +81,9 @@ const server = createApp({
   resumeLimiter: loginLimiter({ perIp: 10, global: Infinity }),
   partnerLimiter: loginLimiter({ perIp: 10, global: Infinity }),
   partnerApplyLimiter: loginLimiter({ perIp: 5, global: Infinity, windowMs: 60 * 60 * 1000 }),
+  audit,
+  backup: (write) => writeBackup(db, write),
+  health: () => db.execute('SELECT 1'),
   trustProxy: config.trustProxy,
   hsts: config.secureCookies,
   webhookSecret: config.bitnob.webhookSecret,
